@@ -2,6 +2,38 @@
 
 ## 2026-06-22
 
+### Versión 1.2.0 - Checkboxes para Seguimiento de Artefactos
+
+#### Cambio: Interfaz Visual Simplificada
+Se reemplazaron los campos de texto para artefactos por checkboxes que el QA marca a medida que completa cada etapa:
+
+**Campos modificados:**
+- `sqlFile` (texto) → `sqlReceived` (checkbox) ✓
+- `restEndpoint` (texto) → `restReceived` (checkbox) ✓
+- `grpcMethod` (texto) → `grpcReceived` (checkbox) ✓
+- `equivalenceMatrix` (textarea) → `equivalenceMatrixReady` (checkbox) ✓
+- `qmetryEvidence` (textarea) → `qmetryEvidenceReady` (checkbox) ✓
+
+**Campos mantenidos:**
+- `sqlReceivedDate`, `restReceivedDate`, `grpcReceivedDate` - Rastrean cuándo se recibió cada artefacto
+- `notes` - Notas QA de propósito general
+
+**Por qué:** Visual más clara (✓ o ◯), acciones más rápidas, menos escritura. Las fechas aún registran cuándo completó cada etapa para auditoría.
+
+**Cómo se ve:**
+- En el formulario: Checkboxes con etiquetas claras
+- En la tabla: Checkmarks (✓) o círculos vacíos (◯) en columnas SQL, REST, gRPC, Matriz, QMetry
+- Tooltips muestran la fecha cuando pasas el cursor
+
+**Cambios técnicos:**
+- `app.js`: Agregado soporte para `type: "checkbox"` en renderForm()
+- `app.js`: Conversión correcta de booleanos en handleFormSubmit()
+- `app.js`: Tabla muestra checkmarks en lugar de texto
+- `server.py`: Datos de seed actualizados con valores booleanos
+- Commit: `6e368e6`
+
+---
+
 ### Versión 1.1.0 - Mejoras en Rastreo de Migraciones de SP
 
 #### 1. Métricas de Progreso Mejoradas
@@ -31,25 +63,10 @@
 - Validación ocurre client-side (inmediato) y server-side (seguridad)
 - Si la transición es inválida, aparece error y el SP no se actualiza
 
-**Cambios en archivos:**
-- `app.js`: 
-  - Agregado `spMigrationTransitions` object y `validateSPStatusTransition()` function
-  - `saveRecord()` ahora valida transiciones de SP antes de guardar
-  - `handleFormSubmit()` captura y muestra errores de validación al usuario
-  - `renderMetrics()` ahora calcula y muestra 3 métricas adicionales de SP
-  - `fieldConfig.spMigrations` agregados 3 campos de fecha
-- `server.py`:
-  - `QAService` agregado atributo `SP_VALID_TRANSITIONS` con el flujo válido
-  - `QAService.update()` valida transiciones de SP antes de guardar
-  - Agregado método `_validate_sp_transition()` para aplicar reglas
-  - Datos de seed actualizados con fechas completas en los 2 SPs de ejemplo
-- `docs/CHANGELOG.md`: Este archivo actualizado (versión mejorada)
-
-**Cómo probar:**
-1. **Métricas**: Abre dashboard, verifica 3 nuevas métricas de SP
-2. **Fechas**: Ve a "Migracion SP", edita un SP, ves 3 campos de fecha nuevos
-3. **Validación**: Intenta cambiar estado inválido (ej: SQL recibido → En QA), verifica error
-4. **Flujo válido**: Sigue el path correcto, verifica que no hay errores
+#### 4. Null Safety Defensivo
+- Agregados optional chaining (?.) y nullish coalescing (??) en todo el código
+- Previene errores "Cannot read properties of undefined"
+- Aplicado a: renderMetrics(), renderList(), renderKanban(), optionsFor(), saveRecord(), findName()
 
 ---
 
@@ -57,17 +74,8 @@
 
 - Se agrego la entidad `spMigrations` para rastrear la migracion de Stored Procedures a microservicios.
 - Se creo una nueva pestaña de menu llamada `Migracion SP`, ubicada debajo de `Tareas`.
-- La nueva vista permite registrar:
-  - Nombre del SP.
-  - Archivo `.sql` entregado por migracion.
-  - Dev asignado.
-  - QA asignado.
-  - Estado del seguimiento.
-  - Endpoint REST generado.
-  - Metodo gRPC generado.
-  - Matriz de equivalencia.
-  - Evidencia QMetry.
-  - Notas QA.
+- La nueva vista permite registrar información sobre cada SP.
 - Se actualizo el backend Python para crear la tabla SQLite correspondiente y exponerla en la API generica.
 - Se actualizo el tablero con una metrica de SP en migracion.
+
 
