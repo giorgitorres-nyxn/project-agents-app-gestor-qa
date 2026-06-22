@@ -20,7 +20,7 @@ const viewConfig = {
     kicker: "Seguimiento tecnico",
     store: "spMigrations",
     filters: ["Todos", "SQL recibido", "REST/gRPC recibido", "En QA", "Matriz lista", "Evidencia QMetry", "Finalizado"],
-    columns: ["SP", "Dev", "QA", "Estado", "SQL", "REST", "gRPC", "QMetry", ""]
+    columns: ["SP", "Dev", "QA", "Estado", "SQL", "REST", "gRPC", "Matriz", "QMetry", ""]
   },
   testCases: {
     title: "Casos de prueba",
@@ -64,17 +64,17 @@ const fieldConfig = {
   ],
   spMigrations: [
     { name: "spName", label: "Nombre del SP", type: "text", required: true },
-    { name: "sqlFile", label: "Archivo .sql", type: "text", required: true },
     { name: "sqlReceivedDate", label: "Fecha recepción SQL", type: "date" },
+    { name: "sqlReceived", label: "SQL recibido", type: "checkbox" },
     { name: "devName", label: "Dev asignado", type: "text", required: true },
     { name: "qaId", label: "QA asignado", type: "member" },
     { name: "status", label: "Estado", type: "select", options: ["SQL recibido", "REST/gRPC recibido", "En QA", "Matriz lista", "Evidencia QMetry", "Finalizado"] },
-    { name: "restEndpoint", label: "REST generado", type: "text" },
     { name: "restReceivedDate", label: "Fecha recepción REST", type: "date" },
-    { name: "grpcMethod", label: "gRPC generado", type: "text" },
+    { name: "restReceived", label: "REST endpoint recibido", type: "checkbox" },
     { name: "grpcReceivedDate", label: "Fecha recepción gRPC", type: "date" },
-    { name: "equivalenceMatrix", label: "Matriz de equivalencia", type: "textarea", full: true },
-    { name: "qmetryEvidence", label: "Evidencia QMetry", type: "textarea", full: true },
+    { name: "grpcReceived", label: "gRPC method recibido", type: "checkbox" },
+    { name: "equivalenceMatrixReady", label: "Matriz de equivalencia lista", type: "checkbox" },
+    { name: "qmetryEvidenceReady", label: "Evidencia cargada a QMetry", type: "checkbox" },
     { name: "notes", label: "Notas QA", type: "textarea", full: true }
   ],
   testCases: [
@@ -382,15 +382,17 @@ function tableRow(store, record) {
     ]);
   }
   if (store === "spMigrations") {
+    const checkmark = (value) => value ? "✓" : "◯";
     return row([
       record.spName,
       record.devName || "Sin dev",
       findName("members", record.qaId) || "Sin QA",
       record.status,
-      record.sqlFile || "Sin archivo",
-      record.restEndpoint || "Pendiente",
-      record.grpcMethod || "Pendiente",
-      record.qmetryEvidence || "Pendiente",
+      { html: `<span title="${record.sqlReceivedDate || 'Pendiente'}">${checkmark(record.sqlReceived)}</span>` },
+      { html: `<span title="${record.restReceivedDate || 'Pendiente'}">${checkmark(record.restReceived)}</span>` },
+      { html: `<span title="${record.grpcReceivedDate || 'Pendiente'}">${checkmark(record.grpcReceived)}</span>` },
+      { html: `<span title="Matriz">${checkmark(record.equivalenceMatrixReady)}</span>` },
+      { html: `<span title="QMetry">${checkmark(record.qmetryEvidenceReady)}</span>` },
       edit
     ]);
   }
@@ -432,6 +434,9 @@ function renderForm(store, record) {
     if (["select", "member", "useCase", "testCase"].includes(field.type)) {
       return `<div class="${classes}"><label for="${field.name}">${field.label}</label><select id="${field.name}" name="${field.name}">${optionsFor(field, value)}</select></div>`;
     }
+    if (field.type === "checkbox") {
+      return `<div class="${classes}"><label><input type="checkbox" id="${field.name}" name="${field.name}" value="true" ${value ? "checked" : ""}> ${field.label}</label></div>`;
+    }
     if (field.type === "textarea") {
       return `<div class="${classes}"><label for="${field.name}">${field.label}</label><textarea id="${field.name}" name="${field.name}">${escapeHtml(value)}</textarea></div>`;
     }
@@ -472,7 +477,13 @@ async function handleFormSubmit(event) {
   const config = fieldConfig[store] ?? [];
   config.forEach((field) => {
     const rawValue = formData.get(field.name);
-    record[field.name] = field.type === "number" ? Number(rawValue || 0) : rawValue;
+    if (field.type === "checkbox") {
+      record[field.name] = rawValue === "true";
+    } else if (field.type === "number") {
+      record[field.name] = Number(rawValue || 0);
+    } else {
+      record[field.name] = rawValue;
+    }
   });
   if (editingId) record.id = editingId;
 
