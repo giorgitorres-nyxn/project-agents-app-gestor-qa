@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestor QA</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">QA</div>
+          <div>
+            <strong>Gestor QA</strong>
+            <span>Procesos y seguimiento</span>
+          </div>
+        </div>
+
+        <nav class="nav-list" aria-label="Secciones">
+          <button class="nav-item active" data-view="dashboard" type="button">
+            <span class="nav-icon">#</span>
+            Tablero
+          </button>
+          <button class="nav-item" data-view="tasks" type="button">
+            <span class="nav-icon">T</span>
+            Tareas
+          </button>
+          <button class="nav-item" data-view="spMigrations" type="button">
+            <span class="nav-icon">SP</span>
+            Migracion SP
+          </button>
+          <button class="nav-item" data-view="testCases" type="button">
+            <span class="nav-icon">C</span>
+            Casos de prueba
+          </button>
+          <button class="nav-item" data-view="useCases" type="button">
+            <span class="nav-icon">U</span>
+            Casos de uso
+          </button>
+          <button class="nav-item" data-view="bugs" type="button">
+            <span class="nav-icon">!</span>
+            Errores
+          </button>
+          <button class="nav-item" data-view="members" type="button">
+            <span class="nav-icon">M</span>
+            Miembros QA
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <span>BD local</span>
+          <strong>SQLite</strong>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Centro de calidad</p>
+            <h1 id="page-title">Tablero QA</h1>
+          </div>
+          <div class="topbar-actions">
+            <label class="search">
+              <span>Q</span>
+              <input id="global-search" type="search" placeholder="Buscar">
+            </label>
+            <button class="ghost-button" id="export-data" type="button">Exportar</button>
+            <button class="primary-button" id="new-item" type="button">Nuevo</button>
+          </div>
+        </header>
+
+        <section id="dashboard-view" class="view active-view" aria-labelledby="page-title">
+          <div class="metrics-grid" id="metrics"></div>
+          <div class="work-layout">
+            <section class="panel board-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Flujo de trabajo</p>
+                  <h2>Tablero de tareas</h2>
+                </div>
+                <button class="secondary-button" id="quick-task" type="button">Agregar tarea</button>
+              </div>
+              <div class="kanban" id="kanban-board"></div>
+            </section>
+
+            <aside class="panel activity-panel">
+              <div class="panel-heading compact">
+                <div>
+                  <p class="eyebrow">Equipo</p>
+                  <h2>En qué están trabajando</h2>
+                </div>
+              </div>
+              <div id="workload-list" class="workload-list"></div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="list-view" class="view" aria-live="polite">
+          <div class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow" id="list-kicker">Gestión</p>
+                <h2 id="list-title">Elementos</h2>
+              </div>
+              <div class="segmented" id="list-filters"></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead id="table-head"></thead>
+                <tbody id="table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="item-dialog">
+      <form method="dialog" id="item-form" class="dialog-card">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow" id="dialog-kicker">Registro</p>
+            <h2 id="dialog-title">Nuevo elemento</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Cerrar" type="submit">×</button>
+        </div>
+        <div id="form-fields" class="form-grid"></div>
+        <div class="dialog-actions">
+          <button class="ghost-button danger hidden" id="delete-item" type="button">Eliminar</button>
+          <span class="dialog-spacer"></span>
+          <button class="ghost-button" value="cancel" type="submit">Cancelar</button>
+          <button class="primary-button" id="save-item" value="default" type="submit">Guardar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <input id="import-file" type="file" accept="application/json" hidden>
+    <script src="app.js"></script>
+  </body>
+</html>
