@@ -171,7 +171,8 @@ async function saveRecord(store, record) {
   const method = editing ? "PUT" : "POST";
 
   if (editing && store === "spMigrations") {
-    const existing = state.data[store].find((item) => item.id === record.id);
+    const storeData = state.data[store] ?? [];
+    const existing = storeData.find((item) => item.id === record.id);
     if (existing && existing.status !== record.status) {
       const error = validateSPStatusTransition(existing.status, record.status);
       if (error) throw new Error(error);
@@ -224,18 +225,18 @@ function render() {
 }
 
 function renderMetrics() {
-  const activeBugs = state.data.bugs.filter((bug) => !["Resuelto", "Cerrado"].includes(bug.status)).length;
-  const runningTasks = state.data.tasks.filter((task) => task.status !== "done").length;
-  const executed = state.data.testCases.filter((test) => test.status === "Ejecutado").length;
-  const blocked = state.data.testCases.filter((test) => test.status === "Bloqueado").length;
-  const spTotal = state.data.spMigrations.length;
-  const spCompleted = state.data.spMigrations.filter((sp) => sp.status === "Finalizado").length;
-  const spInProgress = state.data.spMigrations.filter((sp) => !["Finalizado"].includes(sp.status)).length;
-  const spPending = state.data.spMigrations.filter((sp) => ["SQL recibido", "REST/gRPC recibido"].includes(sp.status)).length;
-  const spReadyQMetry = state.data.spMigrations.filter((sp) => ["Matriz lista", "Evidencia QMetry"].includes(sp.status)).length;
+  const activeBugs = state.data.bugs?.filter((bug) => !["Resuelto", "Cerrado"].includes(bug.status)).length ?? 0;
+  const runningTasks = state.data.tasks?.filter((task) => task.status !== "done").length ?? 0;
+  const executed = state.data.testCases?.filter((test) => test.status === "Ejecutado").length ?? 0;
+  const blocked = state.data.testCases?.filter((test) => test.status === "Bloqueado").length ?? 0;
+  const spTotal = state.data.spMigrations?.length ?? 0;
+  const spCompleted = state.data.spMigrations?.filter((sp) => sp.status === "Finalizado").length ?? 0;
+  const spInProgress = state.data.spMigrations?.filter((sp) => !["Finalizado"].includes(sp.status)).length ?? 0;
+  const spPending = state.data.spMigrations?.filter((sp) => ["SQL recibido", "REST/gRPC recibido"].includes(sp.status)).length ?? 0;
+  const spReadyQMetry = state.data.spMigrations?.filter((sp) => ["Matriz lista", "Evidencia QMetry"].includes(sp.status)).length ?? 0;
   const spCompletionPct = spTotal > 0 ? Math.round((spCompleted / spTotal) * 100) : 0;
   const metrics = [
-    ["Casos de prueba", state.data.testCases.length, `${executed} ejecutados`],
+    ["Casos de prueba", state.data.testCases?.length ?? 0, `${executed} ejecutados`],
     ["Errores abiertos", activeBugs, "requieren seguimiento"],
     ["Tareas activas", runningTasks, "en el tablero"],
     ["SP en migracion", spTotal, `${spCompletionPct}% completados`],
@@ -255,15 +256,16 @@ function renderMetrics() {
 
 function renderKanban() {
   const board = $("#kanban-board");
+  const tasks = state.data.tasks ?? [];
   board.innerHTML = Object.keys(statusLabels).map((status) => {
-    const tasks = filterRecords(state.data.tasks.filter((task) => task.status === status));
+    const filtered = filterRecords(tasks.filter((task) => task.status === status));
     return `
       <div class="kanban-column" data-status="${status}">
         <div class="column-heading">
           <span>${statusLabels[status]}</span>
-          <span class="count-pill">${tasks.length}</span>
+          <span class="count-pill">${filtered.length}</span>
         </div>
-        ${tasks.length ? tasks.map(taskCard).join("") : `<div class="empty-state">Sin tareas</div>`}
+        ${filtered.length ? filtered.map(taskCard).join("") : `<div class="empty-state">Sin tareas</div>`}
       </div>
     `;
   }).join("");
@@ -305,13 +307,14 @@ function taskCard(task) {
 
 function renderWorkload() {
   const container = $("#workload-list");
-  if (!state.data.members.length) {
+  const members = state.data.members ?? [];
+  if (!members.length) {
     container.innerHTML = `<div class="empty-state">Agrega miembros QA para ver su carga.</div>`;
     return;
   }
 
-  container.innerHTML = state.data.members.map((member) => {
-    const tasks = state.data.tasks.filter((task) => task.memberId === member.id && task.status !== "done");
+  container.innerHTML = members.map((member) => {
+    const tasks = (state.data.tasks ?? []).filter((task) => task.memberId === member.id && task.status !== "done");
     const initials = member.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
     const capacity = Number(member.capacity || 0);
     return `
@@ -338,7 +341,8 @@ function renderList() {
   $("#table-head").innerHTML = `<tr>${config.columns.map((column) => `<th>${column}</th>`).join("")}</tr>`;
   renderFilters(config);
 
-  const records = filterRecords(state.data[config.store]).filter((record) => {
+  const storeData = state.data[config.store] ?? [];
+  const records = filterRecords(storeData).filter((record) => {
     if (state.filter === "Todos") return true;
     if (state.listView === "tasks") return statusLabels[record.status] === state.filter;
     return record.status === state.filter;
@@ -411,7 +415,8 @@ function pill(text, className) {
 }
 
 function openEditor(store, recordId = null) {
-  const record = recordId ? state.data[store].find((item) => item.id === recordId) : null;
+  const storeData = state.data[store] ?? [];
+  const record = recordId ? storeData.find((item) => item.id === recordId) : null;
   state.editing = { store, id: recordId };
   $("#dialog-kicker").textContent = viewConfig[store]?.kicker || "Registro";
   $("#dialog-title").textContent = record ? `Editar ${singular(store)}` : `Nuevo ${singular(store)}`;
@@ -438,11 +443,18 @@ function optionsFor(field, value) {
   let options = [];
   if (field.type === "member") {
     const emptyLabel = field.name === "qaId" ? "Sin QA" : "Sin responsable";
-    options = [{ value: "", label: emptyLabel }, ...state.data.members.map((item) => ({ value: item.id, label: item.name }))];
+    const members = state.data.members ?? [];
+    options = [{ value: "", label: emptyLabel }, ...members.map((item) => ({ value: item.id, label: item.name }))];
   }
-  if (field.type === "useCase") options = [{ value: "", label: "Sin caso de uso" }, ...state.data.useCases.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}` }))];
-  if (field.type === "testCase") options = [{ value: "", label: "Sin caso de prueba" }, ...state.data.testCases.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}` }))];
-  if (field.type === "select") options = field.options.map((option) => typeof option === "string" ? { value: option, label: option } : option);
+  if (field.type === "useCase") {
+    const useCases = state.data.useCases ?? [];
+    options = [{ value: "", label: "Sin caso de uso" }, ...useCases.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}` }))];
+  }
+  if (field.type === "testCase") {
+    const testCases = state.data.testCases ?? [];
+    options = [{ value: "", label: "Sin caso de prueba" }, ...testCases.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}` }))];
+  }
+  if (field.type === "select") options = (field.options ?? []).map((option) => typeof option === "string" ? { value: option, label: option } : option);
   return options.map((option) => `<option value="${escapeHtml(option.value)}" ${option.value === value ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("");
 }
 
@@ -453,10 +465,12 @@ async function handleFormSubmit(event) {
     return;
   }
   const { store, id: editingId } = state.editing;
-  const existing = editingId ? state.data[store].find((item) => item.id === editingId) : {};
+  const storeData = state.data[store] ?? [];
+  const existing = editingId ? storeData.find((item) => item.id === editingId) : {};
   const formData = new FormData(event.currentTarget);
   const record = { ...existing };
-  fieldConfig[store].forEach((field) => {
+  const config = fieldConfig[store] ?? [];
+  config.forEach((field) => {
     const rawValue = formData.get(field.name);
     record[field.name] = field.type === "number" ? Number(rawValue || 0) : rawValue;
   });
@@ -501,16 +515,19 @@ function exportData() {
 }
 
 function findName(store, itemId) {
-  return state.data[store].find((item) => item.id === itemId)?.name;
+  const storeData = state.data[store] ?? [];
+  return storeData.find((item) => item.id === itemId)?.name;
 }
 
 function findUseCase(itemId) {
-  const item = state.data.useCases.find((record) => record.id === itemId);
+  const useCases = state.data.useCases ?? [];
+  const item = useCases.find((record) => record.id === itemId);
   return item ? `${item.code} - ${item.name}` : "Sin caso de uso";
 }
 
 function findTestCase(itemId) {
-  const item = state.data.testCases.find((record) => record.id === itemId);
+  const testCases = state.data.testCases ?? [];
+  const item = testCases.find((record) => record.id === itemId);
   return item ? `${item.code} - ${item.name}` : "Sin caso de prueba";
 }
 
