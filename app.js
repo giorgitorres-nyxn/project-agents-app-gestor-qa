@@ -394,28 +394,28 @@ function filterOptionsFor(config) {
 function tableRow(store, record) {
   const edit = { html: `<div class="row-actions"><button class="ghost-button" type="button" data-edit="${escapeHtml(record.id)}">Editar</button></div>` };
   if (store === "tasks") {
+    const statusText = statusLabels[record.status] || record.status;
     return row([
       record.title,
       findSpMigration(record.spMigrationId),
       findName("members", record.memberId) || "Sin responsable",
-      statusLabels[record.status] || record.status,
+      { html: statusBadge(statusText) },
       { html: pill(record.priority, `priority-${record.priority}`) },
       record.dueDate || "Sin fecha",
       edit
     ]);
   }
   if (store === "spMigrations") {
-    const checkmark = (value) => value ? "✓" : "◯";
     return row([
       record.spName,
       record.devName || "Sin dev",
       findName("members", record.qaId) || "Sin QA",
-      record.status,
-      { html: `<span title="${record.sqlReceivedDate || 'Pendiente'}">${checkmark(record.sqlReceived)}</span>` },
-      { html: `<span title="${record.restReceivedDate || 'Pendiente'}">${checkmark(record.restReceived)}</span>` },
-      { html: `<span title="${record.grpcReceivedDate || 'Pendiente'}">${checkmark(record.grpcReceived)}</span>` },
-      { html: `<span title="Matriz">${checkmark(record.equivalenceMatrixReady)}</span>` },
-      { html: `<span title="QMetry">${checkmark(record.qmetryEvidenceReady)}</span>` },
+      { html: statusBadge(record.status) },
+      { html: artifactBadge(record.sqlReceived, record.sqlReceivedDate) },
+      { html: artifactBadge(record.restReceived, record.restReceivedDate) },
+      { html: artifactBadge(record.grpcReceived, record.grpcReceivedDate) },
+      { html: artifactBadge(record.equivalenceMatrixReady, "Matriz") },
+      { html: artifactBadge(record.qmetryEvidenceReady, "QMetry") },
       edit
     ]);
   }
@@ -424,7 +424,7 @@ function tableRow(store, record) {
       findTestCaseSp(record),
       record.code,
       record.name,
-      record.status,
+      { html: statusBadge(record.status) },
       { html: pill(record.priority, `priority-${record.priority}`) },
       record.observation || "Sin observacion",
       edit
@@ -435,16 +435,16 @@ function tableRow(store, record) {
       findSpMigration(record.spMigrationId),
       record.code,
       record.name,
-      record.status,
+      { html: statusBadge(record.status) },
       { html: pill(record.priority, `priority-${record.priority}`) },
       record.observation || "Sin observacion",
       edit
     ]);
   }
   if (store === "bugs") {
-    return row([record.title, { html: pill(record.severity, `severity-${record.severity}`) }, record.status, findName("members", record.memberId) || "Sin responsable", findTestCase(record.testCaseId), edit]);
+    return row([record.title, { html: pill(record.severity, `severity-${record.severity}`) }, { html: statusBadge(record.status) }, findName("members", record.memberId) || "Sin responsable", findTestCase(record.testCaseId), edit]);
   }
-  return row([record.name, record.role, record.status, `${record.capacity || 0}%`, record.email || "Sin correo", edit]);
+  return row([record.name, record.role, { html: statusBadge(record.status) }, `${record.capacity || 0}%`, record.email || "Sin correo", edit]);
 }
 
 function row(cells) {
@@ -453,6 +453,24 @@ function row(cells) {
 
 function pill(text, className) {
   return `<span class="priority-pill ${escapeHtml(className)}">${escapeHtml(text || "Media")}</span>`;
+}
+
+function statusBadge(text) {
+  return `<span class="status-pill status-${cssToken(text)}">${escapeHtml(text || "Sin estado")}</span>`;
+}
+
+function artifactBadge(done, title) {
+  const label = done ? "Listo" : "Pendiente";
+  return `<span class="artifact-pill ${done ? "complete" : "pending"}" title="${escapeHtml(title || label)}">${label}</span>`;
+}
+
+function cssToken(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function openEditor(store, recordId = null) {
