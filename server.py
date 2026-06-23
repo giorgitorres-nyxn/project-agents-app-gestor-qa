@@ -152,6 +152,8 @@ class QAService:
         use_case_b = str(uuid.uuid4())
         test_a = str(uuid.uuid4())
         test_b = str(uuid.uuid4())
+        sp_a = str(uuid.uuid4())
+        sp_b = str(uuid.uuid4())
 
         seed = {
             "members": [
@@ -159,23 +161,24 @@ class QAService:
                 {"id": member_b, "name": "Andres Rojas", "role": "QA Automation", "email": "andres.qa@local", "status": "Disponible", "capacity": 45, "focus": "Automatizacion de flujos criticos"},
             ],
             "useCases": [
-                {"id": use_case_a, "code": "CU-001", "name": "Crear plan de pruebas", "actor": "QA Lead", "status": "Aprobado", "goal": "Organizar alcance, responsables y fechas de ejecucion.", "flow": "Definir alcance, agregar casos, asignar equipo y publicar plan."},
-                {"id": use_case_b, "code": "CU-002", "name": "Registrar defecto", "actor": "Analista QA", "status": "Activo", "goal": "Documentar errores encontrados durante la ejecucion.", "flow": "Seleccionar caso, describir defecto, asignar severidad y responsable."},
+                {"id": use_case_a, "spMigrationId": sp_a, "code": "CU-001", "name": "Crear plan de pruebas", "actor": "QA Lead", "status": "Aprobado", "priority": "Alta", "observation": "Caso de uso base para validar el SP de calculo de impuestos.", "goal": "Organizar alcance, responsables y fechas de ejecucion.", "flow": "Definir alcance, agregar casos, asignar equipo y publicar plan."},
+                {"id": use_case_b, "spMigrationId": sp_b, "code": "CU-002", "name": "Registrar defecto", "actor": "Analista QA", "status": "Activo", "priority": "Media", "observation": "Pendiente confirmar reglas funcionales de retencion.", "goal": "Documentar errores encontrados durante la ejecucion.", "flow": "Seleccionar caso, describir defecto, asignar severidad y responsable."},
             ],
             "testCases": [
-                {"id": test_a, "code": "CP-001", "name": "Validar creacion de caso de prueba", "useCaseId": use_case_a, "status": "Listo", "priority": "Alta", "steps": "Crear un caso con datos obligatorios y guardar.", "expected": "El sistema conserva el registro y lo muestra en la lista."},
-                {"id": test_b, "code": "CP-002", "name": "Validar reporte de error", "useCaseId": use_case_b, "status": "Ejecutado", "priority": "Media", "steps": "Ejecutar flujo con datos incompletos.", "expected": "Se muestra validacion clara al usuario."},
+                {"id": test_a, "spMigrationId": sp_a, "code": "CP-001", "name": "Validar creacion de caso de prueba", "useCaseId": use_case_a, "status": "Listo", "priority": "Alta", "observation": "Cubrir datos obligatorios del SP antes de automatizar.", "steps": "Crear un caso con datos obligatorios y guardar.", "expected": "El sistema conserva el registro y lo muestra en la lista."},
+                {"id": test_b, "spMigrationId": sp_b, "code": "CP-002", "name": "Validar reporte de error", "useCaseId": use_case_b, "status": "Ejecutado", "priority": "Media", "observation": "Ejecucion inicial completada con validaciones pendientes.", "steps": "Ejecutar flujo con datos incompletos.", "expected": "Se muestra validacion clara al usuario."},
             ],
             "bugs": [
                 {"title": "El filtro de estado no actualiza el conteo", "testCaseId": test_b, "memberId": member_a, "severity": "Media", "status": "Asignado", "description": "El tablero conserva el conteo anterior despues de aplicar filtros.", "steps": "Entrar a errores, filtrar por Abierto y volver a Todos."}
             ],
             "tasks": [
-                {"title": "Disenar matriz de pruebas de humo", "memberId": member_a, "status": "active", "priority": "Alta", "dueDate": self._today_plus(2), "kind": "Prueba", "description": "Cubrir flujos esenciales del primer ciclo."},
-                {"title": "Automatizar login y creacion de defecto", "memberId": member_b, "status": "review", "priority": "Media", "dueDate": self._today_plus(5), "kind": "Automatizacion", "description": "Preparar escenario base para regresion."},
-                {"title": "Revisar criterios de aceptacion", "memberId": member_a, "status": "backlog", "priority": "Baja", "dueDate": self._today_plus(7), "kind": "Documentacion", "description": "Alinear casos de uso con historias priorizadas."},
+                {"title": "Disenar matriz de pruebas de humo", "spMigrationId": sp_a, "memberId": member_a, "status": "active", "priority": "Alta", "dueDate": self._today_plus(2), "kind": "Prueba", "description": "Cubrir flujos esenciales del primer ciclo."},
+                {"title": "Automatizar login y creacion de defecto", "spMigrationId": sp_b, "memberId": member_b, "status": "review", "priority": "Media", "dueDate": self._today_plus(5), "kind": "Automatizacion", "description": "Preparar escenario base para regresion."},
+                {"title": "Revisar criterios de aceptacion", "spMigrationId": sp_a, "memberId": member_a, "status": "backlog", "priority": "Baja", "dueDate": self._today_plus(7), "kind": "Documentacion", "description": "Alinear casos de uso con historias priorizadas."},
             ],
             "spMigrations": [
                 {
+                    "id": sp_a,
                     "spName": "SP_CONT_IMPUESTO_CALCULAR",
                     "sqlReceivedDate": "2026-06-10",
                     "sqlReceived": True,
@@ -191,6 +194,7 @@ class QAService:
                     "notes": "Primer SP priorizado para validar equivalencia funcional.",
                 },
                 {
+                    "id": sp_b,
                     "spName": "SP_CONT_RETENCION_CONSULTAR",
                     "sqlReceivedDate": "2026-06-12",
                     "sqlReceived": True,

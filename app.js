@@ -13,7 +13,7 @@ const viewConfig = {
     kicker: "Asignacion",
     store: "tasks",
     filters: ["Todos", "Pendiente", "En progreso", "En revision", "Finalizado"],
-    columns: ["Titulo", "Responsable", "Estado", "Prioridad", "Vence", ""]
+    columns: ["Titulo", "SP asignado", "Responsable", "Estado", "Prioridad", "Vence", ""]
   },
   spMigrations: {
     title: "Migracion de SP",
@@ -27,14 +27,14 @@ const viewConfig = {
     kicker: "Validacion",
     store: "testCases",
     filters: ["Todos", "Borrador", "Listo", "Ejecutado", "Bloqueado"],
-    columns: ["Codigo", "Nombre", "Estado", "Prioridad", "Caso de uso", ""]
+    columns: ["SP del CP", "Codigo", "Nombre", "Estado", "Prioridad", "Observacion", ""]
   },
   useCases: {
     title: "Casos de uso",
     kicker: "Producto",
     store: "useCases",
     filters: ["Todos", "Activo", "En analisis", "Aprobado", "Retirado"],
-    columns: ["Codigo", "Nombre", "Actor", "Estado", "Objetivo", ""]
+    columns: ["SP", "Codigo", "Nombre", "Estado", "Prioridad", "Observacion", ""]
   },
   bugs: {
     title: "Errores detectados",
@@ -55,6 +55,7 @@ const viewConfig = {
 const fieldConfig = {
   tasks: [
     { name: "title", label: "Titulo", type: "text", required: true, full: true },
+    { name: "spMigrationId", label: "SP asignado", type: "spMigration" },
     { name: "memberId", label: "Responsable", type: "member" },
     { name: "status", label: "Estado", type: "select", options: Object.entries(statusLabels).map(([value, label]) => ({ value, label })) },
     { name: "priority", label: "Prioridad", type: "select", options: ["Alta", "Media", "Baja"] },
@@ -78,19 +79,24 @@ const fieldConfig = {
     { name: "notes", label: "Notas QA", type: "textarea", full: true }
   ],
   testCases: [
+    { name: "spMigrationId", label: "SP asociado", type: "spMigration" },
     { name: "code", label: "Codigo", type: "text", required: true },
     { name: "name", label: "Nombre", type: "text", required: true },
     { name: "useCaseId", label: "Caso de uso", type: "useCase" },
     { name: "status", label: "Estado", type: "select", options: ["Borrador", "Listo", "Ejecutado", "Bloqueado"] },
     { name: "priority", label: "Prioridad", type: "select", options: ["Alta", "Media", "Baja"] },
+    { name: "observation", label: "Observacion", type: "textarea", full: true },
     { name: "steps", label: "Pasos", type: "textarea", full: true },
     { name: "expected", label: "Resultado esperado", type: "textarea", full: true }
   ],
   useCases: [
+    { name: "spMigrationId", label: "SP asociado", type: "spMigration" },
     { name: "code", label: "Codigo", type: "text", required: true },
     { name: "name", label: "Nombre", type: "text", required: true },
     { name: "actor", label: "Actor", type: "text" },
     { name: "status", label: "Estado", type: "select", options: ["Activo", "En analisis", "Aprobado", "Retirado"] },
+    { name: "priority", label: "Prioridad", type: "select", options: ["Alta", "Media", "Baja"] },
+    { name: "observation", label: "Observacion", type: "textarea", full: true },
     { name: "goal", label: "Objetivo", type: "textarea", full: true },
     { name: "flow", label: "Flujo principal", type: "textarea", full: true }
   ],
@@ -290,6 +296,7 @@ function renderKanban() {
 
 function taskCard(task) {
   const member = findName("members", task.memberId);
+  const sp = findSpMigration(task.spMigrationId);
   return `
     <article class="card" draggable="true" data-id="${escapeHtml(task.id)}">
       <div class="card-title">
@@ -297,6 +304,7 @@ function taskCard(task) {
         <span class="priority-pill priority-${escapeHtml(task.priority)}">${escapeHtml(task.priority || "Media")}</span>
       </div>
       <div class="card-meta">
+        <span>${escapeHtml(sp)}</span>
         <span>${escapeHtml(member || "Sin responsable")}</span>
         <span>${escapeHtml(task.kind || "Tarea")}</span>
         <span>${escapeHtml(task.dueDate || "Sin fecha")}</span>
@@ -344,7 +352,10 @@ function renderList() {
   const storeData = state.data[config.store] ?? [];
   const records = filterRecords(storeData).filter((record) => {
     if (state.filter === "Todos") return true;
-    if (state.listView === "tasks") return statusLabels[record.status] === state.filter;
+    if (state.listView === "tasks") {
+      if (state.filter.startsWith("sp:")) return record.spMigrationId === state.filter.slice(3);
+      return statusLabels[record.status] === state.filter;
+    }
     return record.status === state.filter;
   });
 
@@ -358,8 +369,9 @@ function renderList() {
 }
 
 function renderFilters(config) {
-  $("#list-filters").innerHTML = config.filters.map((filter) => `
-    <button type="button" class="${state.filter === filter ? "active" : ""}" data-filter="${escapeHtml(filter)}">${escapeHtml(filter)}</button>
+  const filters = filterOptionsFor(config);
+  $("#list-filters").innerHTML = filters.map((filter) => `
+    <button type="button" class="${state.filter === filter.value ? "active" : ""}" data-filter="${escapeHtml(filter.value)}">${escapeHtml(filter.label)}</button>
   `).join("");
   $("#list-filters").querySelectorAll("button").forEach((button) => {
     button.addEventListener("click", () => {
@@ -369,11 +381,22 @@ function renderFilters(config) {
   });
 }
 
+function filterOptionsFor(config) {
+  const baseFilters = config.filters.map((filter) => ({ value: filter, label: filter }));
+  if (config.store !== "tasks") return baseFilters;
+  const spFilters = (state.data.spMigrations ?? []).map((sp) => ({
+    value: `sp:${sp.id}`,
+    label: `SP: ${sp.spName}`
+  }));
+  return [...baseFilters, ...spFilters];
+}
+
 function tableRow(store, record) {
   const edit = { html: `<div class="row-actions"><button class="ghost-button" type="button" data-edit="${escapeHtml(record.id)}">Editar</button></div>` };
   if (store === "tasks") {
     return row([
       record.title,
+      findSpMigration(record.spMigrationId),
       findName("members", record.memberId) || "Sin responsable",
       statusLabels[record.status] || record.status,
       { html: pill(record.priority, `priority-${record.priority}`) },
@@ -397,10 +420,26 @@ function tableRow(store, record) {
     ]);
   }
   if (store === "testCases") {
-    return row([record.code, record.name, record.status, { html: pill(record.priority, `priority-${record.priority}`) }, findUseCase(record.useCaseId), edit]);
+    return row([
+      findTestCaseSp(record),
+      record.code,
+      record.name,
+      record.status,
+      { html: pill(record.priority, `priority-${record.priority}`) },
+      record.observation || "Sin observacion",
+      edit
+    ]);
   }
   if (store === "useCases") {
-    return row([record.code, record.name, record.actor || "No definido", record.status, record.goal || "Sin objetivo", edit]);
+    return row([
+      findSpMigration(record.spMigrationId),
+      record.code,
+      record.name,
+      record.status,
+      { html: pill(record.priority, `priority-${record.priority}`) },
+      record.observation || "Sin observacion",
+      edit
+    ]);
   }
   if (store === "bugs") {
     return row([record.title, { html: pill(record.severity, `severity-${record.severity}`) }, record.status, findName("members", record.memberId) || "Sin responsable", findTestCase(record.testCaseId), edit]);
@@ -431,7 +470,7 @@ function renderForm(store, record) {
   $("#form-fields").innerHTML = fieldConfig[store].map((field) => {
     const value = record[field.name] ?? defaultValue(field);
     const classes = `field ${field.full ? "full" : ""}`;
-    if (["select", "member", "useCase", "testCase"].includes(field.type)) {
+    if (["select", "member", "useCase", "testCase", "spMigration"].includes(field.type)) {
       return `<div class="${classes}"><label for="${field.name}">${field.label}</label><select id="${field.name}" name="${field.name}">${optionsFor(field, value)}</select></div>`;
     }
     if (field.type === "checkbox") {
@@ -458,6 +497,10 @@ function optionsFor(field, value) {
   if (field.type === "testCase") {
     const testCases = state.data.testCases ?? [];
     options = [{ value: "", label: "Sin caso de prueba" }, ...testCases.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}` }))];
+  }
+  if (field.type === "spMigration") {
+    const spMigrations = state.data.spMigrations ?? [];
+    options = [{ value: "", label: "Sin SP" }, ...spMigrations.map((item) => ({ value: item.id, label: item.spName }))];
   }
   if (field.type === "select") options = (field.options ?? []).map((option) => typeof option === "string" ? { value: option, label: option } : option);
   return options.map((option) => `<option value="${escapeHtml(option.value)}" ${option.value === value ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("");
@@ -540,6 +583,18 @@ function findTestCase(itemId) {
   const testCases = state.data.testCases ?? [];
   const item = testCases.find((record) => record.id === itemId);
   return item ? `${item.code} - ${item.name}` : "Sin caso de prueba";
+}
+
+function findSpMigration(itemId) {
+  const spMigrations = state.data.spMigrations ?? [];
+  return spMigrations.find((record) => record.id === itemId)?.spName || "Sin SP";
+}
+
+function findTestCaseSp(testCase) {
+  if (testCase.spMigrationId) return findSpMigration(testCase.spMigrationId);
+  const useCases = state.data.useCases ?? [];
+  const useCase = useCases.find((record) => record.id === testCase.useCaseId);
+  return findSpMigration(useCase?.spMigrationId);
 }
 
 function singular(store) {
