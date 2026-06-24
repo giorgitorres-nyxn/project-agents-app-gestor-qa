@@ -2,6 +2,16 @@
 
 ## 2026-06-24
 
+### Cambio: API Vercel preparada para Supabase
+
+- Se agrego una funcion serverless `api/[...path].js` que conserva las rutas actuales `/api/...` usando Supabase.
+- Se agrego `scripts/import-to-supabase.js` para importar un export JSON hacia las tablas de Supabase.
+- Se agrego `.env.example` y se protegieron `.env` locales en `.gitignore`.
+- Se agrego `@supabase/supabase-js` y scripts npm para validar e importar datos.
+- La app local con `server.py` sigue funcionando con SQLite; en Vercel, la API usara Supabase mediante variables de entorno.
+
+---
+
 ### Cambio: Preparacion de migracion Supabase/Vercel
 
 - Se creo la rama `Migracion` para aislar los cambios de despliegue y base de datos.

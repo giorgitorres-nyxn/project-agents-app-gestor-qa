@@ -7,7 +7,9 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "check": "node --check app.js && node --check api/[...path].js && node --check scripts/import-to-supabase.js",
+    "import:supabase": "node scripts/import-to-supabase.js",
+    "test": "npm run check"
   },
   "repository": {
     "type": "git",
@@ -23,5 +25,8 @@
   "homepage": "https://github.com/giorgitorres-nyxn/project-agents-app-gestor-qa#readme",
   "devDependencies": {
     "playwright": "^1.61.1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2"
   }
 }

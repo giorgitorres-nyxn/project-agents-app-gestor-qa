@@ -1,0 +1,153 @@
+const { createClient } = require("@supabase/supabase-js");
+
+const stores = ["members", "useCases", "testCases", "bugs", "tasks", "spMigrations"];
+
+const spMigrationTransitions = {
+  "SQL recibido": ["REST/gRPC recibido", "Finalizado"],
+  "REST/gRPC recibido": ["En QA", "Finalizado"],
+  "En QA": ["Matriz lista", "En revision por banco", "Finalizado"],
+  "Matriz lista": ["Evidencia QMetry", "Finalizado"],
+  "Evidencia QMetry": ["En revision por banco", "Finalizado"],
+  "En revision por banco": ["Finalizado"],
+  "Finalizado": []
+};
+
+function supabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en variables de entorno.");
+  }
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+
+module.exports = async function handler(req, res) {
+  try {
+    const parts = apiParts(req);
+    if (req.method === "GET") return handleGet(req, res, parts);
+    if (req.method === "POST") return handleCreate(req, res, parts);
+    if (req.method === "PUT") return handleUpdate(req, res, parts);
+    if (req.method === "DELETE") return handleDelete(req, res, parts);
+    return sendJson(res, 405, { error: "Metodo no permitido" });
+  } catch (error) {
+    return sendJson(res, 500, { error: error.message || "Error interno" });
+  }
+};
+
+async function handleGet(req, res, parts) {
+  if (parts.length === 1 && parts[0] === "data") {
+    return sendJson(res, 200, await getAllData());
+  }
+  if (parts.length === 1 && parts[0] === "export") {
+    const data = await getAllData();
+    const filename = `gestor-qa-${new Date().toISOString().slice(0, 10)}.json`;
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    return res.status(200).send(JSON.stringify(data, null, 2));
+  }
+  return sendJson(res, 404, { error: "Ruta GET no encontrada" });
+}
+
+async function handleCreate(req, res, parts) {
+  if (parts.length !== 1 || !stores.includes(parts[0])) {
+    return sendJson(res, 400, { error: "Ruta de escritura invalida" });
+  }
+  const payload = { ...(req.body || {}) };
+  delete payload.id;
+  const record = await saveRecord(parts[0], payload);
+  return sendJson(res, 201, record);
+}
+
+async function handleUpdate(req, res, parts) {
+  if (parts.length !== 2 || !stores.includes(parts[0])) {
+    return sendJson(res, 400, { error: "Ruta de escritura invalida" });
+  }
+  const [store, recordId] = parts;
+  const existing = await getRecord(store, recordId);
+  if (!existing) return sendJson(res, 404, { error: "Registro no encontrado" });
+
+  const payload = { ...existing, ...(req.body || {}), id: recordId };
+  if (store === "spMigrations" && existing.status !== payload.status) {
+    validateSpTransition(existing.status, payload.status);
+  }
+
+  const record = await saveRecord(store, payload, recordId);
+  return sendJson(res, 200, record);
+}
+
+async function handleDelete(req, res, parts) {
+  if (parts.length !== 2 || !stores.includes(parts[0])) {
+    return sendJson(res, 400, { error: "Ruta DELETE invalida" });
+  }
+  const [store, recordId] = parts;
+  const { error } = await supabase().from(store).delete().eq("id", recordId);
+  if (error) throw error;
+  return res.status(204).end();
+}
+
+async function getAllData() {
+  const entries = await Promise.all(stores.map(async (store) => [store, await listRecords(store)]));
+  return Object.fromEntries(entries);
+}
+
+async function listRecords(store) {
+  const { data, error } = await supabase()
+    .from(store)
+    .select("id,payload,created_at,updated_at")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data.map(rowToRecord);
+}
+
+async function getRecord(store, recordId) {
+  const { data, error } = await supabase()
+    .from(store)
+    .select("id,payload,created_at,updated_at")
+    .eq("id", recordId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToRecord(data) : null;
+}
+
+async function saveRecord(store, record, recordId = null) {
+  const row = { payload: record };
+  if (recordId) row.id = recordId;
+
+  const query = recordId
+    ? supabase().from(store).update(row).eq("id", recordId)
+    : supabase().from(store).insert(row);
+
+  const { data, error } = await query.select("id,payload,created_at,updated_at").single();
+  if (error) throw error;
+  return rowToRecord(data);
+}
+
+function rowToRecord(row) {
+  return {
+    ...(row.payload || {}),
+    id: row.id,
+    createdAt: row.payload?.createdAt || row.created_at,
+    updatedAt: row.payload?.updatedAt || row.updated_at
+  };
+}
+
+function validateSpTransition(oldStatus, newStatus) {
+  if (oldStatus === newStatus || !oldStatus) return;
+  const allowed = spMigrationTransitions[oldStatus] || [];
+  if (!allowed.includes(newStatus)) {
+    throw new Error(`Transicion invalida: no se puede ir de "${oldStatus}" a "${newStatus}"`);
+  }
+}
+
+function apiParts(req) {
+  const raw = req.query?.path;
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  if (typeof raw === "string") return raw.split("/").filter(Boolean);
+  return req.url.split("?")[0].replace(/^\/api\/?/, "").split("/").filter(Boolean);
+}
+
+function sendJson(res, status, payload) {
+  return res.status(status).json(payload);
+}

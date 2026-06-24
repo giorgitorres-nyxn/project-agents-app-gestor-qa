@@ -24,6 +24,9 @@ Mas adelante se puede normalizar a columnas reales si se necesitan reportes SQL 
 ## Archivos preparados
 
 - `supabase/schema.sql`: crea tablas, indices, triggers `updated_at` y politicas RLS iniciales.
+- `api/[...path].js`: API serverless para Vercel con el mismo contrato actual de la app (`/api/data`, `/api/export`, CRUD).
+- `scripts/import-to-supabase.js`: importa un export JSON de Gestor QA hacia Supabase.
+- `.env.example`: ejemplo de variables necesarias para local/scripts.
 
 ## Tablas esperadas
 
@@ -47,14 +50,28 @@ En local y Vercel:
 
 ```text
 SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+Si luego agregamos login directo desde frontend, tambien se usara:
+
+```text
 SUPABASE_ANON_KEY=
 ```
 
-Solo para scripts de migracion local, nunca para frontend ni Vercel publico:
+La `SUPABASE_SERVICE_ROLE_KEY` solo debe vivir en entornos privados de servidor, como Vercel Serverless Functions o scripts locales. No debe exponerse en `app.js`, HTML ni commits.
 
-```text
-SUPABASE_SERVICE_ROLE_KEY=
-```
+## API en Vercel
+
+La app sigue llamando las rutas existentes:
+
+- `GET /api/data`
+- `GET /api/export`
+- `POST /api/:store`
+- `PUT /api/:store/:id`
+- `DELETE /api/:store/:id`
+
+En local con `python server.py`, esas rutas siguen usando SQLite. En Vercel, esas rutas las atiende `api/[...path].js` contra Supabase.
 
 ## Pasos propuestos
 
@@ -64,11 +81,18 @@ SUPABASE_SERVICE_ROLE_KEY=
    - Magic link por correo.
    - Email/password.
    - Correos permitidos manualmente.
-4. Crear script de exportacion desde SQLite a JSON si no se usa `/api/export`.
-5. Crear script de importacion JSON -> Supabase.
-6. Reemplazar las llamadas actuales `/api/...` por un cliente de datos compatible con Supabase.
-7. Agregar pantalla de login y control de sesion.
-8. Configurar variables de entorno en Vercel.
+4. Exportar datos actuales desde `http://127.0.0.1:8000/api/export`.
+5. Importar el JSON a Supabase:
+
+   ```powershell
+   $env:SUPABASE_URL="https://..."
+   $env:SUPABASE_SERVICE_ROLE_KEY="..."
+   npm.cmd run import:supabase -- .\ruta\gestor-qa-export.json
+   ```
+
+6. Configurar `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en Vercel.
+7. Probar la preview de Vercel.
+8. Agregar pantalla de login y control de sesion antes de abrir la app a mas personas.
 9. Probar CRUD e indicadores con Playwright.
 10. Hacer deploy desde la rama de migracion o abrir PR hacia `main`.
 
@@ -78,7 +102,8 @@ SUPABASE_SERVICE_ROLE_KEY=
 - Si se permitiran adjuntos/evidencias en Supabase Storage.
 - Si el despliegue inicial sera una preview de Vercel o produccion.
 - Si se migra la base `data/gestor_qa.db`, un export JSON o un archivo externo de casos.
+- Como se protegera el acceso antes de publicar la URL final.
 
 ## Nota de seguridad
 
-Las politicas iniciales del schema permiten leer y editar a cualquier usuario autenticado. Antes de produccion conviene restringir por lista de correos o tabla de perfiles.
+Las politicas iniciales del schema permiten leer y editar a cualquier usuario autenticado. La API serverless usa `SUPABASE_SERVICE_ROLE_KEY`, por lo que antes de produccion conviene agregar autenticacion o una restriccion de acceso en Vercel/app para evitar que cualquier persona con la URL use la API.
