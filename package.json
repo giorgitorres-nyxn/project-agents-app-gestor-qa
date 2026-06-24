@@ -1,0 +1,27 @@
+{
+  "name": "project-agents-app-gestor-qa",
+  "version": "1.0.0",
+  "description": "Aplicacion local para gestionar procesos de QA con una interfaz tipo tablero.",
+  "main": "app.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/giorgitorres-nyxn/project-agents-app-gestor-qa.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/giorgitorres-nyxn/project-agents-app-gestor-qa/issues"
+  },
+  "homepage": "https://github.com/giorgitorres-nyxn/project-agents-app-gestor-qa#readme",
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}

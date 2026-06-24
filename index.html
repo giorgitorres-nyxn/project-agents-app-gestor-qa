@@ -23,6 +23,10 @@
             <span class="nav-icon">#</span>
             Tablero
           </button>
+          <button class="nav-item" data-view="indicators" type="button">
+            <span class="nav-icon">%</span>
+            Indicadores
+          </button>
           <button class="nav-item" data-view="tasks" type="button">
             <span class="nav-icon">T</span>
             Tareas
@@ -85,16 +89,11 @@
               <div class="kanban" id="kanban-board"></div>
             </section>
 
-            <aside class="panel activity-panel">
-              <div class="panel-heading compact">
-                <div>
-                  <p class="eyebrow">Equipo</p>
-                  <h2>En qué están trabajando</h2>
-                </div>
-              </div>
-              <div id="workload-list" class="workload-list"></div>
-            </aside>
           </div>
+        </section>
+
+        <section id="indicators-view" class="view" aria-labelledby="page-title">
+          <div id="indicators-content" class="indicators-stack"></div>
         </section>
 
         <section id="list-view" class="view" aria-live="polite">
@@ -104,7 +103,7 @@
                 <p class="eyebrow" id="list-kicker">Gestión</p>
                 <h2 id="list-title">Elementos</h2>
               </div>
-              <div class="segmented" id="list-filters"></div>
+              <div class="custom-filter" id="list-filters"></div>
             </div>
             <div class="table-wrap">
               <table>
@@ -124,13 +123,13 @@
             <p class="eyebrow" id="dialog-kicker">Registro</p>
             <h2 id="dialog-title">Nuevo elemento</h2>
           </div>
-          <button class="icon-button" value="cancel" aria-label="Cerrar" type="submit">×</button>
+          <button class="icon-button" value="cancel" aria-label="Cerrar" type="submit" formnovalidate>×</button>
         </div>
         <div id="form-fields" class="form-grid"></div>
         <div class="dialog-actions">
           <button class="ghost-button danger hidden" id="delete-item" type="button">Eliminar</button>
           <span class="dialog-spacer"></span>
-          <button class="ghost-button" value="cancel" type="submit">Cancelar</button>
+          <button class="ghost-button" value="cancel" type="submit" formnovalidate>Cancelar</button>
           <button class="primary-button" id="save-item" value="default" type="submit">Guardar</button>
         </div>
       </form>

@@ -14,42 +14,36 @@ const viewConfig = {
     title: "Tareas",
     kicker: "Asignacion",
     store: "tasks",
-    filters: ["Todos", "Pendiente", "En progreso", "En revision", "Finalizado"],
     columns: ["Titulo", "SP asignado", "Responsable", "Estado", "Prioridad", "Vence", ""]
   },
   spMigrations: {
     title: "Migracion de SP",
     kicker: "Seguimiento tecnico",
     store: "spMigrations",
-    filters: ["Todos", ...spMigrationStatuses],
     columns: ["SP", "Dev", "QA", "Estado", "SQL", "REST", "gRPC", "Matriz", "QMetry", ""]
   },
   testCases: {
     title: "Casos de prueba",
     kicker: "Validacion",
     store: "testCases",
-    filters: ["Todos", "Borrador", "Listo", "Ejecutado", "Bloqueado"],
     columns: ["SP del CP", "Codigo", "Nombre", "Estado", "Prioridad", "Observacion", ""]
   },
   useCases: {
     title: "Casos de uso",
     kicker: "Producto",
     store: "useCases",
-    filters: ["Todos", "Activo", "En analisis", "Aprobado", "Retirado"],
     columns: ["SP", "Codigo", "Nombre", "Estado", "Prioridad", "Observacion", ""]
   },
   bugs: {
     title: "Errores detectados",
     kicker: "Incidencias",
     store: "bugs",
-    filters: ["Todos", "Abierto", "Asignado", "Resuelto", "Cerrado"],
     columns: ["Titulo", "SP", "Caso de prueba", "Severidad", "Estado", "Responsable", ""]
   },
   members: {
     title: "Miembros QA",
     kicker: "Equipo",
     store: "members",
-    filters: ["Todos", "Disponible", "Ocupado", "Ausente"],
     columns: ["Nombre", "Rol", "Estado", "Carga", "Correo", ""]
   }
 };
@@ -122,10 +116,75 @@ const fieldConfig = {
   ]
 };
 
+const listFilterFields = {
+  tasks: [
+    { key: "title", label: "Titulo" },
+    { key: "spMigration", label: "SP asignado" },
+    { key: "member", label: "Responsable" },
+    { key: "status", label: "Estado" },
+    { key: "priority", label: "Prioridad" },
+    { key: "dueDate", label: "Vence" },
+    { key: "kind", label: "Tipo" },
+    { key: "description", label: "Descripcion" }
+  ],
+  spMigrations: [
+    { key: "spName", label: "SP" },
+    { key: "devName", label: "Dev" },
+    { key: "qa", label: "QA" },
+    { key: "status", label: "Estado" },
+    { key: "sql", label: "SQL" },
+    { key: "rest", label: "REST" },
+    { key: "grpc", label: "gRPC" },
+    { key: "matrix", label: "Matriz" },
+    { key: "qmetry", label: "QMetry" },
+    { key: "notes", label: "Notas" }
+  ],
+  testCases: [
+    { key: "spMigration", label: "SP del CP" },
+    { key: "code", label: "Codigo" },
+    { key: "name", label: "Nombre" },
+    { key: "useCase", label: "Caso de uso" },
+    { key: "status", label: "Estado" },
+    { key: "priority", label: "Prioridad" },
+    { key: "observation", label: "Observacion" },
+    { key: "steps", label: "Pasos" },
+    { key: "expected", label: "Resultado esperado" }
+  ],
+  useCases: [
+    { key: "spMigration", label: "SP" },
+    { key: "code", label: "Codigo" },
+    { key: "name", label: "Nombre" },
+    { key: "actor", label: "Actor" },
+    { key: "status", label: "Estado" },
+    { key: "priority", label: "Prioridad" },
+    { key: "observation", label: "Observacion" },
+    { key: "goal", label: "Objetivo" },
+    { key: "flow", label: "Flujo principal" }
+  ],
+  bugs: [
+    { key: "title", label: "Titulo" },
+    { key: "spMigration", label: "SP" },
+    { key: "testCase", label: "Caso de prueba" },
+    { key: "severity", label: "Severidad" },
+    { key: "status", label: "Estado" },
+    { key: "member", label: "Responsable" },
+    { key: "description", label: "Descripcion" },
+    { key: "steps", label: "Como reproducir" }
+  ],
+  members: [
+    { key: "name", label: "Nombre" },
+    { key: "role", label: "Rol" },
+    { key: "status", label: "Estado" },
+    { key: "capacity", label: "Carga" },
+    { key: "email", label: "Correo" },
+    { key: "focus", label: "Enfoque actual" }
+  ]
+};
+
 let state = {
   activeView: "dashboard",
   listView: "tasks",
-  filter: "Todos",
+  customFilters: Object.fromEntries(stores.map((store) => [store, []])),
   search: "",
   editing: null,
   data: Object.fromEntries(stores.map((store) => [store, []]))
@@ -214,24 +273,29 @@ function bindEvents() {
 
 function setView(view) {
   state.activeView = view;
-  if (view !== "dashboard") {
+  if (!["dashboard", "indicators"].includes(view)) {
     state.listView = view;
-    state.filter = "Todos";
   }
   document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === view));
   render();
 }
 
 function render() {
-  $("#dashboard-view").classList.toggle("active-view", state.activeView === "dashboard");
-  $("#list-view").classList.toggle("active-view", state.activeView !== "dashboard");
+  const isDashboard = state.activeView === "dashboard";
+  const isIndicators = state.activeView === "indicators";
+  $("#dashboard-view").classList.toggle("active-view", isDashboard);
+  $("#indicators-view").classList.toggle("active-view", isIndicators);
+  $("#list-view").classList.toggle("active-view", !isDashboard && !isIndicators);
+  $("#new-item").classList.toggle("hidden", isIndicators);
   $("#new-item").textContent = state.activeView === "dashboard" ? "Nueva tarea" : "Nuevo";
-  $("#page-title").textContent = state.activeView === "dashboard" ? "Tablero QA" : viewConfig[state.listView].title;
+  $("#page-title").textContent = isDashboard ? "Tablero QA" : isIndicators ? "Indicadores" : viewConfig[state.listView].title;
 
-  renderMetrics();
-  renderKanban();
-  renderWorkload();
-  if (state.activeView !== "dashboard") renderList();
+  if (isDashboard) {
+    renderMetrics();
+    renderKanban();
+  }
+  if (isIndicators) renderIndicators();
+  if (!isDashboard && !isIndicators) renderList();
 }
 
 function renderMetrics() {
@@ -319,6 +383,7 @@ function taskCard(task) {
 
 function renderWorkload() {
   const container = $("#workload-list");
+  if (!container) return;
   const members = state.data.members ?? [];
   if (!members.length) {
     container.innerHTML = `<div class="empty-state">Agrega miembros QA para ver su carga.</div>`;
@@ -346,6 +411,158 @@ function renderWorkload() {
   }).join("");
 }
 
+function renderIndicators() {
+  const container = $("#indicators-content");
+  const members = filterRecords(state.data.members ?? []);
+  const allMembers = state.data.members ?? [];
+  const tasks = state.data.tasks ?? [];
+  const bugs = state.data.bugs ?? [];
+  const testCases = state.data.testCases ?? [];
+  const spMigrations = state.data.spMigrations ?? [];
+  const activeTasks = tasks.filter((task) => task.status !== "done");
+  const activeBugs = bugs.filter((bug) => !["Resuelto", "Cerrado"].includes(bug.status));
+  const executedTests = testCases.filter((test) => test.status === "Ejecutado").length;
+  const blockedTests = testCases.filter((test) => test.status === "Bloqueado").length;
+  const completedSp = spMigrations.filter((sp) => sp.status === "Finalizado").length;
+  const qmetryReady = spMigrations.filter((sp) => sp.qmetryEvidenceReady || sp.status === "Evidencia QMetry").length;
+  const averageCapacity = allMembers.length
+    ? Math.round(allMembers.reduce((total, member) => total + Number(member.capacity || 0), 0) / allMembers.length)
+    : 0;
+
+  const memberStats = members.map((member) => {
+    const memberTasks = activeTasks.filter((task) => task.memberId === member.id);
+    const memberBugs = activeBugs.filter((bug) => bug.memberId === member.id);
+    const memberSp = spMigrations.filter((sp) => sp.qaId === member.id && sp.status !== "Finalizado");
+    return {
+      ...member,
+      activeTasks: memberTasks.length,
+      reviewTasks: memberTasks.filter((task) => task.status === "review").length,
+      activeBugs: memberBugs.length,
+      activeSp: memberSp.length,
+      capacity: Number(member.capacity || 0)
+    };
+  }).sort((a, b) => (b.activeTasks + b.activeBugs + b.activeSp) - (a.activeTasks + a.activeBugs + a.activeSp));
+
+  const cards = [
+    ["Ejecucion de casos", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} ejecutados`],
+    ["SP finalizados", `${percentage(completedSp, spMigrations.length)}%`, `${completedSp} de ${spMigrations.length} cerrados`],
+    ["Carga promedio", `${averageCapacity}%`, `${allMembers.length} miembro(s) QA`],
+    ["Errores activos", activeBugs.length, `${activeBugs.filter((bug) => ["Critica", "Alta"].includes(bug.severity)).length} de alta prioridad`],
+    ["QMetry listo", qmetryReady, "evidencia o etapa QMetry"],
+    ["Bloqueos", blockedTests, "casos de prueba bloqueados"]
+  ];
+
+  container.innerHTML = `
+    <div class="indicator-grid">
+      ${cards.map(([label, value, detail]) => `
+        <article class="metric indicator-card">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+          <span>${escapeHtml(detail)}</span>
+        </article>
+      `).join("")}
+    </div>
+
+    <div class="indicators-layout">
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Miembros</p>
+            <h2>Indicadores por miembro</h2>
+          </div>
+        </div>
+        <div class="member-indicators">
+          ${memberStats.length ? memberStats.map(memberIndicatorRow).join("") : `<div class="empty-state">No hay miembros para mostrar.</div>`}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Graficas</p>
+            <h2>Distribucion operativa</h2>
+          </div>
+        </div>
+        <div class="chart-grid">
+          ${barChart("Tareas por estado", Object.entries(statusLabels).map(([status, label]) => ({
+            label,
+            value: tasks.filter((task) => task.status === status).length
+          })))}
+          ${barChart("SP por estado", spMigrationStatuses.map((status) => ({
+            label: status,
+            value: spMigrations.filter((sp) => sp.status === status).length
+          })))}
+          ${barChart("Errores activos por severidad", ["Critica", "Alta", "Media", "Baja"].map((severity) => ({
+            label: severity,
+            value: activeBugs.filter((bug) => bug.severity === severity).length
+          })))}
+          ${barChart("Carga por miembro", memberStats.map((member) => ({
+            label: member.name,
+            value: member.capacity,
+            suffix: "%"
+          })))}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function memberIndicatorRow(member) {
+  const initials = member.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  return `
+    <article class="member-indicator-row">
+      <div class="member-top">
+        <div class="avatar">${escapeHtml(initials)}</div>
+        <div>
+          <strong>${escapeHtml(member.name)}</strong>
+          <div class="card-meta">${escapeHtml(member.role || "QA")} - ${escapeHtml(member.status || "Disponible")}</div>
+        </div>
+        <span class="status-pill">${member.capacity}% carga</span>
+      </div>
+      <div class="progress" aria-label="Carga ${member.capacity}%"><span style="width: ${clampPercent(member.capacity)}%"></span></div>
+      <div class="member-kpis">
+        <span><strong>${member.activeTasks}</strong> tareas activas</span>
+        <span><strong>${member.reviewTasks}</strong> en revision</span>
+        <span><strong>${member.activeBugs}</strong> errores activos</span>
+        <span><strong>${member.activeSp}</strong> SP asignados</span>
+      </div>
+    </article>
+  `;
+}
+
+function barChart(title, items) {
+  const max = Math.max(...items.map((item) => Number(item.value || 0)), 1);
+  const visibleItems = items.filter((item) => Number(item.value || 0) > 0);
+  return `
+    <article class="chart-card">
+      <h3>${escapeHtml(title)}</h3>
+      <div class="bar-list">
+        ${visibleItems.length ? visibleItems.map((item) => {
+          const value = Number(item.value || 0);
+          const width = Math.max(Math.round((value / max) * 100), 4);
+          return `
+            <div class="bar-row">
+              <div class="bar-label">
+                <span>${escapeHtml(item.label)}</span>
+                <strong>${escapeHtml(value)}${escapeHtml(item.suffix || "")}</strong>
+              </div>
+              <div class="bar-track"><span style="width: ${width}%"></span></div>
+            </div>
+          `;
+        }).join("") : `<div class="empty-state compact-empty">Sin datos</div>`}
+      </div>
+    </article>
+  `;
+}
+
+function percentage(value, total) {
+  return total > 0 ? Math.round((value / total) * 100) : 0;
+}
+
+function clampPercent(value) {
+  return Math.min(Math.max(Number(value || 0), 0), 100);
+}
+
 function renderList() {
   const config = viewConfig[state.listView];
   $("#list-kicker").textContent = config.kicker;
@@ -354,14 +571,7 @@ function renderList() {
   renderFilters(config);
 
   const storeData = state.data[config.store] ?? [];
-  const records = filterRecords(storeData).filter((record) => {
-    if (state.filter === "Todos") return true;
-    if (state.listView === "tasks") {
-      if (state.filter.startsWith("sp:")) return record.spMigrationId === state.filter.slice(3);
-      return statusLabels[record.status] === state.filter;
-    }
-    return record.status === state.filter;
-  });
+  const records = applyCustomFilters(filterRecords(storeData), config.store);
 
   $("#table-body").innerHTML = records.length
     ? records.map((record) => tableRow(config.store, record)).join("")
@@ -373,26 +583,136 @@ function renderList() {
 }
 
 function renderFilters(config) {
-  const filters = filterOptionsFor(config);
-  $("#list-filters").innerHTML = filters.map((filter) => `
-    <button type="button" class="${state.filter === filter.value ? "active" : ""}" data-filter="${escapeHtml(filter.value)}">${escapeHtml(filter.label)}</button>
-  `).join("");
-  $("#list-filters").querySelectorAll("button").forEach((button) => {
+  const fields = listFilterFields[config.store] ?? [];
+  const activeFilters = state.customFilters[config.store] ?? [];
+  $("#list-filters").innerHTML = `
+    <div class="filter-builder">
+      <select id="filter-field" aria-label="Campo para filtrar">
+        ${fields.map((field) => `<option value="${escapeHtml(field.key)}">${escapeHtml(field.label)}</option>`).join("")}
+      </select>
+      <select id="filter-operator" aria-label="Condicion del filtro">
+        <option value="contains">Contiene</option>
+        <option value="equals">Es igual a</option>
+        <option value="notContains">No contiene</option>
+        <option value="empty">Esta vacio</option>
+        <option value="notEmpty">No esta vacio</option>
+      </select>
+      <input id="filter-value" type="search" placeholder="Valor del filtro" aria-label="Valor del filtro">
+      <button class="secondary-button" id="add-filter" type="button">Agregar filtro</button>
+      <button class="ghost-button ${activeFilters.length ? "" : "hidden"}" id="clear-filters" type="button">Limpiar</button>
+    </div>
+    <div class="filter-chips">
+      ${activeFilters.map((filter) => filterChip(config.store, filter)).join("")}
+    </div>
+  `;
+
+  $("#add-filter").addEventListener("click", () => addCustomFilter(config.store));
+  $("#filter-value").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addCustomFilter(config.store);
+    }
+  });
+  $("#clear-filters").addEventListener("click", () => {
+    state.customFilters[config.store] = [];
+    renderList();
+  });
+  $("#list-filters").querySelectorAll("[data-remove-filter]").forEach((button) => {
     button.addEventListener("click", () => {
-      state.filter = button.dataset.filter;
+      state.customFilters[config.store] = activeFilters.filter((filter) => filter.id !== button.dataset.removeFilter);
       renderList();
     });
   });
 }
 
-function filterOptionsFor(config) {
-  const baseFilters = config.filters.map((filter) => ({ value: filter, label: filter }));
-  if (config.store !== "tasks") return baseFilters;
-  const spFilters = (state.data.spMigrations ?? []).map((sp) => ({
-    value: `sp:${sp.id}`,
-    label: `SP: ${sp.spName}`
-  }));
-  return [...baseFilters, ...spFilters];
+function addCustomFilter(store) {
+  const fieldKey = $("#filter-field").value;
+  const operator = $("#filter-operator").value;
+  const value = $("#filter-value").value.trim();
+  if (!["empty", "notEmpty"].includes(operator) && !value) return;
+
+  const filters = state.customFilters[store] ?? [];
+  state.customFilters[store] = [
+    ...filters,
+    {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      fieldKey,
+      operator,
+      value
+    }
+  ];
+  renderList();
+}
+
+function filterChip(store, filter) {
+  const field = (listFilterFields[store] ?? []).find((item) => item.key === filter.fieldKey);
+  const label = `${field?.label || filter.fieldKey} ${operatorLabel(filter.operator)}${filter.value ? ` "${filter.value}"` : ""}`;
+  return `
+    <span class="filter-chip">
+      ${escapeHtml(label)}
+      <button type="button" aria-label="Quitar filtro" data-remove-filter="${escapeHtml(filter.id)}">×</button>
+    </span>
+  `;
+}
+
+function operatorLabel(operator) {
+  return {
+    contains: "contiene",
+    equals: "es igual a",
+    notContains: "no contiene",
+    empty: "esta vacio",
+    notEmpty: "no esta vacio"
+  }[operator] || "contiene";
+}
+
+function applyCustomFilters(records, store) {
+  const activeFilters = state.customFilters[store] ?? [];
+  if (!activeFilters.length) return records;
+  return records.filter((record) => activeFilters.every((filter) => matchesCustomFilter(store, record, filter)));
+}
+
+function matchesCustomFilter(store, record, filter) {
+  const rawValue = filterValueFor(store, record, filter.fieldKey);
+  const text = normalizeFilterText(rawValue);
+  const expected = normalizeFilterText(filter.value);
+
+  if (filter.operator === "empty") return !text;
+  if (filter.operator === "notEmpty") return Boolean(text);
+  if (filter.operator === "equals") return text === expected;
+  if (filter.operator === "notContains") return !text.includes(expected);
+  return text.includes(expected);
+}
+
+function filterValueFor(store, record, fieldKey) {
+  if (fieldKey === "spMigration") {
+    if (store === "bugs") return findBugSpMigration(record);
+    if (store === "testCases") return findTestCaseSp(record);
+    return findSpMigration(record.spMigrationId);
+  }
+  if (fieldKey === "member") return findName("members", record.memberId) || "Sin responsable";
+  if (fieldKey === "qa") return findName("members", record.qaId) || "Sin QA";
+  if (fieldKey === "useCase") return findUseCase(record.useCaseId);
+  if (fieldKey === "testCase") return findTestCase(record.testCaseId);
+  if (fieldKey === "status" && store === "tasks") return statusLabels[record.status] || record.status;
+  if (fieldKey === "capacity") return `${record.capacity || 0}%`;
+  if (fieldKey === "sql") return artifactFilterText(record.sqlReceived);
+  if (fieldKey === "rest") return artifactFilterText(record.restReceived);
+  if (fieldKey === "grpc") return artifactFilterText(record.grpcReceived);
+  if (fieldKey === "matrix") return artifactFilterText(record.equivalenceMatrixReady);
+  if (fieldKey === "qmetry") return artifactFilterText(record.qmetryEvidenceReady);
+  return record[fieldKey] ?? "";
+}
+
+function artifactFilterText(done) {
+  return done ? "Listo" : "Pendiente";
+}
+
+function normalizeFilterText(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 function tableRow(store, record) {

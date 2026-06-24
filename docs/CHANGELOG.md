@@ -2,6 +2,24 @@
 
 ## 2026-06-24
 
+### Cambio: Filtros personalizados en tablas
+
+- Se quitaron los filtros por defecto de las tablas, como estados fijos y filtros automaticos por SP.
+- Se agrego un constructor de filtros por tabla con campo, condicion y valor.
+- Los filtros agregados aparecen como chips removibles y se pueden limpiar todos desde la misma tabla.
+- Los campos relacionales se filtran con valores legibles, por ejemplo responsable, SP, caso de prueba y QA asignado.
+
+---
+
+### Cambio: Nueva pestaña de indicadores
+
+- Se retiro del tablero la tarjeta lateral `Equipo / En que estan trabajando`.
+- Se agrego la pestaña `Indicadores` para consultar KPIs globales, indicadores por miembro y graficas de distribucion.
+- La nueva vista muestra ejecucion de casos, avance de SP, carga promedio, errores activos, QMetry listo y bloqueos.
+- Tambien incluye comparativas por miembro, tareas por estado, SP por estado, errores activos por severidad y carga por miembro.
+
+---
+
 ### Cambio: SP asociado en errores
 
 - Se agrego el campo `SP asociado` al crear o editar errores.
