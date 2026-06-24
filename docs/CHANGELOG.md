@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-06-24
+
+### Cambio: SP asociado en errores
+
+- Se agrego el campo `SP asociado` al crear o editar errores.
+- El campo `Caso de prueba` ahora se filtra para mostrar solo casos asociados al SP seleccionado.
+- La tabla de errores ahora muestra el SP asociado junto al caso de prueba.
+- Los errores existentes sin `spMigrationId` infieren el SP desde su caso de prueba asociado cuando es posible.
+
+---
+
+### Cambio: Estado de revision por banco
+
+- Se agrego el estado `En revision por banco` al seguimiento de migraciones de SP.
+- El estado aparece en filtros, formulario y etiquetas visuales de la vista `Migracion SP`.
+- El flujo validado queda: SQL recibido -> REST/gRPC recibido -> En QA -> Matriz lista -> Evidencia QMetry -> En revision por banco -> Finalizado.
+- Tambien se permite pasar directamente de `En QA` a `En revision por banco` cuando el proceso del banco no requiere registrar primero la matriz en la app.
+- Se conserva el cierre directo a `Finalizado` desde estados previos como cierre de emergencia.
+
+---
+
 ## 2026-06-22
 
 ### Versión 1.2.0 - Checkboxes para Seguimiento de Artefactos
@@ -54,7 +75,7 @@ Se reemplazaron los campos de texto para artefactos por checkboxes que el QA mar
 
 #### 3. Validación de Transiciones de Estado
 - Implementado flujo de estado estricto para SPs (no permite saltar etapas ni retroceder):
-  - SQL recibido → REST/gRPC recibido → En QA → Matriz lista → Evidencia QMetry → Finalizado
+  - SQL recibido → REST/gRPC recibido → En QA → Matriz lista → Evidencia QMetry → En revision por banco → Finalizado
   - Permitido: Cualquier estado → Finalizado (cierre de emergencia)
   - No permitido: Saltos (ej: SQL recibido → En QA)
   - No permitido: Retrocesos (ej: En QA → REST/gRPC recibido)

@@ -10,6 +10,7 @@ La finalidad del aplicativo es apoyar al equipo QA durante la migracion de Store
 4. El equipo de migracion genera un servicio REST y un servicio gRPC para cada SP.
 5. QA genera una matriz de equivalencia entre el comportamiento del SP y los microservicios.
 6. QA carga o referencia evidencias en QMetry.
+7. El banco revisa la evidencia antes del cierre del SP.
 
 ## Reglas actuales
 

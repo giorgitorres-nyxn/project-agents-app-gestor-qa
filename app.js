@@ -1,5 +1,7 @@
 const stores = ["members", "useCases", "testCases", "bugs", "tasks", "spMigrations"];
 
+const spMigrationStatuses = ["SQL recibido", "REST/gRPC recibido", "En QA", "Matriz lista", "Evidencia QMetry", "En revision por banco", "Finalizado"];
+
 const statusLabels = {
   backlog: "Pendiente",
   active: "En progreso",
@@ -19,7 +21,7 @@ const viewConfig = {
     title: "Migracion de SP",
     kicker: "Seguimiento tecnico",
     store: "spMigrations",
-    filters: ["Todos", "SQL recibido", "REST/gRPC recibido", "En QA", "Matriz lista", "Evidencia QMetry", "Finalizado"],
+    filters: ["Todos", ...spMigrationStatuses],
     columns: ["SP", "Dev", "QA", "Estado", "SQL", "REST", "gRPC", "Matriz", "QMetry", ""]
   },
   testCases: {
@@ -41,7 +43,7 @@ const viewConfig = {
     kicker: "Incidencias",
     store: "bugs",
     filters: ["Todos", "Abierto", "Asignado", "Resuelto", "Cerrado"],
-    columns: ["Titulo", "Severidad", "Estado", "Responsable", "Caso de prueba", ""]
+    columns: ["Titulo", "SP", "Caso de prueba", "Severidad", "Estado", "Responsable", ""]
   },
   members: {
     title: "Miembros QA",
@@ -69,7 +71,7 @@ const fieldConfig = {
     { name: "sqlReceived", label: "SQL recibido", type: "checkbox" },
     { name: "devName", label: "Dev asignado", type: "text", required: true },
     { name: "qaId", label: "QA asignado", type: "member" },
-    { name: "status", label: "Estado", type: "select", options: ["SQL recibido", "REST/gRPC recibido", "En QA", "Matriz lista", "Evidencia QMetry", "Finalizado"] },
+    { name: "status", label: "Estado", type: "select", options: spMigrationStatuses },
     { name: "restReceivedDate", label: "Fecha recepción REST", type: "date" },
     { name: "restReceived", label: "REST endpoint recibido", type: "checkbox" },
     { name: "grpcReceivedDate", label: "Fecha recepción gRPC", type: "date" },
@@ -102,7 +104,8 @@ const fieldConfig = {
   ],
   bugs: [
     { name: "title", label: "Titulo", type: "text", required: true, full: true },
-    { name: "testCaseId", label: "Caso de prueba", type: "testCase" },
+    { name: "spMigrationId", label: "SP asociado", type: "spMigration" },
+    { name: "testCaseId", label: "Caso de prueba", type: "testCase", filterBySp: true },
     { name: "memberId", label: "Responsable", type: "member" },
     { name: "severity", label: "Severidad", type: "select", options: ["Critica", "Alta", "Media", "Baja"] },
     { name: "status", label: "Estado", type: "select", options: ["Abierto", "Asignado", "Resuelto", "Cerrado"] },
@@ -139,9 +142,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 const spMigrationTransitions = {
   "SQL recibido": ["REST/gRPC recibido", "Finalizado"],
   "REST/gRPC recibido": ["En QA", "Finalizado"],
-  "En QA": ["Matriz lista", "Finalizado"],
+  "En QA": ["Matriz lista", "En revision por banco", "Finalizado"],
   "Matriz lista": ["Evidencia QMetry", "Finalizado"],
-  "Evidencia QMetry": ["Finalizado"],
+  "Evidencia QMetry": ["En revision por banco", "Finalizado"],
+  "En revision por banco": ["Finalizado"],
   "Finalizado": []
 };
 
@@ -442,7 +446,15 @@ function tableRow(store, record) {
     ]);
   }
   if (store === "bugs") {
-    return row([record.title, { html: pill(record.severity, `severity-${record.severity}`) }, { html: statusBadge(record.status) }, findName("members", record.memberId) || "Sin responsable", findTestCase(record.testCaseId), edit]);
+    return row([
+      record.title,
+      findBugSpMigration(record),
+      findTestCase(record.testCaseId),
+      { html: pill(record.severity, `severity-${record.severity}`) },
+      { html: statusBadge(record.status) },
+      findName("members", record.memberId) || "Sin responsable",
+      edit
+    ]);
   }
   return row([record.name, record.role, { html: statusBadge(record.status) }, `${record.capacity || 0}%`, record.email || "Sin correo", edit]);
 }
@@ -476,11 +488,12 @@ function cssToken(value) {
 function openEditor(store, recordId = null) {
   const storeData = state.data[store] ?? [];
   const record = recordId ? storeData.find((item) => item.id === recordId) : null;
+  const formRecord = store === "bugs" ? withBugSpMigration(record || {}) : (record || {});
   state.editing = { store, id: recordId };
   $("#dialog-kicker").textContent = viewConfig[store]?.kicker || "Registro";
   $("#dialog-title").textContent = record ? `Editar ${singular(store)}` : `Nuevo ${singular(store)}`;
   $("#delete-item").classList.toggle("hidden", !record);
-  renderForm(store, record || {});
+  renderForm(store, formRecord);
   $("#item-dialog").showModal();
 }
 
@@ -489,7 +502,7 @@ function renderForm(store, record) {
     const value = record[field.name] ?? defaultValue(field);
     const classes = `field ${field.full ? "full" : ""}`;
     if (["select", "member", "useCase", "testCase", "spMigration"].includes(field.type)) {
-      return `<div class="${classes}"><label for="${field.name}">${field.label}</label><select id="${field.name}" name="${field.name}">${optionsFor(field, value)}</select></div>`;
+      return `<div class="${classes}"><label for="${field.name}">${field.label}</label><select id="${field.name}" name="${field.name}">${optionsFor(field, value, record)}</select></div>`;
     }
     if (field.type === "checkbox") {
       return `<div class="${classes}"><label><input type="checkbox" id="${field.name}" name="${field.name}" value="true" ${value ? "checked" : ""}> ${field.label}</label></div>`;
@@ -499,9 +512,21 @@ function renderForm(store, record) {
     }
     return `<div class="${classes}"><label for="${field.name}">${field.label}</label><input id="${field.name}" name="${field.name}" type="${field.type}" value="${escapeHtml(value)}" ${field.required ? "required" : ""} ${field.min !== undefined ? `min="${field.min}"` : ""} ${field.max !== undefined ? `max="${field.max}"` : ""}></div>`;
   }).join("");
+
+  if (store === "bugs") bindBugSpTestCaseSelector();
 }
 
-function optionsFor(field, value) {
+function bindBugSpTestCaseSelector() {
+  const spSelect = $("#spMigrationId");
+  const testCaseSelect = $("#testCaseId");
+  const testCaseField = fieldConfig.bugs.find((field) => field.name === "testCaseId");
+  if (!spSelect || !testCaseSelect || !testCaseField) return;
+  spSelect.addEventListener("change", () => {
+    testCaseSelect.innerHTML = optionsFor(testCaseField, "", { spMigrationId: spSelect.value });
+  });
+}
+
+function optionsFor(field, value, record = {}) {
   let options = [];
   if (field.type === "member") {
     const emptyLabel = field.name === "qaId" ? "Sin QA" : "Sin responsable";
@@ -513,8 +538,14 @@ function optionsFor(field, value) {
     options = [{ value: "", label: "Sin caso de uso" }, ...useCases.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}` }))];
   }
   if (field.type === "testCase") {
-    const testCases = state.data.testCases ?? [];
-    options = [{ value: "", label: "Sin caso de prueba" }, ...testCases.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}` }))];
+    const selectedSpId = record.spMigrationId || "";
+    const testCases = field.filterBySp && selectedSpId
+      ? (state.data.testCases ?? []).filter((item) => testCaseBelongsToSp(item, selectedSpId))
+      : (state.data.testCases ?? []);
+    const emptyLabel = field.filterBySp && !selectedSpId
+      ? "Seleccione un SP primero"
+      : "Sin caso de prueba";
+    options = [{ value: "", label: emptyLabel }, ...testCases.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}` }))];
   }
   if (field.type === "spMigration") {
     const spMigrations = state.data.spMigrations ?? [];
@@ -608,11 +639,34 @@ function findSpMigration(itemId) {
   return spMigrations.find((record) => record.id === itemId)?.spName || "Sin SP";
 }
 
-function findTestCaseSp(testCase) {
-  if (testCase.spMigrationId) return findSpMigration(testCase.spMigrationId);
+function withBugSpMigration(record) {
+  return { ...record, spMigrationId: record.spMigrationId || findBugSpMigrationId(record) };
+}
+
+function findBugSpMigration(record) {
+  return findSpMigration(record.spMigrationId || findBugSpMigrationId(record));
+}
+
+function findBugSpMigrationId(record) {
+  const testCases = state.data.testCases ?? [];
+  const testCase = testCases.find((item) => item.id === record.testCaseId);
+  return testCaseSpMigrationId(testCase);
+}
+
+function testCaseBelongsToSp(testCase, spMigrationId) {
+  return testCaseSpMigrationId(testCase) === spMigrationId;
+}
+
+function testCaseSpMigrationId(testCase) {
+  if (!testCase) return "";
+  if (testCase.spMigrationId) return testCase.spMigrationId;
   const useCases = state.data.useCases ?? [];
   const useCase = useCases.find((record) => record.id === testCase.useCaseId);
-  return findSpMigration(useCase?.spMigrationId);
+  return useCase?.spMigrationId || "";
+}
+
+function findTestCaseSp(testCase) {
+  return findSpMigration(testCaseSpMigrationId(testCase));
 }
 
 function singular(store) {

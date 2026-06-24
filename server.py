@@ -110,9 +110,10 @@ class QAService:
     SP_VALID_TRANSITIONS = {
         "SQL recibido": ["REST/gRPC recibido", "Finalizado"],
         "REST/gRPC recibido": ["En QA", "Finalizado"],
-        "En QA": ["Matriz lista", "Finalizado"],
+        "En QA": ["Matriz lista", "En revision por banco", "Finalizado"],
         "Matriz lista": ["Evidencia QMetry", "Finalizado"],
-        "Evidencia QMetry": ["Finalizado"],
+        "Evidencia QMetry": ["En revision por banco", "Finalizado"],
+        "En revision por banco": ["Finalizado"],
         "Finalizado": []
     }
 
@@ -169,7 +170,7 @@ class QAService:
                 {"id": test_b, "spMigrationId": sp_b, "code": "CP-002", "name": "Validar reporte de error", "useCaseId": use_case_b, "status": "Ejecutado", "priority": "Media", "observation": "Ejecucion inicial completada con validaciones pendientes.", "steps": "Ejecutar flujo con datos incompletos.", "expected": "Se muestra validacion clara al usuario."},
             ],
             "bugs": [
-                {"title": "El filtro de estado no actualiza el conteo", "testCaseId": test_b, "memberId": member_a, "severity": "Media", "status": "Asignado", "description": "El tablero conserva el conteo anterior despues de aplicar filtros.", "steps": "Entrar a errores, filtrar por Abierto y volver a Todos."}
+                {"title": "El filtro de estado no actualiza el conteo", "spMigrationId": sp_b, "testCaseId": test_b, "memberId": member_a, "severity": "Media", "status": "Asignado", "description": "El tablero conserva el conteo anterior despues de aplicar filtros.", "steps": "Entrar a errores, filtrar por Abierto y volver a Todos."}
             ],
             "tasks": [
                 {"title": "Disenar matriz de pruebas de humo", "spMigrationId": sp_a, "memberId": member_a, "status": "active", "priority": "Alta", "dueDate": self._today_plus(2), "kind": "Prueba", "description": "Cubrir flujos esenciales del primer ciclo."},
