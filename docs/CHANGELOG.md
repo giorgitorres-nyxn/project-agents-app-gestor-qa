@@ -2,6 +2,15 @@
 
 ## 2026-06-24
 
+### Cambio: Preparacion de migracion Supabase/Vercel
+
+- Se creo la rama `Migracion` para aislar los cambios de despliegue y base de datos.
+- Se agrego `supabase/schema.sql` con tablas Postgres basadas en `payload jsonb`, indices, triggers y RLS inicial.
+- Se agrego `docs/MIGRACION_SUPABASE_VERCEL.md` con estrategia, variables, pasos y decisiones pendientes.
+- La aplicacion aun no cambia su comportamiento; sigue usando SQLite en esta etapa.
+
+---
+
 ### Cambio: Filtros personalizados en tablas
 
 - Se quitaron los filtros por defecto de las tablas, como estados fijos y filtros automaticos por SP.
