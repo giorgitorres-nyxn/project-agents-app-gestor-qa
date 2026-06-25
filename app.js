@@ -286,7 +286,6 @@ async function deleteRecord(store, recordId) {
 
 function bindEvents() {
   $("#login-form").addEventListener("submit", handleLoginSubmit);
-  $("#login-submit").addEventListener("click", () => submitLoginForm());
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", () => setView(button.dataset.view));
   });
