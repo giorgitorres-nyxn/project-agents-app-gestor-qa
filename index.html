@@ -8,7 +8,33 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <div class="app-shell">
+    <section class="login-view" id="login-view" aria-labelledby="login-title">
+      <form class="login-card" id="login-form">
+        <div class="brand login-brand">
+          <div class="brand-mark">QA</div>
+          <div>
+            <strong>Gestor QA</strong>
+            <span>Acceso del equipo</span>
+          </div>
+        </div>
+        <div>
+          <p class="eyebrow">Inicio de sesion</p>
+          <h1 id="login-title">Bienvenido</h1>
+        </div>
+        <div class="field">
+          <label for="login-email">Usuario</label>
+          <input id="login-email" name="email" type="email" autocomplete="username" placeholder="correo@local" required>
+        </div>
+        <div class="field">
+          <label for="login-password">Contrasena</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <div class="login-error hidden" id="login-error" aria-live="polite"></div>
+        <button class="primary-button" id="login-submit" type="submit">Ingresar</button>
+      </form>
+    </section>
+
+    <div class="app-shell hidden" id="app-shell">
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">QA</div>
@@ -70,8 +96,11 @@
               <span>Q</span>
               <input id="global-search" type="search" placeholder="Buscar">
             </label>
+            <span class="current-user" id="current-user"></span>
             <button class="ghost-button" id="export-data" type="button">Exportar</button>
+            <button class="secondary-button hidden" id="bulk-import" type="button">Carga masiva</button>
             <button class="primary-button" id="new-item" type="button">Nuevo</button>
+            <button class="ghost-button" id="logout" type="button">Salir</button>
           </div>
         </header>
 
@@ -123,7 +152,7 @@
             <p class="eyebrow" id="dialog-kicker">Registro</p>
             <h2 id="dialog-title">Nuevo elemento</h2>
           </div>
-          <button class="icon-button" value="cancel" aria-label="Cerrar" type="submit" formnovalidate>×</button>
+          <button class="icon-button" value="cancel" aria-label="Cerrar" type="submit" formnovalidate>X</button>
         </div>
         <div id="form-fields" class="form-grid"></div>
         <div class="dialog-actions">
@@ -135,7 +164,33 @@
       </form>
     </dialog>
 
+    <dialog id="import-dialog">
+      <form method="dialog" id="import-form" class="dialog-card">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow" id="import-kicker">Importacion</p>
+            <h2 id="import-title">Carga masiva</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Cerrar" type="submit" formnovalidate>X</button>
+        </div>
+        <div class="form-grid import-form-grid">
+          <div class="field full">
+            <label for="import-json">JSON</label>
+            <textarea id="import-json" name="importJson" spellcheck="false" autocomplete="off"></textarea>
+          </div>
+          <div class="import-summary hidden" id="import-summary" aria-live="polite"></div>
+        </div>
+        <div class="dialog-actions">
+          <button class="ghost-button" id="load-import-example" type="button">Usar ejemplo</button>
+          <button class="ghost-button" id="choose-import-file" type="button">Seleccionar archivo</button>
+          <span class="dialog-spacer"></span>
+          <button class="ghost-button" value="cancel" type="submit" formnovalidate>Cancelar</button>
+          <button class="primary-button" id="run-import" value="default" type="submit">Importar</button>
+        </div>
+      </form>
+    </dialog>
+
     <input id="import-file" type="file" accept="application/json" hidden>
-    <script src="app.js?v=20260625-3"></script>
+    <script src="app.js?v=20260625-5"></script>
   </body>
 </html>

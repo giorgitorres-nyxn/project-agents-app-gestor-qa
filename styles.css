@@ -47,6 +47,47 @@ body {
   color: var(--ink);
 }
 
+.login-view {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(180deg, var(--bg) 0%, #eef4f8 100%);
+}
+
+.login-card {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow);
+}
+
+.login-brand {
+  padding: 0;
+}
+
+.login-brand strong {
+  color: var(--ink);
+}
+
+.login-brand span {
+  color: var(--muted);
+}
+
+.login-error {
+  border: 1px solid rgba(185, 28, 28, 0.2);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
 button,
 input,
 select,
@@ -231,6 +272,18 @@ h2 {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.current-user {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 220px;
+  padding: 0 10px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .search {
@@ -963,6 +1016,36 @@ dialog::backdrop {
 .field textarea {
   min-height: 104px;
   resize: vertical;
+}
+
+.import-form-grid {
+  grid-template-columns: 1fr;
+}
+
+#import-json {
+  min-height: min(46vh, 420px);
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.import-summary {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.86rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.import-summary.import-error {
+  border-color: rgba(185, 28, 28, 0.2);
+  background: var(--red-soft);
+  color: var(--red);
 }
 
 .hidden,

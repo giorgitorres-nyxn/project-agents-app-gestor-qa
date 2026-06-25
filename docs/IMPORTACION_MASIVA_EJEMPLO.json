@@ -1,0 +1,43 @@
+{
+  "useCases": [
+    {
+      "id": "uc-consulta-saldo",
+      "spMigrationId": "REEMPLAZA_CON_ID_DE_SP_EXISTENTE",
+      "code": "CU-010",
+      "name": "Consultar saldo del cliente",
+      "actor": "Analista QA",
+      "status": "Activo",
+      "priority": "Alta",
+      "observation": "Validar reglas principales y escenarios alternos.",
+      "goal": "Permitir la consulta de saldo disponible por cliente.",
+      "flow": "Ingresar cliente, ejecutar consulta, validar respuesta y trazabilidad."
+    }
+  ],
+  "testCases": [
+    {
+      "id": "tc-consulta-saldo-exitosa",
+      "spMigrationId": "REEMPLAZA_CON_ID_DE_SP_EXISTENTE",
+      "code": "CP-010",
+      "name": "Validar consulta exitosa de saldo",
+      "useCaseId": "uc-consulta-saldo",
+      "status": "Borrador",
+      "priority": "Alta",
+      "observation": "Cubrir datos validos.",
+      "steps": "1. Preparar cliente activo. 2. Ejecutar consulta. 3. Revisar respuesta.",
+      "expected": "El servicio retorna saldo, codigo exitoso y datos consistentes con el SP."
+    }
+  ],
+  "bugs": [
+    {
+      "id": "bug-saldo-desactualizado",
+      "title": "La consulta retorna saldo desactualizado",
+      "spMigrationId": "REEMPLAZA_CON_ID_DE_SP_EXISTENTE",
+      "testCaseId": "tc-consulta-saldo-exitosa",
+      "memberId": "REEMPLAZA_CON_ID_DE_MIEMBRO_EXISTENTE",
+      "severity": "Alta",
+      "status": "Abierto",
+      "description": "El saldo retornado no coincide con la salida del SP para el mismo cliente.",
+      "steps": "1. Ejecutar el caso CP-010. 2. Comparar respuesta REST contra SP. 3. Registrar diferencia."
+    }
+  ]
+}

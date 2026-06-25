@@ -48,6 +48,8 @@ const viewConfig = {
   }
 };
 
+const bulkImportStores = new Set(["testCases", "useCases", "bugs"]);
+
 const fieldConfig = {
   tasks: [
     { name: "title", label: "Titulo", type: "text", required: true, full: true },
@@ -187,15 +189,16 @@ let state = {
   customFilters: Object.fromEntries(stores.map((store) => [store, []])),
   search: "",
   editing: null,
+  importingStore: null,
+  currentUser: null,
   data: Object.fromEntries(stores.map((store) => [store, []]))
 };
 
 const $ = (selector) => document.querySelector(selector);
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await refreshData();
   bindEvents();
-  render();
+  await initializeAuth();
 });
 
 const spMigrationTransitions = {
@@ -220,14 +223,40 @@ function validateSPStatusTransition(oldStatus, newStatus) {
 async function api(path, options = {}) {
   const response = await fetch(path, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    credentials: "same-origin",
     ...options
   });
   if (!response.ok) {
-    const message = await response.text();
+    const message = await readErrorMessage(response);
+    if (response.status === 401 && !path.startsWith("/api/auth/")) {
+      showLogin();
+    }
     throw new Error(message || `Error HTTP ${response.status}`);
   }
   if (response.status === 204) return null;
   return response.json();
+}
+
+async function readErrorMessage(response) {
+  const text = await response.text();
+  if (!text) return "";
+  try {
+    return JSON.parse(text).error || text;
+  } catch {
+    return text;
+  }
+}
+
+async function initializeAuth() {
+  try {
+    const session = await api("/api/auth/me");
+    state.currentUser = session.user;
+    await refreshData();
+    showApp();
+    render();
+  } catch {
+    showLogin();
+  }
 }
 
 async function refreshData() {
@@ -256,6 +285,7 @@ async function deleteRecord(store, recordId) {
 }
 
 function bindEvents() {
+  $("#login-form").addEventListener("submit", handleLoginSubmit);
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", () => setView(button.dataset.view));
   });
@@ -267,8 +297,73 @@ function bindEvents() {
     render();
   });
   $("#export-data").addEventListener("click", exportData);
+  $("#bulk-import").addEventListener("click", () => openBulkImport(state.listView));
+  $("#import-form").addEventListener("submit", handleBulkImportSubmit);
+  $("#choose-import-file").addEventListener("click", () => $("#import-file").click());
+  $("#load-import-example").addEventListener("click", loadBulkImportExample);
+  $("#import-file").addEventListener("change", handleImportFileChange);
   $("#item-form").addEventListener("submit", handleFormSubmit);
   $("#delete-item").addEventListener("click", handleDelete);
+  $("#logout").addEventListener("click", handleLogout);
+}
+
+async function handleLoginSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const formData = new FormData(form);
+  const submitButton = $("#login-submit");
+  setLoginError("");
+  submitButton.disabled = true;
+  submitButton.textContent = "Ingresando";
+
+  try {
+    const session = await api("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: formData.get("email"),
+        password: formData.get("password")
+      })
+    });
+    state.currentUser = session.user;
+    await refreshData();
+    form.reset();
+    showApp();
+    render();
+  } catch (error) {
+    setLoginError(error.message || "No se pudo iniciar sesion.");
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Ingresar";
+  }
+}
+
+async function handleLogout() {
+  try {
+    await api("/api/auth/logout", { method: "POST", body: JSON.stringify({}) });
+  } finally {
+    state.currentUser = null;
+    state.data = Object.fromEntries(stores.map((store) => [store, []]));
+    showLogin();
+  }
+}
+
+function showApp() {
+  $("#login-view").classList.add("hidden");
+  $("#app-shell").classList.remove("hidden");
+  $("#current-user").textContent = state.currentUser?.email || "";
+  setLoginError("");
+}
+
+function showLogin() {
+  $("#app-shell").classList.add("hidden");
+  $("#login-view").classList.remove("hidden");
+  $("#login-email").focus();
+}
+
+function setLoginError(message) {
+  const error = $("#login-error");
+  error.textContent = message;
+  error.classList.toggle("hidden", !message);
 }
 
 function setView(view) {
@@ -287,6 +382,7 @@ function render() {
   $("#indicators-view").classList.toggle("active-view", isIndicators);
   $("#list-view").classList.toggle("active-view", !isDashboard && !isIndicators);
   $("#new-item").classList.toggle("hidden", isIndicators);
+  $("#bulk-import").classList.toggle("hidden", isDashboard || isIndicators || !bulkImportStores.has(state.listView));
   $("#new-item").textContent = state.activeView === "dashboard" ? "Nueva tarea" : "Nuevo";
   $("#page-title").textContent = isDashboard ? "Tablero QA" : isIndicators ? "Indicadores" : viewConfig[state.listView].title;
 
@@ -916,6 +1012,239 @@ async function handleDelete() {
   await refreshData();
   $("#item-dialog").close();
   render();
+}
+
+function openBulkImport(store) {
+  if (!bulkImportStores.has(store)) return;
+  state.importingStore = store;
+  $("#import-kicker").textContent = viewConfig[store]?.kicker || "Importacion";
+  $("#import-title").textContent = `Carga masiva de ${viewConfig[store]?.title || "registros"}`;
+  $("#import-json").value = "";
+  $("#import-json").placeholder = JSON.stringify(bulkImportExampleFor(store), null, 2);
+  setImportSummary("");
+  $("#import-dialog").showModal();
+}
+
+function loadBulkImportExample() {
+  const store = state.importingStore;
+  if (!store) return;
+  $("#import-json").value = JSON.stringify(bulkImportExampleFor(store), null, 2);
+  setImportSummary("");
+}
+
+async function handleImportFileChange(event) {
+  const [file] = event.target.files || [];
+  if (!file) return;
+  try {
+    $("#import-json").value = await file.text();
+    setImportSummary(`Archivo cargado: ${file.name}`);
+  } catch (error) {
+    setImportSummary(`No se pudo leer el archivo: ${error.message}`, true);
+  } finally {
+    event.target.value = "";
+  }
+}
+
+async function handleBulkImportSubmit(event) {
+  event.preventDefault();
+  if (event.submitter?.value === "cancel") {
+    $("#import-dialog").close();
+    return;
+  }
+
+  const store = state.importingStore;
+  const text = $("#import-json").value.trim();
+  if (!store || !text) {
+    setImportSummary("Pega un JSON o selecciona un archivo para importar.", true);
+    return;
+  }
+
+  const submitButton = $("#run-import");
+  submitButton.disabled = true;
+  submitButton.textContent = "Importando";
+
+  try {
+    const groups = parseBulkImportPayload(store, text);
+    const totalRecords = Object.values(groups).reduce((total, records) => total + records.length, 0);
+    if (!totalRecords) throw new Error("El JSON no contiene registros para importar.");
+
+    const result = await importRecordGroups(groups);
+    await refreshData();
+    render();
+
+    if (result.errors.length) {
+      setImportSummary(`${result.created} importado(s). ${result.errors.length} con error: ${result.errors.join(" | ")}`, true);
+      return;
+    }
+
+    $("#import-dialog").close();
+    alert(`${result.created} registro(s) importado(s) correctamente.`);
+  } catch (error) {
+    setImportSummary(error.message, true);
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Importar";
+  }
+}
+
+function parseBulkImportPayload(store, text) {
+  let payload;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    throw new Error("El contenido no es un JSON valido.");
+  }
+
+  if (Array.isArray(payload)) return { [store]: payload };
+
+  const source = payload?.data && typeof payload.data === "object" ? payload.data : payload;
+  const groups = {};
+  ["useCases", "testCases", "bugs"].forEach((groupStore) => {
+    if (Array.isArray(source?.[groupStore])) groups[groupStore] = source[groupStore];
+  });
+  if (Object.keys(groups).length) return groups;
+
+  throw new Error(`Usa un arreglo JSON o un objeto con alguna propiedad: "useCases", "testCases" o "bugs".`);
+}
+
+async function importRecordGroups(groups) {
+  const result = { created: 0, errors: [] };
+  for (const store of ["useCases", "testCases", "bugs"]) {
+    const records = groups[store] || [];
+    for (const [index, rawRecord] of records.entries()) {
+      try {
+        const record = normalizeImportRecord(store, rawRecord);
+        const savedRecord = await saveRecord(store, record);
+        mergeImportedRecord(store, savedRecord);
+        result.created += 1;
+      } catch (error) {
+        result.errors.push(`${singular(store)} ${index + 1}: ${error.message}`);
+      }
+    }
+  }
+  return result;
+}
+
+function normalizeImportRecord(store, rawRecord) {
+  if (!rawRecord || typeof rawRecord !== "object" || Array.isArray(rawRecord)) {
+    throw new Error("cada registro debe ser un objeto");
+  }
+
+  const record = {};
+  if (rawRecord.id) record.id = String(rawRecord.id).trim();
+  const config = fieldConfig[store] ?? [];
+  config.forEach((field) => {
+    const hasValue = Object.prototype.hasOwnProperty.call(rawRecord, field.name) && rawRecord[field.name] !== null;
+    const value = hasValue ? rawRecord[field.name] : defaultValue(field);
+    record[field.name] = normalizeFieldValue(field, value);
+  });
+
+  const missingRequired = config
+    .filter((field) => field.required && !String(record[field.name] ?? "").trim())
+    .map((field) => field.label);
+  if (missingRequired.length) {
+    throw new Error(`faltan campos obligatorios (${missingRequired.join(", ")})`);
+  }
+
+  validateImportRelations(store, record);
+  return record;
+}
+
+function mergeImportedRecord(store, record) {
+  const storeData = state.data[store] ?? [];
+  const index = storeData.findIndex((item) => item.id === record.id);
+  if (index >= 0) {
+    storeData[index] = record;
+  } else {
+    storeData.push(record);
+  }
+  state.data[store] = storeData;
+}
+
+function normalizeFieldValue(field, value) {
+  if (field.type === "checkbox") return Boolean(value);
+  if (field.type === "number") return Number(value || 0);
+  return String(value ?? "").trim();
+}
+
+function validateImportRelations(store, record) {
+  if (record.spMigrationId && !state.data.spMigrations?.some((item) => item.id === record.spMigrationId)) {
+    throw new Error("el spMigrationId no existe");
+  }
+  if (store === "testCases" && record.useCaseId && !state.data.useCases?.some((item) => item.id === record.useCaseId)) {
+    throw new Error("el useCaseId no existe");
+  }
+  if (store === "bugs") {
+    if (record.testCaseId && !state.data.testCases?.some((item) => item.id === record.testCaseId)) {
+      throw new Error("el testCaseId no existe");
+    }
+    if (record.memberId && !state.data.members?.some((item) => item.id === record.memberId)) {
+      throw new Error("el memberId no existe");
+    }
+  }
+}
+
+function bulkImportExampleFor(store) {
+  const sp = state.data.spMigrations?.[0]?.id || "";
+  const useCase = state.data.useCases?.[0]?.id || "";
+  const testCase = state.data.testCases?.[0]?.id || "";
+  const member = state.data.members?.[0]?.id || "";
+
+  const examples = {
+    useCases: {
+      useCases: [
+        {
+          spMigrationId: sp,
+          code: "CU-010",
+          name: "Consultar saldo del cliente",
+          actor: "Analista QA",
+          status: "Activo",
+          priority: "Alta",
+          observation: "Validar reglas principales y escenarios alternos.",
+          goal: "Permitir la consulta de saldo disponible por cliente.",
+          flow: "Ingresar cliente, ejecutar consulta, validar respuesta y trazabilidad."
+        }
+      ]
+    },
+    testCases: {
+      testCases: [
+        {
+          spMigrationId: sp,
+          code: "CP-010",
+          name: "Validar consulta exitosa de saldo",
+          useCaseId: useCase,
+          status: "Borrador",
+          priority: "Alta",
+          observation: "Cubrir datos validos.",
+          steps: "1. Preparar cliente activo. 2. Ejecutar consulta. 3. Revisar respuesta.",
+          expected: "El servicio retorna saldo, codigo exitoso y datos consistentes con el SP."
+        }
+      ]
+    },
+    bugs: {
+      bugs: [
+        {
+          title: "La consulta retorna saldo desactualizado",
+          spMigrationId: sp,
+          testCaseId: testCase,
+          memberId: member,
+          severity: "Alta",
+          status: "Abierto",
+          description: "El saldo retornado no coincide con la salida del SP para el mismo cliente.",
+          steps: "1. Ejecutar el caso CP-010. 2. Comparar respuesta REST contra SP. 3. Registrar diferencia."
+        }
+      ]
+    }
+  };
+
+  return examples[store] || [];
+}
+
+function setImportSummary(message, isError = false) {
+  const summary = $("#import-summary");
+  summary.textContent = message;
+  summary.classList.toggle("hidden", !message);
+  summary.classList.toggle("import-error", isError);
 }
 
 function filterRecords(records) {

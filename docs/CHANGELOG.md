@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-06-25
+
+### Cambio: Login simple por miembro QA
+
+- Se agrego una pantalla de inicio de sesion antes de cargar el aplicativo.
+- Cada miembro QA puede ingresar usando su correo como usuario.
+- La contrasena por defecto para todos los miembros es `BbQAGestor`.
+- Todos los usuarios autenticados tienen acceso completo al aplicativo.
+- Las APIs locales y serverless ahora requieren sesion, salvo login/logout/verificacion de sesion.
+
+---
+
+### Cambio: Carga masiva JSON para CU, TC y errores
+
+- Se agrego un boton de `Carga masiva` en las vistas de Casos de uso, Casos de prueba y Errores.
+- La carga acepta un arreglo directo para la vista actual o un objeto JSON con `useCases`, `testCases` y `bugs`.
+- Cuando el JSON trae las tres listas, se importan en orden: casos de uso, casos de prueba y errores.
+- Se agrego `docs/IMPORTACION_MASIVA_EJEMPLO.json` como estructura base para preparar archivos de importacion.
+
+---
+
 ## 2026-06-24
 
 ### Cambio: API Vercel preparada para Supabase

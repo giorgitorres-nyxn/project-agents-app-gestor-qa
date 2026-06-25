@@ -1,6 +1,10 @@
 const { createClient } = require("@supabase/supabase-js");
+const crypto = require("crypto");
 
 const stores = ["members", "useCases", "testCases", "bugs", "tasks", "spMigrations"];
+const defaultPassword = "BbQAGestor";
+const sessionCookie = "qa_session";
+const sessionTtlSeconds = 8 * 60 * 60;
 
 const spMigrationTransitions = {
   "SQL recibido": ["REST/gRPC recibido", "Finalizado"],
@@ -26,6 +30,13 @@ function supabase() {
 module.exports = async function handler(req, res) {
   try {
     const parts = apiParts(req);
+    if (parts.join("/") === "auth/login" && req.method === "POST") return handleLogin(req, res);
+    if (parts.join("/") === "auth/logout" && req.method === "POST") return handleLogout(res);
+    if (parts.join("/") === "auth/me" && req.method === "GET") return handleMe(req, res);
+
+    const user = await currentUser(req);
+    if (!user) return sendJson(res, 401, { error: "No autenticado" });
+
     if (req.method === "GET") return handleGet(req, res, parts);
     if (req.method === "POST") return handleCreate(req, res, parts);
     if (req.method === "PUT") return handleUpdate(req, res, parts);
@@ -35,6 +46,30 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 500, { error: error.message || "Error interno" });
   }
 };
+
+async function handleLogin(req, res) {
+  const { email = "", password = "" } = req.body || {};
+  if (password !== defaultPassword) {
+    return sendJson(res, 401, { error: "Credenciales invalidas" });
+  }
+
+  const user = await userFromEmail(email);
+  if (!user) return sendJson(res, 401, { error: "Credenciales invalidas" });
+
+  res.setHeader("Set-Cookie", cookieHeader(signSession(user.email)));
+  return sendJson(res, 200, { user });
+}
+
+function handleLogout(res) {
+  res.setHeader("Set-Cookie", clearCookieHeader());
+  return sendJson(res, 200, { ok: true });
+}
+
+async function handleMe(req, res) {
+  const user = await currentUser(req);
+  if (!user) return sendJson(res, 401, { error: "No autenticado" });
+  return sendJson(res, 200, { user });
+}
 
 async function handleGet(req, res, parts) {
   if (parts.length === 1 && parts[0] === "data") {
@@ -87,6 +122,72 @@ async function handleDelete(req, res, parts) {
   const { error } = await supabase().from(store).delete().eq("id", recordId);
   if (error) throw error;
   return res.status(204).end();
+}
+
+async function currentUser(req) {
+  const token = parseCookies(req.headers.cookie || "")[sessionCookie];
+  const email = verifySession(token || "");
+  return email ? userFromEmail(email) : null;
+}
+
+async function userFromEmail(email) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) return null;
+  const members = await listRecords("members");
+  const member = members.find((item) => String(item.email || "").trim().toLowerCase() === normalizedEmail);
+  if (!member) return null;
+  return {
+    id: member.id || "",
+    name: member.name || "",
+    email: member.email || "",
+    role: member.role || ""
+  };
+}
+
+function signSession(email) {
+  const expiresAt = Math.floor(Date.now() / 1000) + sessionTtlSeconds;
+  const payload = `${String(email).trim().toLowerCase()}|${expiresAt}`;
+  const signature = crypto.createHmac("sha256", defaultPassword).update(payload).digest("hex");
+  return Buffer.from(`${payload}|${signature}`, "utf8").toString("base64url");
+}
+
+function verifySession(token) {
+  try {
+    const decoded = Buffer.from(token, "base64url").toString("utf8");
+    const parts = decoded.split("|");
+    if (parts.length !== 3) return null;
+    const [email, expiresAt, signature] = parts;
+    if (Number(expiresAt) < Math.floor(Date.now() / 1000)) return null;
+    const payload = `${email}|${expiresAt}`;
+    const expected = crypto.createHmac("sha256", defaultPassword).update(payload).digest("hex");
+    const signatureBytes = Buffer.from(signature);
+    const expectedBytes = Buffer.from(expected);
+    if (signatureBytes.length !== expectedBytes.length) return null;
+    return crypto.timingSafeEqual(signatureBytes, expectedBytes) ? email : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseCookies(header) {
+  return Object.fromEntries(
+    String(header || "")
+      .split(";")
+      .map((part) => part.trim())
+      .filter((part) => part.includes("="))
+      .map((part) => {
+        const [key, ...value] = part.split("=");
+        return [key, value.join("=")];
+      })
+  );
+}
+
+function cookieHeader(token) {
+  return `${sessionCookie}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${sessionTtlSeconds}`;
+}
+
+function clearCookieHeader() {
+  return `${sessionCookie}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
 }
 
 async function getAllData() {
