@@ -8,7 +8,7 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 
 ROOT_DIR = Path(__file__).resolve().parent
@@ -258,9 +258,10 @@ class QARequestHandler(SimpleHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         parts = self._api_parts()
-        if len(parts) != 2:
+        route = self._record_route(parts)
+        if not route:
             return self._send_json({"error": "Ruta DELETE invalida"}, HTTPStatus.BAD_REQUEST)
-        store, record_id = parts
+        store, record_id = route
         try:
             self.service.delete(store, record_id)
             self.send_response(HTTPStatus.NO_CONTENT)
@@ -283,8 +284,9 @@ class QARequestHandler(SimpleHTTPRequestHandler):
             if method == "POST" and len(parts) == 1:
                 record = self.service.create(parts[0], payload)
                 return self._send_json(record, HTTPStatus.CREATED)
-            if method == "PUT" and len(parts) == 2:
-                record = self.service.update(parts[0], parts[1], payload)
+            route = self._record_route(parts)
+            if method == "PUT" and route:
+                record = self.service.update(route[0], route[1], payload)
                 return self._send_json(record)
             self._send_json({"error": "Ruta de escritura invalida"}, HTTPStatus.BAD_REQUEST)
         except ValueError as error:
@@ -293,6 +295,15 @@ class QARequestHandler(SimpleHTTPRequestHandler):
     def _api_parts(self) -> list[str]:
         path = urlparse(self.path).path
         return [part for part in path.removeprefix("/api/").split("/") if part]
+
+    def _record_route(self, parts: list[str]) -> tuple[str, str] | None:
+        if len(parts) == 2:
+            return parts[0], parts[1]
+        query = parse_qs(urlparse(self.path).query)
+        record_ids = query.get("id", [])
+        if len(parts) == 1 and record_ids:
+            return parts[0], record_ids[0]
+        return None
 
     def _read_json(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length", "0"))

@@ -236,7 +236,7 @@ async function refreshData() {
 
 async function saveRecord(store, record) {
   const editing = Boolean(record.id);
-  const url = editing ? `/api/${store}/${record.id}` : `/api/${store}`;
+  const url = editing ? `/api/${store}?id=${encodeURIComponent(record.id)}` : `/api/${store}`;
   const method = editing ? "PUT" : "POST";
 
   if (editing && store === "spMigrations") {
@@ -252,7 +252,7 @@ async function saveRecord(store, record) {
 }
 
 async function deleteRecord(store, recordId) {
-  return api(`/api/${store}/${recordId}`, { method: "DELETE" });
+  return api(`/api/${store}?id=${encodeURIComponent(recordId)}`, { method: "DELETE" });
 }
 
 function bindEvents() {

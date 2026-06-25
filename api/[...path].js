@@ -61,10 +61,11 @@ async function handleCreate(req, res, parts) {
 }
 
 async function handleUpdate(req, res, parts) {
-  if (parts.length !== 2 || !stores.includes(parts[0])) {
+  const route = recordRoute(req, parts);
+  if (!route || !stores.includes(route.store)) {
     return sendJson(res, 400, { error: "Ruta de escritura invalida" });
   }
-  const [store, recordId] = parts;
+  const { store, recordId } = route;
   const existing = await getRecord(store, recordId);
   if (!existing) return sendJson(res, 404, { error: "Registro no encontrado" });
 
@@ -78,10 +79,11 @@ async function handleUpdate(req, res, parts) {
 }
 
 async function handleDelete(req, res, parts) {
-  if (parts.length !== 2 || !stores.includes(parts[0])) {
+  const route = recordRoute(req, parts);
+  if (!route || !stores.includes(route.store)) {
     return sendJson(res, 400, { error: "Ruta DELETE invalida" });
   }
-  const [store, recordId] = parts;
+  const { store, recordId } = route;
   const { error } = await supabase().from(store).delete().eq("id", recordId);
   if (error) throw error;
   return res.status(204).end();
@@ -148,6 +150,18 @@ function apiParts(req) {
   if (req.query?.store && req.query?.id) return [req.query.store, req.query.id].filter(Boolean);
   if (req.query?.store) return [req.query.store].filter(Boolean);
   return req.url.split("?")[0].replace(/^\/api\/?/, "").split("/").filter(Boolean);
+}
+
+function recordRoute(req, parts) {
+  if (parts.length === 2) return { store: parts[0], recordId: parts[1] };
+  const recordId = queryParam(req, "id");
+  if (parts.length === 1 && recordId) return { store: parts[0], recordId };
+  return null;
+}
+
+function queryParam(req, name) {
+  const value = req.query?.[name];
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function sendJson(res, status, payload) {
