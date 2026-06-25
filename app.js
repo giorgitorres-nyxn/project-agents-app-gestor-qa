@@ -286,6 +286,7 @@ async function deleteRecord(store, recordId) {
 
 function bindEvents() {
   $("#login-form").addEventListener("submit", handleLoginSubmit);
+  $("#login-submit").addEventListener("click", () => submitLoginForm());
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", () => setView(button.dataset.view));
   });
@@ -309,7 +310,12 @@ function bindEvents() {
 
 async function handleLoginSubmit(event) {
   event.preventDefault();
-  const form = event.currentTarget;
+  await submitLoginForm();
+}
+
+async function submitLoginForm() {
+  const form = $("#login-form");
+  if (!form.reportValidity()) return;
   const formData = new FormData(form);
   const submitButton = $("#login-submit");
   setLoginError("");
