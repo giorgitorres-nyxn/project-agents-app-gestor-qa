@@ -102,10 +102,9 @@ async function handleUpdate(req, res, parts) {
   }
   const { store, recordId } = route;
   const existing = await getRecord(store, recordId);
-  if (!existing) return sendJson(res, 404, { error: "Registro no encontrado" });
 
-  const payload = { ...existing, ...(req.body || {}), id: recordId };
-  if (store === "spMigrations" && existing.status !== payload.status) {
+  const payload = { ...(existing || {}), ...(req.body || {}), id: recordId };
+  if (store === "spMigrations" && existing && existing.status !== payload.status) {
     validateSpTransition(existing.status, payload.status);
   }
 
@@ -219,7 +218,7 @@ async function saveRecord(store, record, recordId = null) {
   if (recordId) row.id = recordId;
 
   const query = recordId
-    ? supabase().from(store).update(row).eq("id", recordId)
+    ? supabase().from(store).upsert({ ...row, id: recordId })
     : supabase().from(store).insert(row);
 
   const { data, error } = await query.select("id,payload,created_at,updated_at").single();

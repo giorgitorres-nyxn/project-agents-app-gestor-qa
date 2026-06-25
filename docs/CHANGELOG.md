@@ -12,6 +12,14 @@
 
 ---
 
+### Cambio: Importacion masiva con SP por nombre o ID
+
+- La carga masiva ahora acepta `spMigrationId` como ID interno o como nombre del SP.
+- Si el JSON trae el nombre del SP, la app lo resuelve al ID real antes de guardar.
+- En Vercel, los `PUT` usados durante importacion ahora hacen upsert para permitir IDs propios en CU y TC.
+
+---
+
 ### Cambio: Carga masiva JSON para CU, TC y errores
 
 - Se agrego un boton de `Carga masiva` en las vistas de Casos de uso, Casos de prueba y Errores.

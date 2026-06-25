@@ -1143,6 +1143,7 @@ function normalizeImportRecord(store, rawRecord) {
     const value = hasValue ? rawRecord[field.name] : defaultValue(field);
     record[field.name] = normalizeFieldValue(field, value);
   });
+  record.spMigrationId = resolveImportSpMigrationId(record.spMigrationId);
 
   const missingRequired = config
     .filter((field) => field.required && !String(record[field.name] ?? "").trim())
@@ -1170,6 +1171,16 @@ function normalizeFieldValue(field, value) {
   if (field.type === "checkbox") return Boolean(value);
   if (field.type === "number") return Number(value || 0);
   return String(value ?? "").trim();
+}
+
+function resolveImportSpMigrationId(value) {
+  const normalizedValue = String(value || "").trim();
+  if (!normalizedValue) return "";
+  const spMigrations = state.data.spMigrations ?? [];
+  const byId = spMigrations.find((item) => item.id === normalizedValue);
+  if (byId) return byId.id;
+  const byName = spMigrations.find((item) => normalizeFilterText(item.spName) === normalizeFilterText(normalizedValue));
+  return byName?.id || normalizedValue;
 }
 
 function validateImportRelations(store, record) {
