@@ -7,7 +7,7 @@
     "doc": "docs"
   },
   "scripts": {
-    "check": "node --check app.js && node --check api/[...path].js && node --check scripts/import-to-supabase.js",
+    "check": "node --check app.js && node --check api/[...path].js && node --check api/auth/login.js && node --check api/auth/logout.js && node --check api/auth/me.js && node --check scripts/import-to-supabase.js",
     "import:supabase": "node scripts/import-to-supabase.js",
     "test": "npm run check"
   },
