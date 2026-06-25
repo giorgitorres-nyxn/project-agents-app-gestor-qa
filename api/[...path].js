@@ -145,6 +145,8 @@ function apiParts(req) {
   const raw = req.query?.path;
   if (Array.isArray(raw)) return raw.filter(Boolean);
   if (typeof raw === "string") return raw.split("/").filter(Boolean);
+  if (req.query?.store && req.query?.id) return [req.query.store, req.query.id].filter(Boolean);
+  if (req.query?.store) return [req.query.store].filter(Boolean);
   return req.url.split("?")[0].replace(/^\/api\/?/, "").split("/").filter(Boolean);
 }
 
