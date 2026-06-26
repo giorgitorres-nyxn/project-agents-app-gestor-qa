@@ -2,6 +2,14 @@
 
 ## 2026-06-25
 
+### Cambio: Archivo masivo de debcred compatible con Supabase
+
+- Se ajusto `docs/gestor-qa-sp_debcred_empresa.json` para usar UUIDs en `spMigrations`, casos de uso y casos de prueba.
+- Se conservaron las relaciones internas actualizando `spMigrationId` y `useCaseId` a los nuevos IDs UUID.
+- El archivo queda listo para importacion en Vercel/Supabase sin errores por formato de ID.
+
+---
+
 ### Cambio: Login simple por miembro QA
 
 - Se agrego una pantalla de inicio de sesion antes de cargar el aplicativo.

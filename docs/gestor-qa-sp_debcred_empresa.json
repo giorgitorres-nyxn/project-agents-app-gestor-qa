@@ -1,7 +1,7 @@
 {
   "spMigrations": [
     {
-      "id": "sp_debcred_empresa",
+      "id": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "spName": "sp_debcred_empresa",
       "sqlReceivedDate": "",
       "sqlReceived": true,
@@ -19,8 +19,8 @@
   ],
   "useCases": [
     {
-      "id": "uc-sp_debcred_empresa-cu-01",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "74df4f7f-dcf9-4022-a77c-391eb84eb097",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-01",
       "name": "Debito exitoso por canal directo con opcion 01",
       "actor": "Sistema de Pagos Empresariales",
@@ -31,8 +31,8 @@
       "flow": "El sistema recibe los parametros de la orden de debito. Se consulta la comision empresarial via sp_con_comision. Se obtiene la configuracion contable via sp_con_confcontable. Se aplica la nota de debito/credito sobre la cuenta via sp_ndc_ahcc. Se envia notificacion si aplica (pa_sat_pnotificacion). Se registra el evento de transaccion (sp_eventos). Se graba la transaccion de servicio (sp_graba_tran_servicio). Se graba el movimiento y forma de pago (sp_grb_mov_y_frmpgo). Se graba la comision si corresponde (sp_grb_comision). Se actualiza bp_total_orden con la forma de pago de debito (opcion '01')."
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-02",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "7a367a73-a8f3-42df-a77d-1c658f2d8d6a",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-02",
       "name": "Debito exitoso por canal directo con opcion 02",
       "actor": "Sistema de Pagos Empresariales",
@@ -43,8 +43,8 @@
       "flow": "Se completa el procesamiento del debito (pasos 1-9 del flujo general). Se evalua que el canal es directo y la opcion es '02'. Se actualiza bp_total_orden con formas de pago CUE/EFE/CHL al estado 'T'. Si @@rowcount = 0, se actualiza db_sat_his..bp_total_orden_his."
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-03",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "66e6ada1-9fe9-472b-b2a2-a81c0f5b50ce",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-03",
       "name": "Debito exitoso por canal directo con opcion 03",
       "actor": "Sistema de Pagos Empresariales",
@@ -55,8 +55,8 @@
       "flow": "Se completa el procesamiento del debito. Se evalua que el canal es directo y la opcion es '03'. Se actualiza bp_total_orden con formas de pago CUE/EFE/CHE al estado 'T'. Si @@rowcount = 0, se actualiza db_sat_his..bp_total_orden_his."
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-04",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "b1e0dbb2-c5ed-4c7b-8f1b-b49d66430746",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-04",
       "name": "Debito exitoso por canal no directo (SAT/IBK/BCE)",
       "actor": "Canal SAT/IBK/BCE",
@@ -67,8 +67,8 @@
       "flow": "Se completa el procesamiento del debito. Se evalua que el canal NO es directo. Se actualiza bp_total_orden con formas de pago COB/TRC/CTB/CPD/TPD. Si @@rowcount = 0, se actualiza tabla historica."
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-05",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "d36a5c63-43a9-4621-9ea4-0d947395d668",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-05",
       "name": "Procesamiento de comision empresarial",
       "actor": "Sistema de Pagos",
@@ -79,8 +79,8 @@
       "flow": "Se verifica @i_valor_comision > 0. Se determina si servicio es TRANSQUICK (logica especifica de comision). Se graba movimiento de comision via sp_grb_mov_y_frmpgo. Se registra comision via sp_grb_comision. Se verifica resultado (@w_cod_errord)."
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-06",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "a6adaf05-b5cc-4af3-80bb-c51eb32f5f61",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-06",
       "name": "Operacion SWIFT con doble comision",
       "actor": "Sistema de Pagos",
@@ -91,8 +91,8 @@
       "flow": "Se verifica @i_valor2_swift > 0 y servicio = 'TRANSWIFT'. Se invoca sp_grb_comision con parametros SWIFT. Se verifica @w_cod_errord."
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-07",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "4ece80ba-b0f0-400d-9237-008c81d43cb2",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-07",
       "name": "Error propagado desde SP hijo con retorno dinamico",
       "actor": "Sistema de Pagos",
@@ -103,8 +103,8 @@
       "flow": "Se ejecuta un SP hijo que falla (retorno != 0). Se detecta @w_cod_errord != 0. Se asigna @o_error = @w_cod_errord. Se retorna @o_error."
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-08",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "b5dd0ef1-34f9-48f8-9cce-3ceb2db552df",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-08",
       "name": "Manejo de error con rollback y sp_cerror (aplcobis=S)",
       "actor": "Sistema de Pagos",
@@ -115,8 +115,8 @@
       "flow": "Se produce error que activa lbl_error. Se verifica @@trancount > 0. Se ejecuta ROLLBACK TRAN. Se verifica @i_aplcobis = 'S'. Se invoca sp_cerror con nombre SP y codigo de error. Se retorna @w_num_error."
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-09",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "3cc30384-2bf8-490f-9971-15d7ab6395e3",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-09",
       "name": "Manejo de error sin sp_cerror (aplcobis=N)",
       "actor": "Sistema de Pagos",
@@ -127,8 +127,8 @@
       "flow": "Se produce error que activa lbl_error. Se verifica @i_aplcobis != 'S'. Se asigna @o_error = @w_num_error. Se retorna 0."
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-10",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "414024c8-52e2-4ce0-a4b7-518b75797030",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-10",
       "name": "Validaciones de parametros obligatorios NULL",
       "actor": "Sistema de Pagos",
@@ -139,8 +139,8 @@
       "flow": "Se invoca el SP con un parametro obligatorio como NULL. El SP intenta procesar y falla al usar el parametro en un SP hijo o consulta. Se genera error que se propaga."
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-11",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "18232693-a15a-4940-b939-8c470c501f8c",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-11",
       "name": "Particiones de equivalencia - parametros funcionales",
       "actor": "Sistema de Pagos",
@@ -151,8 +151,8 @@
       "flow": ""
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-12",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-12",
       "name": "Valores limite en montos financieros (BVA)",
       "actor": "Sistema de Pagos",
@@ -163,8 +163,8 @@
       "flow": ""
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-13",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "3f6fad2e-89e5-41f1-aa54-42a78883eb9f",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-13",
       "name": "Fallback a tabla historica cuando bp_total_orden sin registros",
       "actor": "Sistema de Pagos",
@@ -175,8 +175,8 @@
       "flow": "Se intenta UPDATE en bp_total_orden. @@rowcount = 0 (no hay registros). Se asigna @wRowdbBiz = @@rowcount. Se evalua @wRowdbBiz <= 0. Se ejecuta UPDATE en db_sat_his..bp_total_orden_his."
     },
     {
-      "id": "uc-sp_debcred_empresa-cu-adic",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "CU-ADIC",
       "name": "Casos adicionales — combinaciones tipo cuenta, forma de pago y servicio",
       "actor": "Sistema de Pagos Empresariales",
@@ -189,11 +189,11 @@
   ],
   "testCases": [
     {
-      "id": "tc-sp_debcred_empresa-tc01",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "a580a7d2-7cf4-481a-b43f-23e8b6033903",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC01",
       "name": "Opcion 01, canal DIR, forma de pago debito CUE, servicio ROLPAGO",
-      "useCaseId": "uc-sp_debcred_empresa-cu-01",
+      "useCaseId": "74df4f7f-dcf9-4022-a77c-391eb84eb097",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -201,11 +201,11 @@
       "expected": "`RETURN 0 con @o_error = 0` — afectacion en BD: bp_total_orden pasa a te_estado_proceso='T' (te_codigo_error=0) sobre el registro [te_orden_banco=63055657, frm CUE, ROLPAGO] (L:1086)."
     },
     {
-      "id": "tc-sp_debcred_empresa-tc02",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "cfdad237-46eb-4848-970c-93e1fe00ffc4",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC02",
       "name": "Rama fallback historico opcion 01, canal DIR, forma de pago debito CUE, servicio ROLPAGO",
-      "useCaseId": "uc-sp_debcred_empresa-cu-01",
+      "useCaseId": "74df4f7f-dcf9-4022-a77c-391eb84eb097",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -213,11 +213,11 @@
       "expected": "`RETURN 0 con @o_error = 0` — afectacion en BD: db_sat_his..bp_total_orden_his pasa a te_estado_proceso='T' (te_codigo_error=0) sobre el registro [te_orden_banco=63055657, frm CUE, ROLPAGO (fallback)] (L:1099)."
     },
     {
-      "id": "tc-sp_debcred_empresa-tc06",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "09ef103b-d338-451b-8a64-316810577e4b",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC06",
       "name": "Opcion 02, canal DIR, formas CUE/EFE/CHL, servicio ROLPAGO",
-      "useCaseId": "uc-sp_debcred_empresa-cu-02",
+      "useCaseId": "7a367a73-a8f3-42df-a77d-1c658f2d8d6a",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -225,11 +225,11 @@
       "expected": "`RETURN 0 con @o_error = 0` — afectacion en BD: bp_total_orden pasa a te_estado_proceso='T' (te_codigo_error=0) sobre el registro [te_orden_banco=63055657, frm IN(CUE/EFE/CHL), ROLPAGO] (L:1114)."
     },
     {
-      "id": "tc-sp_debcred_empresa-tc07",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "a1725348-0115-410e-8259-d6ace1c84463",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC07",
       "name": "Rama fallback historico opcion 02, canal DIR, formas CUE/EFE/CHL, servicio ROLPAGO",
-      "useCaseId": "uc-sp_debcred_empresa-cu-02",
+      "useCaseId": "7a367a73-a8f3-42df-a77d-1c658f2d8d6a",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -237,11 +237,11 @@
       "expected": "`RETURN 0 con @o_error = 0` — afectacion en BD: db_sat_his..bp_total_orden_his pasa a te_estado_proceso='T' (te_codigo_error=0) sobre el registro [te_orden_banco=63055657, frm IN(CUE/EFE/CHL), ROLPAGO (fallback)] (L:1128)."
     },
     {
-      "id": "tc-sp_debcred_empresa-tc09",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "224174d6-dd7c-44c4-b0ad-dceba38918af",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC09",
       "name": "Opcion 03, canal DIR, formas CUE/EFE/CHE, servicio ROLPAGO",
-      "useCaseId": "uc-sp_debcred_empresa-cu-03",
+      "useCaseId": "66e6ada1-9fe9-472b-b2a2-a81c0f5b50ce",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -249,11 +249,11 @@
       "expected": "`RETURN 0 con @o_error = 0` — afectacion en BD: bp_total_orden pasa a te_estado_proceso='T' (te_codigo_error=0) sobre el registro [te_orden_banco=63055657, frm IN(CUE/EFE/CHE), ROLPAGO] (L:1143)."
     },
     {
-      "id": "tc-sp_debcred_empresa-tc10",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "588b83af-b4a8-43e5-9831-af6d7276320d",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC10",
       "name": "Rama fallback historico opcion 03, canal DIR, formas CUE/EFE/CHE, servicio ROLPAGO",
-      "useCaseId": "uc-sp_debcred_empresa-cu-03",
+      "useCaseId": "66e6ada1-9fe9-472b-b2a2-a81c0f5b50ce",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -261,11 +261,11 @@
       "expected": "`RETURN 0 con @o_error = 0` — afectacion en BD: db_sat_his..bp_total_orden_his pasa a te_estado_proceso='T' (te_codigo_error=0) sobre el registro [te_orden_banco=63055657, frm IN(CUE/EFE/CHE), ROLPAGO (fallback)] (L:1155)."
     },
     {
-      "id": "tc-sp_debcred_empresa-tc12",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "6f32e781-7aa6-4fff-8f8d-6dbf1fa9c626",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC12",
       "name": "Canal BCE, forma de pago COB, orden 63087126, servicio ROLPAGO",
-      "useCaseId": "uc-sp_debcred_empresa-cu-04",
+      "useCaseId": "b1e0dbb2-c5ed-4c7b-8f1b-b49d66430746",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -273,11 +273,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc13",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "3e110dc1-6763-4929-8527-5ee0581bcb1b",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC13",
       "name": "Rama fallback historico canal BCE, forma de pago COB, orden 63087126, servicio ROLPAGO, tipo afectacion 12",
-      "useCaseId": "uc-sp_debcred_empresa-cu-04",
+      "useCaseId": "b1e0dbb2-c5ed-4c7b-8f1b-b49d66430746",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -285,11 +285,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc15",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "8d96f48e-1560-4025-84db-9ba211ae8909",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC15",
       "name": "Orden inexistente 99999999, canal DIR, servicio ROLPAGO (sin fila en bp_total_orden)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-06",
+      "useCaseId": "a6adaf05-b5cc-4af3-80bb-c51eb32f5f61",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -297,11 +297,11 @@
       "expected": "`RETURN 0 con @o_error = 122004`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc25",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "bb9a365e-fcb8-47c3-a6dc-bf3bb7514122",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC25",
       "name": "Omitir @i_orden (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -309,11 +309,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_orden, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc26",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "08fb1fa5-9937-4db5-918c-6f6eb4717651",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC26",
       "name": "Omitir @i_orden_empresa (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -321,11 +321,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_orden_empresa, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc27",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "b01ab2e5-eb78-4d32-bb04-e74e2b59d771",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC27",
       "name": "Omitir @i_fecha_proceso (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -333,11 +333,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_fecha_proceso, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc28",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "e6cf769f-b18d-4760-8d6a-c507beffb8d0",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC28",
       "name": "Omitir @i_nem_emp (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -345,11 +345,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_nem_emp, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc29",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "86d07ab1-0bfd-4ff4-944b-8d7b6eaa9ef9",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC29",
       "name": "Omitir @i_empresa (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -357,11 +357,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_empresa, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc30",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "d12ad6ad-3a5a-44ec-a94e-316084d927f8",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC30",
       "name": "Omitir @i_producto (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -369,11 +369,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_producto, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc31",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "23bb440f-e440-45fa-9484-b1b128bbe42b",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC31",
       "name": "Omitir @i_servicio (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -381,11 +381,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_servicio, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc32",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "40770e67-33ac-4e32-9b89-4aaf06be0c86",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC32",
       "name": "Omitir @i_frm_pagcob (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -393,11 +393,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_frm_pagcob, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc33",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "49e26f75-1fa5-4f72-9944-64dedf5daab5",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC33",
       "name": "Omitir @i_referencia (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -405,11 +405,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_referencia, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc34",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "8623ab5d-4614-482e-9e2d-ea53580862e9",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC34",
       "name": "Omitir @i_mon_debito (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -417,11 +417,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_mon_debito, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc35",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "578adfa2-982b-4821-ba11-64ad9b85cbb6",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC35",
       "name": "Omitir @i_pais_cta (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -429,11 +429,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_pais_cta, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc36",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "fe31027d-4b94-4ca1-be00-b468bd4ffbb2",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC36",
       "name": "Omitir @i_cod_banco_cta (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -441,11 +441,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_cod_banco_cta, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc37",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "ded35653-72f9-4b1a-afc9-fa6db9b5bb78",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC37",
       "name": "Enviar @i_tipcta_emp como NULL (obligatorio)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -453,11 +453,11 @@
       "expected": "`RETURN 0 con @o_error = 120000`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc38",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "69c2834e-c989-4710-9a9f-d1b6e1bd6760",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC38",
       "name": "Enviar @i_numcta_emp como NULL (obligatorio)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -465,11 +465,11 @@
       "expected": "`RETURN 0 con @o_error = 31004`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc39",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "86d78bd9-2657-48f6-9990-d097b1164472",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC39",
       "name": "Omitir @i_valor_ordenado (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -477,11 +477,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_valor_ordenado, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc40",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "51eed56f-4020-4a55-ae59-c6e7ae9f9ecb",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC40",
       "name": "Omitir @i_valor_debito (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -489,11 +489,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_valor_debito, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc41",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "a47bf458-8dd0-4d2a-89d0-04c3b6577c1d",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC41",
       "name": "Omitir @i_valor_comision (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -501,11 +501,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_valor_comision, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc42",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "900518ff-83dc-4d9f-ae7f-53fce1dfd6dc",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC42",
       "name": "Omitir @i_tipo_referencia (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -513,11 +513,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_tipo_referencia, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc43",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "23121ec3-1d52-4a54-8f93-a5830022f815",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC43",
       "name": "Omitir @i_ref_prov (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -525,11 +525,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_ref_prov, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc44",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "cbc89da1-0b3e-40ff-829d-c6ceb3758d34",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC44",
       "name": "Omitir @i_opcion (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -537,11 +537,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_opcion, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc45",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "0e55f8e3-94c2-4056-ac7f-92d482119e00",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC45",
       "name": "Omitir @i_tipo_pagcob (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -549,11 +549,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_tipo_pagcob, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc46",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "481856fb-6220-4f25-8f6e-6c0bd25fc851",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC46",
       "name": "Omitir @i_localidad_orden (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -561,11 +561,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_localidad_orden, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc47",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "512fd0ae-cc8a-42f5-9791-51eb13a8de9e",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC47",
       "name": "Omitir @i_tipo_proceso (parametro obligatorio no enviado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-10",
+      "useCaseId": "414024c8-52e2-4ce0-a4b7-518b75797030",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -573,11 +573,11 @@
       "expected": "`RETURN -6 (Sybase: \"expects parameter @i_tipo_proceso, which was not supplied\")`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc48",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "8fc4e29a-9ab8-4e44-b8b1-ee362f927dce",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC48",
       "name": "EP: @s_ssn con valor entero válido",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -585,11 +585,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc50",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "30cc655c-bc23-4b2d-a0b3-f1f67fbc0d88",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC50",
       "name": "EP: @s_user con cadena válida dentro del rango",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -597,11 +597,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc52",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "4acdda9b-4fac-41d8-9d4f-3d59301bd04b",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC52",
       "name": "EP: @s_term con cadena válida dentro del rango",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -609,11 +609,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc54",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "c89c91b3-edcd-4e90-8189-a2a1fd1acd4e",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC54",
       "name": "EP: @s_srv con cadena válida dentro del rango",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -621,11 +621,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc56",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "420c5625-4cfd-40bc-b755-57f4c2bb2731",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC56",
       "name": "EP: @s_ofi con valor entero válido",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -633,11 +633,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc58",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "4542b857-3ee8-4ba9-9630-b49ab52c2bc6",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC58",
       "name": "EP: @i_sp_name con cadena válida dentro del rango",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -645,11 +645,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc62",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "0202f282-9283-491b-91b0-5b503ef97b24",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC62",
       "name": "EP: @i_orden_empresa con valor entero válido",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -657,11 +657,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc64",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "d4618e9c-9247-4527-9b00-98a06ab45e21",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC64",
       "name": "EP: @i_nem_emp con cadena válida dentro del rango",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -669,11 +669,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc66",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "39750600-e08b-4c19-8c5a-14766c1a61df",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC66",
       "name": "EP: @i_empresa con valor entero válido",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -681,11 +681,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc70",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "25d1fe92-653c-46a7-a88f-9d1c11a9f8de",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC70",
       "name": "EP: @i_referencia con cadena válida dentro del rango",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -693,11 +693,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc72",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "7e133a9f-13db-4e19-b3b5-a4d5c2b7b6bb",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC72",
       "name": "EP: @i_mon_debito con valor entero válido",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -705,11 +705,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc74",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "18a24406-6d6e-4509-b3d1-f2b8be59dc12",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC74",
       "name": "EP: @i_pais_cta con valor entero válido",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -717,11 +717,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc76",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "0c662f25-b5f0-442c-ac7d-5cff7e8fa273",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC76",
       "name": "EP: @i_cod_banco_cta con valor entero válido",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -729,11 +729,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc78",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "b66d1655-a99d-491a-b291-8dd92609d37b",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC78",
       "name": "EP: @i_valor_ordenado con monto > 0",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -741,11 +741,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc97",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "b29fab6c-dcaf-4113-8fd7-7b178117381f",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC97",
       "name": "EP: @i_frm_pagcob_deb con cadena vacía",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -753,11 +753,11 @@
       "expected": "`RETURN 0 con @o_error = 122004`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc98",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "b4dcfd20-ae50-4a92-b10f-0ad82edc7955",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC98",
       "name": "EP: @i_secuencial con valor entero válido",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -765,11 +765,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc122",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "19f254b8-b452-4c80-9260-4a091f28bceb",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC122",
       "name": "BVA: @i_sp_name con longitud N+1 (33 chars)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -777,11 +777,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc125",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "e3163fca-e748-4609-ab4f-7ca2d8ec9be6",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC125",
       "name": "BVA: @i_valor_ordenado con fracción de centavo (paridad redondeo Sybase vs BigDecimal)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -789,11 +789,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc126",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "e62e2c2c-4362-4a80-bd9e-b4999d7a7ed5",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC126",
       "name": "BVA: @i_valor_debito con fracción de centavo (paridad redondeo Sybase vs BigDecimal)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -801,11 +801,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc127",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "b14ebfd1-b6d5-403f-8e2f-031032d23aaa",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC127",
       "name": "BVA: @i_valor_comision con fracción de centavo (paridad redondeo Sybase vs BigDecimal)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -813,11 +813,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc128",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "5297eae1-7855-4cc3-8118-5c36e234e975",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC128",
       "name": "BVA: @i_tipo_referencia con longitud N+1 (2 chars)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -825,11 +825,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc131",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "8060a501-080f-41d9-9731-c7e179b4f6b7",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC131",
       "name": "BVA: @i_tipo_pagcob con longitud N+1 (2 chars)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -837,11 +837,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc132",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "0fae5d60-bdc5-4130-a087-4eef2ea46990",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC132",
       "name": "BVA: @i_tipo_proceso con longitud N+1 (2 chars)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -849,11 +849,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc133",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "591d91f8-d8be-4ea0-ac48-4bd8936b4d53",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC133",
       "name": "BVA: @i_frm_pagcob_deb con longitud N+1 (4 chars)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-11",
+      "useCaseId": "18232693-a15a-4940-b939-8c470c501f8c",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -861,11 +861,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc134",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "30fe53fa-77a7-4c13-8828-b645d341092f",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC134",
       "name": "BVA: @i_valor2_swift con fracción de centavo (paridad redondeo Sybase vs BigDecimal)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -873,11 +873,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc140",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "dd38355d-007c-4f74-a170-8d9b2ff6b48c",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC140",
       "name": "BVA mínimo: @i_comision > 0 — valor en el borde exacto",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -885,11 +885,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc142",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "4ee10ef6-3088-4a7f-a84c-806f88855168",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC142",
       "name": "Valor comision 0.01 (borde minimo monetario)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -897,11 +897,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc148",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "ceaf0d3f-d893-4a58-a750-d1f250de3423",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC148",
       "name": "Valor comision 15.00 (con cobro de comision separado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -909,11 +909,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc150",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "f8e07dec-67ae-417e-9b8f-29f6cedcaae7",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC150",
       "name": "Servicio TRANSWIFT (orden 63023082): procesa debito por rama principal y retorna exito",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -921,11 +921,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc151",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "0c0b60be-33e4-4c41-8d87-e6b86075f505",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC151",
       "name": "Servicio TRANSWIFT (orden 63056944): procesa debito por rama principal y retorna exito",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -933,11 +933,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc154",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "e1e3b763-88a3-435b-b855-588b6fbedf7c",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC154",
       "name": "TRANSWIFT, @i_orden=63023082, forma CUE (fallback historico a bp_total_orden_his)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -945,11 +945,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc156",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "c9894126-f27d-4839-8d9e-d1286482541a",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC156",
       "name": "BVA mínimo: @i_valor_comision > 0 — valor en el borde exacto",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -957,11 +957,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc157",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "463c8459-509c-4dfc-b3a6-1d5306828822",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC157",
       "name": "BVA frontera inferior: @i_valor_comision = 0 (valor minimo no negativo); el SP acepta comision 0 y procesa con exito (o_error=0)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -969,11 +969,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc158",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "974851f3-a961-45a7-a767-d5c95a7f178a",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC158",
       "name": "Rama fallback historico opcion 01: la orden no esta en estado inicial en bp_total_orden, el UPDATE de cabecera no afecta filas y el flujo cae al UPDATE de bp_total_orden_his",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -981,11 +981,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc160",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "9072209f-1b3d-4dde-bcf2-a4962dabb164",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC160",
       "name": "Rama fallback historico canal no-DIR (ELSE): la orden no esta en estado inicial en bp_total_orden, el UPDATE de cabecera no afecta filas y el flujo cae al UPDATE de bp_total_orden_his",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -993,11 +993,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc161",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "216eafd2-47a5-46af-9874-7c048f34f2a4",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC161",
       "name": "Canal DIR opcion 01 (orden 63056944): procesa debito por rama principal y retorna exito",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1005,11 +1005,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc166",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "81048f68-36b1-4197-9fbd-5c8f635c55c6",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC166",
       "name": "Validar idempotencia a nivel cabecera (bp_total_orden): la 2a ejecucion con la fila ya en 'T' devuelve 122004; la idempotencia no es a nivel saldo monetario",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1017,11 +1017,11 @@
       "expected": "`1a ejecucion: RETURN 0 con @o_error = 0; 2a ejecucion: RETURN 0 con @o_error = 122004`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc167",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "1983c28c-3eba-4c61-af4e-b7ff00f7387d",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC167",
       "name": "Validar rollback parcial: si sp_grb_comision falla despues de debito exitoso, el saldo de cuenta queda consistente",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1029,11 +1029,11 @@
       "expected": "`RETURN 0 con @o_error = 122002`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc168",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "7f7b8f76-89f6-4d16-b099-c115ab6cbf5d",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC168",
       "name": "Comision debito+comision junto 0.01, comision separada 0.00",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1041,11 +1041,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc169",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "ea21e282-dc63-41ee-9ae1-65872dea8457",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC169",
       "name": "Opcion 01, canal DIR, misma orden ejecutada dos veces: la 2a no reprocesa (no-reproceso por estado)",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1053,11 +1053,11 @@
       "expected": "`1a ejecucion: RETURN 0 con @o_error = 0; 2a ejecucion: RETURN 0 con @o_error = 122004`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc170",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "492e2864-1ec9-4f17-bf0a-807806ab4bc1",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC170",
       "name": "Empresa 1295, servicio SPI, tipo cuenta contable (9), tipo afectacion 12, canal DIR, forma CUE, orden 67027790",
-      "useCaseId": "uc-sp_debcred_empresa-cu-12",
+      "useCaseId": "d0d9b35d-08c5-4e71-8b68-11fef9553205",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1065,11 +1065,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc172",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "f0bc11e3-c1af-41ed-90aa-0e7d96ef3bfe",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC172",
       "name": "Rama fallback historico opcion 02: la orden no esta en estado inicial en bp_total_orden, el UPDATE de cabecera no afecta filas y el flujo cae al UPDATE de bp_total_orden_his",
-      "useCaseId": "uc-sp_debcred_empresa-cu-13",
+      "useCaseId": "3f6fad2e-89e5-41f1-aa54-42a78883eb9f",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1077,11 +1077,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc173",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "81c6479c-69ef-4ada-a51a-9e6c9481c182",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC173",
       "name": "Rama fallback historico opcion 03: la orden no esta en estado inicial en bp_total_orden, el UPDATE de cabecera no afecta filas y el flujo cae al UPDATE de bp_total_orden_his",
-      "useCaseId": "uc-sp_debcred_empresa-cu-13",
+      "useCaseId": "3f6fad2e-89e5-41f1-aa54-42a78883eb9f",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1089,11 +1089,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc175",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "73fdf80d-dfe5-4e10-9342-d1f1d783ed9f",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC175",
       "name": "Opcion 01, canal DIR, forma CUE, servicio ROLPAGO, cuenta ahorros (tipcta 4) 0000601864",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1101,11 +1101,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc176",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "4cbb1479-00e3-4246-8ddd-421c37b4aca3",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC176",
       "name": "Opcion 01, canal DIR, forma CUE, servicio ROLPAGO, cuenta virtual (tipcta 12) 0101521961",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1113,11 +1113,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc177",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "e4037559-b1e2-4a6b-b6d3-fd01e413073d",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC177",
       "name": "Opcion 02 (CUE/EFE/CHL), canal DIR, forma EFE, servicio ROLPAGO, cuenta ahorros (tipcta 4) 0000601864, orden 63791293",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1125,11 +1125,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc178",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "4a20ceae-da8f-4021-8a07-8d5dbc433f71",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC178",
       "name": "Opcion 02 (CUE/EFE/CHL), canal DIR, forma CUE, servicio ROLPAGO, cuenta virtual (tipcta 12) 0101521961",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1137,11 +1137,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc179",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "57a1cf70-daac-422c-9a78-5614c51482e6",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC179",
       "name": "Opcion 03 (CUE/EFE/CHE), canal DIR, forma CHE, servicio ROLPAGO, cuenta CTE (tipcta 3) 0000010302, orden 64459151",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1149,11 +1149,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc180",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "4d94cb2f-8ad0-41fb-a494-09336dce5b71",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC180",
       "name": "Opcion 03 (CUE/EFE/CHE), canal DIR, forma CUE, servicio ROLPAGO, cuenta virtual (tipcta 12) 0101521961",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1161,11 +1161,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc181",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "3b56abe4-a6e1-4185-ac55-86005a4cdb1a",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC181",
       "name": "Opcion 01, canal DIR, forma de pago EFE (efectivo), servicio ROLPAGO, cuenta CTE (tipcta 3), orden 63791294",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1173,11 +1173,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc182",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "17e2efff-b8ba-42e9-b220-70e26068755c",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC182",
       "name": "Canal BNK (no directo), forma de pago COB (cobro), servicio ROLPAGO, cuenta CTE (tipcta 3), orden 63087126",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1185,11 +1185,11 @@
       "expected": "`RETURN 0 con @o_error = 120000`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc184",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "622d1461-bba2-4231-8868-7fbb236536ab",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC184",
       "name": "Canal BNK (no directo), forma de pago CTB, servicio ROLPAGO, cuenta virtual (tipcta 12) 0101521961, orden 63087126",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1197,11 +1197,11 @@
       "expected": "`RETURN 0 con @o_error = 120000`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc187",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "a97ae33e-e5e1-4271-839e-8682a6a296d5",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC187",
       "name": "Opcion 01, canal DIR, forma CUE, servicio SPI, tipo afectacion 10, cuenta CTE (tipcta 3), orden 68738038",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1209,11 +1209,11 @@
       "expected": "`RETURN 0 con @o_error = 0 (usar orden SPI real 68738038 con su cuenta)`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc188",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "64412c5b-7919-47e4-9043-278d43e2b8c7",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC188",
       "name": "Opcion 01, canal DIR, forma CUE, servicio SPI, tipo afectacion 10, cuenta ahorros (tipcta 4) 0000658818, orden 68738038",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1221,11 +1221,11 @@
       "expected": "`RETURN 0 con @o_error = 120000`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc189",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "7846f26e-0753-48e2-9593-f9ac14b83d2a",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC189",
       "name": "Opcion 01, canal DIR, forma CUE, servicio SPI, forma pago SPI COB, tipo afectacion 12, cuenta virtual (tipcta 12) 0101521961, orden 68738038",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1233,11 +1233,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc190",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "cc838461-9090-4fe3-aac8-495c850e67cb",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC190",
       "name": "Opcion 01, canal DIR, forma CUE, servicio TRANSWIFT, cod swift BABORECE, secuencial 1, cuenta CTE (tipcta 3), orden 66844022",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1245,11 +1245,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc191",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "d917f37f-e6f2-4f45-8703-5d436bb0e4b2",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC191",
       "name": "Opcion 01, canal DIR, forma CUE, servicio TRANSWIFT, cod swift BABORECE, secuencial 1, cuenta ahorros (tipcta 4) 0000601864, orden 66844022",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1257,11 +1257,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc192",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "b9d177a8-d719-4233-a9a4-97f93aa1357b",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC192",
       "name": "Opcion 01, canal DIR, forma CUE, servicio TRANSCLI, cuenta CTE (tipcta 3), orden 68747153",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1269,11 +1269,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc193",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "d50e21e4-7bcf-4b37-8c4d-126120f12632",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC193",
       "name": "Opcion 01, canal DIR, forma CUE, servicio IMPADUAN, cod swift CORPEI, cuenta ahorros (tipcta 4) 0000658818, orden 68567426",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Bloqueado",
       "priority": "Alta",
       "observation": "BLOCKED-INFRA: requiere preparacion de datos/infra.",
@@ -1281,11 +1281,11 @@
       "expected": "`BLOCKED-INFRA` — No ejecutable en DVP. El flujo IMPADUAN+CORPEI invoca pa_sat_ctarifario -> proxy table db_integracion..Tarifas -> servidor remoto 'ws' (web service de tarifas) que NO existe en master..sysservers de DVP (Msg 7218 \"Site 'ws' not found\"). Dependencia de infraestructura ausente; sin adecuacion de dato posible. Requiere que infra/migracion configure el linked server 'ws'. Resultado esperado original (con el web service disponible): RETURN 0 con @o_error = 0."
     },
     {
-      "id": "tc-sp_debcred_empresa-tc194",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "c7fe14eb-980a-49bd-9bb4-2a7022abb7d2",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC194",
       "name": "Opcion 01, canal DIR, forma CUE, servicio TRANSQUICK, forma pago SPI COB, tipo afectacion 10, cuenta virtual (tipcta 12) 0101521961, orden 67943945",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
@@ -1293,11 +1293,11 @@
       "expected": "`RETURN 0 con @o_error = 0`"
     },
     {
-      "id": "tc-sp_debcred_empresa-tc196",
-      "spMigrationId": "sp_debcred_empresa",
+      "id": "5abf0383-159f-4dfd-ae18-c9e4c005cda0",
+      "spMigrationId": "cbbed558-3699-4a80-8a4b-dad6b633cb00",
       "code": "TC196",
       "name": "Opcion 01, canal DIR, forma CUE, servicio COMEXT, cuenta ahorros (tipcta 4) 0000601864, orden 67799371",
-      "useCaseId": "uc-sp_debcred_empresa-cu-adic",
+      "useCaseId": "8c48ab73-403b-436e-941a-c7ae376ecbdf",
       "status": "Borrador",
       "priority": "Alta",
       "observation": "Caso derivado de qa_casos_prueba.md (auto).",
