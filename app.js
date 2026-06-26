@@ -48,7 +48,8 @@ const viewConfig = {
   }
 };
 
-const bulkImportStores = new Set(["testCases", "useCases", "bugs"]);
+const bulkImportStores = new Set(["spMigrations", "testCases", "useCases", "bugs"]);
+const bulkImportGroupStores = ["spMigrations", "useCases", "testCases", "bugs"];
 
 const fieldConfig = {
   tasks: [
@@ -1104,17 +1105,17 @@ function parseBulkImportPayload(store, text) {
 
   const source = payload?.data && typeof payload.data === "object" ? payload.data : payload;
   const groups = {};
-  ["useCases", "testCases", "bugs"].forEach((groupStore) => {
+  bulkImportGroupStores.forEach((groupStore) => {
     if (Array.isArray(source?.[groupStore])) groups[groupStore] = source[groupStore];
   });
   if (Object.keys(groups).length) return groups;
 
-  throw new Error(`Usa un arreglo JSON o un objeto con alguna propiedad: "useCases", "testCases" o "bugs".`);
+  throw new Error(`Usa un arreglo JSON o un objeto con alguna propiedad: "spMigrations", "useCases", "testCases" o "bugs".`);
 }
 
 async function importRecordGroups(groups) {
   const result = { created: 0, errors: [] };
-  for (const store of ["useCases", "testCases", "bugs"]) {
+  for (const store of bulkImportGroupStores) {
     const records = groups[store] || [];
     for (const [index, rawRecord] of records.entries()) {
       try {
