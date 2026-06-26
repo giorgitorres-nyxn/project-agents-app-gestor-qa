@@ -591,6 +591,7 @@ h2 {
 .status-matriz-lista,
 .status-evidencia-qmetry,
 .status-aprobado,
+.status-exitoso,
 .status-disponible,
 .artifact-pill.complete {
   color: var(--green);
@@ -609,6 +610,8 @@ h2 {
 
 .status-bloqueado,
 .status-retirado,
+.status-fallido,
+.status-no-aprobado,
 .status-ausente {
   color: var(--red);
   background: var(--red-soft);
@@ -913,6 +916,64 @@ tbody tr:hover td {
   min-height: 34px;
   padding: 0 11px;
   font-size: 0.84rem;
+}
+
+.inline-select {
+  min-width: 118px;
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 3px 28px 3px 10px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background-color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.inline-select:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pagination-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+}
+
+.pagination-controls select {
+  min-height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  padding: 0 28px 0 10px;
+  background-color: #ffffff;
+  font: inherit;
+}
+
+.pagination-controls .ghost-button {
+  min-height: 34px;
+  padding: 0 11px;
 }
 
 dialog {

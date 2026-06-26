@@ -2,6 +2,16 @@
 
 ## 2026-06-25
 
+### Cambio: Importacion robusta, paginacion y ejecucion de casos
+
+- La importacion masiva ahora acepta IDs legibles y los convierte automaticamente a UUID para Supabase.
+- Las relaciones del JSON (`spMigrationId`, `useCaseId`, `testCaseId`) se remapean durante la carga usando esos IDs legibles.
+- Se agrega paginacion a las tablas con selector de filas por pagina.
+- La tabla de casos de prueba incorpora `Ejecucion` y `Aprobado Banco`.
+- En casos de prueba, `Estado`, `Ejecucion` y `Aprobado Banco` se pueden modificar directamente desde la tabla.
+
+---
+
 ### Cambio: Archivo masivo de debcred compatible con Supabase
 
 - Se ajusto `docs/gestor-qa-sp_debcred_empresa.json` para usar UUIDs en `spMigrations`, casos de uso y casos de prueba.

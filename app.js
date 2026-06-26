@@ -26,7 +26,7 @@ const viewConfig = {
     title: "Casos de prueba",
     kicker: "Validacion",
     store: "testCases",
-    columns: ["SP del CP", "Codigo", "Nombre", "Estado", "Prioridad", "Observacion", ""]
+    columns: ["SP del CP", "Codigo", "Nombre", "Estado", "Ejecucion", "Aprobado Banco", "Prioridad", "Observacion", ""]
   },
   useCases: {
     title: "Casos de uso",
@@ -50,6 +50,11 @@ const viewConfig = {
 
 const bulkImportStores = new Set(["spMigrations", "testCases", "useCases", "bugs"]);
 const bulkImportGroupStores = ["spMigrations", "useCases", "testCases", "bugs"];
+const defaultPageSize = 25;
+const pageSizeOptions = [10, 25, 50, 100];
+const inlineEditableFields = {
+  testCases: new Set(["status", "executionStatus", "bankApproval"])
+};
 
 const fieldConfig = {
   tasks: [
@@ -83,6 +88,8 @@ const fieldConfig = {
     { name: "name", label: "Nombre", type: "text", required: true },
     { name: "useCaseId", label: "Caso de uso", type: "useCase" },
     { name: "status", label: "Estado", type: "select", options: ["Borrador", "Listo", "Ejecutado", "Bloqueado"] },
+    { name: "executionStatus", label: "Ejecucion", type: "select", options: ["Exitoso", "Fallido"], default: "", emptyLabel: "Sin ejecutar" },
+    { name: "bankApproval", label: "Aprobado Banco", type: "select", options: ["Aprobado", "No Aprobado"], default: "No Aprobado" },
     { name: "priority", label: "Prioridad", type: "select", options: ["Alta", "Media", "Baja"] },
     { name: "observation", label: "Observacion", type: "textarea", full: true },
     { name: "steps", label: "Pasos", type: "textarea", full: true },
@@ -148,6 +155,8 @@ const listFilterFields = {
     { key: "name", label: "Nombre" },
     { key: "useCase", label: "Caso de uso" },
     { key: "status", label: "Estado" },
+    { key: "executionStatus", label: "Ejecucion" },
+    { key: "bankApproval", label: "Aprobado Banco" },
     { key: "priority", label: "Prioridad" },
     { key: "observation", label: "Observacion" },
     { key: "steps", label: "Pasos" },
@@ -192,6 +201,7 @@ let state = {
   editing: null,
   importingStore: null,
   currentUser: null,
+  pagination: Object.fromEntries(stores.map((store) => [store, { page: 1, pageSize: defaultPageSize }])),
   data: Object.fromEntries(stores.map((store) => [store, []]))
 };
 
@@ -295,6 +305,7 @@ function bindEvents() {
   $("#quick-task").addEventListener("click", () => openEditor("tasks"));
   $("#global-search").addEventListener("input", (event) => {
     state.search = event.target.value.trim().toLowerCase();
+    resetAllPages();
     render();
   });
   $("#export-data").addEventListener("click", exportData);
@@ -674,14 +685,70 @@ function renderList() {
 
   const storeData = state.data[config.store] ?? [];
   const records = applyCustomFilters(filterRecords(storeData), config.store);
+  const pagination = paginationFor(config.store);
+  const totalPages = Math.max(1, Math.ceil(records.length / pagination.pageSize));
+  if (pagination.page > totalPages) pagination.page = totalPages;
+  const startIndex = (pagination.page - 1) * pagination.pageSize;
+  const pageRecords = records.slice(startIndex, startIndex + pagination.pageSize);
 
-  $("#table-body").innerHTML = records.length
-    ? records.map((record) => tableRow(config.store, record)).join("")
+  $("#table-body").innerHTML = pageRecords.length
+    ? pageRecords.map((record) => tableRow(config.store, record)).join("")
     : `<tr><td colspan="${config.columns.length}"><div class="empty-state">No hay registros para mostrar.</div></td></tr>`;
+  renderPagination(config.store, records.length, pageRecords.length, startIndex);
 
   $("#table-body").querySelectorAll("[data-edit]").forEach((button) => {
     button.addEventListener("click", () => openEditor(config.store, button.dataset.edit));
   });
+  $("#table-body").querySelectorAll("[data-inline-field]").forEach((control) => {
+    control.addEventListener("change", () => handleInlineUpdate(config.store, control));
+  });
+}
+
+function renderPagination(store, totalRecords, visibleRecords, startIndex) {
+  const pagination = paginationFor(store);
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pagination.pageSize));
+  const from = totalRecords ? startIndex + 1 : 0;
+  const to = totalRecords ? startIndex + visibleRecords : 0;
+
+  $("#table-pagination").innerHTML = `
+    <div class="pagination-summary">${from}-${to} de ${totalRecords}</div>
+    <div class="pagination-controls">
+      <label>
+        Filas
+        <select id="page-size" aria-label="Filas por pagina">
+          ${pageSizeOptions.map((size) => `<option value="${size}" ${size === pagination.pageSize ? "selected" : ""}>${size}</option>`).join("")}
+        </select>
+      </label>
+      <button class="ghost-button" type="button" data-page-action="prev" ${pagination.page <= 1 ? "disabled" : ""}>Anterior</button>
+      <span>Pagina ${pagination.page} de ${totalPages}</span>
+      <button class="ghost-button" type="button" data-page-action="next" ${pagination.page >= totalPages ? "disabled" : ""}>Siguiente</button>
+    </div>
+  `;
+
+  $("#page-size").addEventListener("change", (event) => {
+    pagination.pageSize = Number(event.target.value) || defaultPageSize;
+    pagination.page = 1;
+    renderList();
+  });
+  $("#table-pagination").querySelectorAll("[data-page-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      pagination.page += button.dataset.pageAction === "next" ? 1 : -1;
+      renderList();
+    });
+  });
+}
+
+function paginationFor(store) {
+  if (!state.pagination[store]) state.pagination[store] = { page: 1, pageSize: defaultPageSize };
+  return state.pagination[store];
+}
+
+function resetPage(store) {
+  paginationFor(store).page = 1;
+}
+
+function resetAllPages() {
+  Object.keys(state.pagination).forEach(resetPage);
 }
 
 function renderFilters(config) {
@@ -717,11 +784,13 @@ function renderFilters(config) {
   });
   $("#clear-filters").addEventListener("click", () => {
     state.customFilters[config.store] = [];
+    resetPage(config.store);
     renderList();
   });
   $("#list-filters").querySelectorAll("[data-remove-filter]").forEach((button) => {
     button.addEventListener("click", () => {
       state.customFilters[config.store] = activeFilters.filter((filter) => filter.id !== button.dataset.removeFilter);
+      resetPage(config.store);
       renderList();
     });
   });
@@ -743,6 +812,7 @@ function addCustomFilter(store) {
       value
     }
   ];
+  resetPage(store);
   renderList();
 }
 
@@ -850,7 +920,9 @@ function tableRow(store, record) {
       findTestCaseSp(record),
       record.code,
       record.name,
-      { html: statusBadge(record.status) },
+      { html: inlineSelect(store, record, "status") },
+      { html: inlineSelect(store, record, "executionStatus") },
+      { html: inlineSelect(store, record, "bankApproval") },
       { html: pill(record.priority, `priority-${record.priority}`) },
       record.observation || "Sin observacion",
       edit
@@ -887,6 +959,49 @@ function row(cells) {
 
 function pill(text, className) {
   return `<span class="priority-pill ${escapeHtml(className)}">${escapeHtml(text || "Media")}</span>`;
+}
+
+function inlineSelect(store, record, fieldName) {
+  if (!inlineEditableFields[store]?.has(fieldName)) return escapeHtml(record[fieldName] || "");
+  const field = fieldConfig[store]?.find((item) => item.name === fieldName);
+  const value = record[fieldName] ?? defaultValue(field);
+  let selectOptions = (field?.options ?? []).map((option) => typeof option === "string" ? { value: option, label: option } : option);
+  if (field?.emptyLabel) selectOptions = [{ value: "", label: field.emptyLabel }, ...selectOptions];
+  const options = selectOptions.map((item) => {
+    return `<option value="${escapeHtml(item.value)}" ${item.value === value ? "selected" : ""}>${escapeHtml(item.label)}</option>`;
+  }).join("");
+  return `
+    <select class="inline-select status-${cssToken(value || "pendiente")}" data-inline-field="${escapeHtml(fieldName)}" data-record-id="${escapeHtml(record.id)}" aria-label="${escapeHtml(field?.label || fieldName)}">
+      ${options}
+    </select>
+  `;
+}
+
+async function handleInlineUpdate(store, control) {
+  const allowed = inlineEditableFields[store];
+  const fieldName = control.dataset.inlineField;
+  const recordId = control.dataset.recordId;
+  if (!allowed?.has(fieldName) || !recordId) return;
+
+  const storeData = state.data[store] ?? [];
+  const record = storeData.find((item) => item.id === recordId);
+  if (!record) return;
+
+  const previousValue = record[fieldName] ?? "";
+  const nextValue = control.value;
+  if (previousValue === nextValue) return;
+
+  control.disabled = true;
+  try {
+    const savedRecord = await saveRecord(store, { ...record, [fieldName]: nextValue });
+    mergeImportedRecord(store, savedRecord);
+    renderList();
+  } catch (error) {
+    control.value = previousValue;
+    alert(`Error: ${error.message}`);
+  } finally {
+    control.disabled = false;
+  }
 }
 
 function statusBadge(text) {
@@ -973,7 +1088,10 @@ function optionsFor(field, value, record = {}) {
     const spMigrations = state.data.spMigrations ?? [];
     options = [{ value: "", label: "Sin SP" }, ...spMigrations.map((item) => ({ value: item.id, label: item.spName }))];
   }
-  if (field.type === "select") options = (field.options ?? []).map((option) => typeof option === "string" ? { value: option, label: option } : option);
+  if (field.type === "select") {
+    options = (field.options ?? []).map((option) => typeof option === "string" ? { value: option, label: option } : option);
+    if (field.emptyLabel) options = [{ value: "", label: field.emptyLabel }, ...options];
+  }
   return options.map((option) => `<option value="${escapeHtml(option.value)}" ${option.value === value ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("");
 }
 
@@ -1115,11 +1233,12 @@ function parseBulkImportPayload(store, text) {
 
 async function importRecordGroups(groups) {
   const result = { created: 0, errors: [] };
+  const context = buildImportContext(groups);
   for (const store of bulkImportGroupStores) {
     const records = groups[store] || [];
     for (const [index, rawRecord] of records.entries()) {
       try {
-        const record = normalizeImportRecord(store, rawRecord);
+        const record = normalizeImportRecord(store, rawRecord, context);
         const savedRecord = await saveRecord(store, record);
         mergeImportedRecord(store, savedRecord);
         result.created += 1;
@@ -1131,20 +1250,62 @@ async function importRecordGroups(groups) {
   return result;
 }
 
-function normalizeImportRecord(store, rawRecord) {
+function buildImportContext(groups) {
+  const aliases = Object.fromEntries(bulkImportGroupStores.map((store) => [store, new Map()]));
+  bulkImportGroupStores.forEach((store) => {
+    (groups[store] || []).forEach((record) => {
+      if (!record || typeof record !== "object" || Array.isArray(record) || !record.id) return;
+      const rawId = String(record.id).trim();
+      if (!rawId || aliases[store].has(rawId)) return;
+      aliases[store].set(rawId, resolveImportRecordId(store, rawId));
+    });
+  });
+  return { aliases };
+}
+
+function resolveImportRecordId(store, rawId) {
+  if (isUuid(rawId)) return rawId;
+  const existing = (state.data[store] ?? []).find((record) => record.importKey === rawId || record.id === rawId);
+  return existing?.id || createUuid();
+}
+
+function createUuid() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = char === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "").trim());
+}
+
+function normalizeImportRecord(store, rawRecord, context = { aliases: {} }) {
   if (!rawRecord || typeof rawRecord !== "object" || Array.isArray(rawRecord)) {
     throw new Error("cada registro debe ser un objeto");
   }
 
   const record = {};
-  if (rawRecord.id) record.id = String(rawRecord.id).trim();
+  const rawId = rawRecord.id ? String(rawRecord.id).trim() : "";
+  if (rawId) {
+    record.id = context.aliases?.[store]?.get(rawId) || resolveImportRecordId(store, rawId);
+    if (!isUuid(rawId)) record.importKey = rawId;
+  }
+  if (rawRecord.importKey && !record.importKey) record.importKey = String(rawRecord.importKey).trim();
   const config = fieldConfig[store] ?? [];
   config.forEach((field) => {
     const hasValue = Object.prototype.hasOwnProperty.call(rawRecord, field.name) && rawRecord[field.name] !== null;
     const value = hasValue ? rawRecord[field.name] : defaultValue(field);
     record[field.name] = normalizeFieldValue(field, value);
   });
-  record.spMigrationId = resolveImportSpMigrationId(record.spMigrationId);
+  record.spMigrationId = resolveImportReference("spMigrations", record.spMigrationId, context);
+  if (store === "testCases") record.useCaseId = resolveImportReference("useCases", record.useCaseId, context);
+  if (store === "bugs") {
+    record.testCaseId = resolveImportReference("testCases", record.testCaseId, context);
+    record.memberId = resolveImportReference("members", record.memberId, context);
+  }
 
   const missingRequired = config
     .filter((field) => field.required && !String(record[field.name] ?? "").trim())
@@ -1155,6 +1316,17 @@ function normalizeImportRecord(store, rawRecord) {
 
   validateImportRelations(store, record);
   return record;
+}
+
+function resolveImportReference(store, value, context = { aliases: {} }) {
+  const normalizedValue = String(value || "").trim();
+  if (!normalizedValue) return "";
+  const mappedId = context.aliases?.[store]?.get(normalizedValue);
+  if (mappedId) return mappedId;
+  const existing = (state.data[store] ?? []).find((record) => record.id === normalizedValue || record.importKey === normalizedValue);
+  if (existing) return existing.id;
+  if (store === "spMigrations") return resolveImportSpMigrationId(normalizedValue);
+  return normalizedValue;
 }
 
 function mergeImportedRecord(store, record) {
@@ -1208,6 +1380,26 @@ function bulkImportExampleFor(store) {
   const member = state.data.members?.[0]?.id || "";
 
   const examples = {
+    spMigrations: {
+      spMigrations: [
+        {
+          id: "sp-consulta-saldo",
+          spName: "sp_consulta_saldo",
+          sqlReceivedDate: "",
+          sqlReceived: true,
+          devName: "Equipo migracion",
+          qaId: "",
+          status: "En QA",
+          restReceivedDate: "",
+          restReceived: true,
+          grpcReceivedDate: "",
+          grpcReceived: true,
+          equivalenceMatrixReady: false,
+          qmetryEvidenceReady: false,
+          notes: "Los IDs legibles se convierten automaticamente a UUID durante la importacion."
+        }
+      ]
+    },
     useCases: {
       useCases: [
         {
@@ -1231,6 +1423,8 @@ function bulkImportExampleFor(store) {
           name: "Validar consulta exitosa de saldo",
           useCaseId: useCase,
           status: "Borrador",
+          executionStatus: "Exitoso",
+          bankApproval: "No Aprobado",
           priority: "Alta",
           observation: "Cubrir datos validos.",
           steps: "1. Preparar cliente activo. 2. Ejecutar consulta. 3. Revisar respuesta.",
@@ -1270,6 +1464,8 @@ function filterRecords(records) {
 }
 
 function defaultValue(field) {
+  if (!field) return "";
+  if (field.default !== undefined) return field.default;
   if (field.name === "status" && field.options?.[0]) {
     return typeof field.options[0] === "string" ? field.options[0] : field.options[0].value;
   }

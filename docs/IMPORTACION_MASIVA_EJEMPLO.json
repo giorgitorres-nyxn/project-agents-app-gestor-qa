@@ -1,8 +1,26 @@
 {
+  "spMigrations": [
+    {
+      "id": "sp-consulta-saldo",
+      "spName": "sp_consulta_saldo",
+      "sqlReceivedDate": "",
+      "sqlReceived": true,
+      "devName": "Equipo migracion",
+      "qaId": "",
+      "status": "En QA",
+      "restReceivedDate": "",
+      "restReceived": true,
+      "grpcReceivedDate": "",
+      "grpcReceived": true,
+      "equivalenceMatrixReady": false,
+      "qmetryEvidenceReady": false,
+      "notes": "Los IDs legibles se convierten automaticamente a UUID durante la importacion."
+    }
+  ],
   "useCases": [
     {
       "id": "uc-consulta-saldo",
-      "spMigrationId": "REEMPLAZA_CON_ID_DE_SP_EXISTENTE",
+      "spMigrationId": "sp-consulta-saldo",
       "code": "CU-010",
       "name": "Consultar saldo del cliente",
       "actor": "Analista QA",
@@ -16,11 +34,13 @@
   "testCases": [
     {
       "id": "tc-consulta-saldo-exitosa",
-      "spMigrationId": "REEMPLAZA_CON_ID_DE_SP_EXISTENTE",
+      "spMigrationId": "sp-consulta-saldo",
       "code": "CP-010",
       "name": "Validar consulta exitosa de saldo",
       "useCaseId": "uc-consulta-saldo",
       "status": "Borrador",
+      "executionStatus": "Exitoso",
+      "bankApproval": "No Aprobado",
       "priority": "Alta",
       "observation": "Cubrir datos validos.",
       "steps": "1. Preparar cliente activo. 2. Ejecutar consulta. 3. Revisar respuesta.",
@@ -31,7 +51,7 @@
     {
       "id": "bug-saldo-desactualizado",
       "title": "La consulta retorna saldo desactualizado",
-      "spMigrationId": "REEMPLAZA_CON_ID_DE_SP_EXISTENTE",
+      "spMigrationId": "sp-consulta-saldo",
       "testCaseId": "tc-consulta-saldo-exitosa",
       "memberId": "REEMPLAZA_CON_ID_DE_MIEMBRO_EXISTENTE",
       "severity": "Alta",
