@@ -1,18 +1,23 @@
 # Gestor QA
 
-Aplicacion local para gestionar procesos de QA con una interfaz tipo tablero.
+Aplicacion web en Vercel para gestionar procesos de QA con una interfaz tipo tablero y datos compartidos en Supabase.
+
+## Entorno activo
+
+El proyecto se trabaja exclusivamente sobre Vercel y Supabase.
+
+- Frontend publicado en Vercel.
+- API serverless en `api/`.
+- Base de datos Supabase Postgres definida en `supabase/schema.sql`.
+- No se debe levantar ni configurar `server.py`, SQLite local o `data/gestor_qa.db`, salvo solicitud explicita del usuario.
+- Las pruebas funcionales deben hacerse contra la URL de Vercel o una preview de Vercel indicada por el usuario.
 
 ## Arquitectura
 
-- Backend en Python usando solo librerias estandar.
-- Base de datos local SQLite en `data/gestor_qa.db`.
 - Frontend en HTML, CSS y JavaScript.
-- POO con capas simples:
-  - `DatabaseManager`: crea conexiones y tablas.
-  - `JsonRepository`: patron Repository para acceder a SQLite.
-  - `QAService`: casos de uso y reglas de aplicacion.
-  - `QARequestHandler`: controlador HTTP/API.
-  - `AppFactory`: ensambla la aplicacion.
+- API serverless para Vercel en `api/[...path].js`.
+- Base de datos Supabase Postgres con tablas JSONB.
+- Esquema y politicas en `supabase/schema.sql`.
 
 ## Funcionalidades
 
@@ -40,24 +45,6 @@ El proyecto apoya la migracion de Stored Procedures a microservicios. El equipo 
 
 Este contexto puede cambiar; cada cambio funcional debe documentarse en `docs/CHANGELOG.md`.
 
-## Como ejecutar
+## Como validar
 
-Desde esta carpeta:
-
-```powershell
-python server.py
-```
-
-Si tu instalacion usa el lanzador de Windows:
-
-```powershell
-py server.py
-```
-
-Luego abre:
-
-```text
-http://127.0.0.1:8000
-```
-
-Para detener el servidor, presiona `Ctrl+C` en la terminal.
+Validar cambios contra la app publicada en Vercel o contra una preview de Vercel. Para cambios de base de datos, aplicar primero las instrucciones de `supabase/schema.sql` en Supabase.

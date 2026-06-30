@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-06-30
+
+### Cambio: Entorno unico Vercel/Supabase
+
+- Se documento que el proyecto debe trabajarse exclusivamente contra Vercel y Supabase.
+- Se agrego `AGENTS.md` para indicar a futuras sesiones que no usen `server.py`, SQLite local ni `data/gestor_qa.db`.
+- Se actualizo el README y la documentacion de Supabase/Vercel para tratar SQLite como legado.
+
+---
+
+### Cambio: Configuracion de listas editables
+
+- Se agrego la pestana `Configuracion` con submenus para Tareas, Migracion SPs, Casos de pruebas, Casos de uso, Errores y Miembros QA.
+- Cada submenu permite administrar los valores de sus campos tipo lista, como `Rol` y `Estado` en Miembros QA.
+- Los catalogos se guardan en Supabase mediante el nuevo store `catalogs`, para compartir la configuracion entre usuarios.
+- Los formularios, tablas, filtros e indicadores usan los valores configurados.
+
+---
+
 ## 2026-06-25
 
 ### Cambio: Importacion robusta, paginacion y ejecucion de casos
@@ -100,7 +119,7 @@
 - Se agrego el estado `En revision por banco` al seguimiento de migraciones de SP.
 - El estado aparece en filtros, formulario y etiquetas visuales de la vista `Migracion SP`.
 - El flujo validado queda: SQL recibido -> REST/gRPC recibido -> En QA -> Matriz lista -> Evidencia QMetry -> En revision por banco -> Finalizado.
-- Tambien se permite pasar directamente de `En QA` a `En revision por banco` cuando el proceso del banco no requiere registrar primero la matriz en la app.
+- Tambien se permite pasar directamente de `En QA` o `Matriz lista` a `En revision por banco` cuando el proceso del banco no requiere registrar primero la evidencia QMetry en la app.
 - Se conserva el cierre directo a `Finalizado` desde estados previos como cierre de emergencia.
 
 ---

@@ -797,6 +797,107 @@ h2 {
   background: linear-gradient(90deg, var(--accent), var(--blue));
 }
 
+.configuration-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.config-menu {
+  display: grid;
+  gap: 8px;
+}
+
+.config-menu-item {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--ink-soft);
+  text-align: left;
+  font-weight: 850;
+}
+
+.config-menu-item:hover,
+.config-menu-item.active {
+  border-color: rgba(15, 118, 110, 0.22);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.config-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr));
+  gap: 14px;
+  padding: 14px;
+}
+
+.config-field-card {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: #ffffff;
+}
+
+.config-field-heading,
+.catalog-row,
+.catalog-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-field-heading {
+  justify-content: space-between;
+}
+
+.config-field-heading h3 {
+  margin-bottom: 0;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.catalog-list {
+  display: grid;
+  gap: 8px;
+}
+
+.catalog-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(72px, auto) auto auto;
+}
+
+.catalog-add-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.catalog-row input,
+.catalog-add-row input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.catalog-usage {
+  min-width: 72px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-align: right;
+}
+
 .custom-filter {
   flex: 1 1 560px;
   display: grid;
@@ -1182,9 +1283,18 @@ dialog::backdrop {
 
   .metrics-grid,
   .indicator-grid,
+  .config-field-grid,
   .chart-grid,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .configuration-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .config-menu {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .member-kpis {
@@ -1243,5 +1353,15 @@ dialog::backdrop {
 
   .dialog-actions button {
     flex: 1 1 auto;
+  }
+
+  .config-menu,
+  .catalog-row,
+  .catalog-add-row {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-usage {
+    text-align: left;
   }
 }

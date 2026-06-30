@@ -1,7 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
 
-const stores = ["members", "useCases", "testCases", "bugs", "tasks", "spMigrations"];
+const stores = ["members", "useCases", "testCases", "bugs", "tasks", "spMigrations", "catalogs"];
 const defaultPassword = "BbQAGestor";
 const sessionCookie = "qa_session";
 const sessionTtlSeconds = 8 * 60 * 60;
@@ -10,7 +10,7 @@ const spMigrationTransitions = {
   "SQL recibido": ["REST/gRPC recibido", "Finalizado"],
   "REST/gRPC recibido": ["En QA", "Finalizado"],
   "En QA": ["Matriz lista", "En revision por banco", "Finalizado"],
-  "Matriz lista": ["Evidencia QMetry", "Finalizado"],
+  "Matriz lista": ["Evidencia QMetry", "En revision por banco", "Finalizado"],
   "Evidencia QMetry": ["En revision por banco", "Finalizado"],
   "En revision por banco": ["Finalizado"],
   "Finalizado": []
@@ -46,6 +46,7 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 500, { error: error.message || "Error interno" });
   }
 };
+const defaultSpMigrationStatuses = new Set(Object.keys(spMigrationTransitions));
 
 async function handleLogin(req, res) {
   const { email = "", password = "" } = req.body || {};
@@ -199,6 +200,7 @@ async function listRecords(store) {
     .from(store)
     .select("id,payload,created_at,updated_at")
     .order("created_at", { ascending: true });
+  if (error && store === "catalogs" && isMissingTableError(error)) return [];
   if (error) throw error;
   return data.map(rowToRecord);
 }
@@ -222,8 +224,15 @@ async function saveRecord(store, record, recordId = null) {
     : supabase().from(store).insert(row);
 
   const { data, error } = await query.select("id,payload,created_at,updated_at").single();
+  if (error && store === "catalogs" && isMissingTableError(error)) {
+    throw new Error("Falta ejecutar la migracion de Supabase para crear la tabla catalogs.");
+  }
   if (error) throw error;
   return rowToRecord(data);
+}
+
+function isMissingTableError(error) {
+  return error?.code === "42P01" || /relation .* does not exist/i.test(error?.message || "");
 }
 
 function rowToRecord(row) {
@@ -237,6 +246,7 @@ function rowToRecord(row) {
 
 function validateSpTransition(oldStatus, newStatus) {
   if (oldStatus === newStatus || !oldStatus) return;
+  if (!defaultSpMigrationStatuses.has(oldStatus) || !defaultSpMigrationStatuses.has(newStatus)) return;
   const allowed = spMigrationTransitions[oldStatus] || [];
   if (!allowed.includes(newStatus)) {
     throw new Error(`Transicion invalida: no se puede ir de "${oldStatus}" a "${newStatus}"`);

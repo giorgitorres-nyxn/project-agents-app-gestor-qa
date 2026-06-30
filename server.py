@@ -18,7 +18,7 @@ from urllib.parse import parse_qs, urlparse
 ROOT_DIR = Path(__file__).resolve().parent
 DATA_DIR = ROOT_DIR / "data"
 DB_PATH = DATA_DIR / "gestor_qa.db"
-VALID_STORES = ("members", "useCases", "testCases", "bugs", "tasks", "spMigrations")
+VALID_STORES = ("members", "useCases", "testCases", "bugs", "tasks", "spMigrations", "catalogs")
 DEFAULT_PASSWORD = "BbQAGestor"
 SESSION_COOKIE = "qa_session"
 SESSION_TTL_SECONDS = 8 * 60 * 60
@@ -118,11 +118,12 @@ class QAService:
         "SQL recibido": ["REST/gRPC recibido", "Finalizado"],
         "REST/gRPC recibido": ["En QA", "Finalizado"],
         "En QA": ["Matriz lista", "En revision por banco", "Finalizado"],
-        "Matriz lista": ["Evidencia QMetry", "Finalizado"],
+        "Matriz lista": ["Evidencia QMetry", "En revision por banco", "Finalizado"],
         "Evidencia QMetry": ["En revision por banco", "Finalizado"],
         "En revision por banco": ["Finalizado"],
         "Finalizado": []
     }
+    DEFAULT_SP_STATUSES = set(SP_VALID_TRANSITIONS)
 
     def __init__(self, database: DatabaseManager) -> None:
         self.repositories = {store: JsonRepository(database, store) for store in VALID_STORES}
@@ -270,6 +271,8 @@ class QAService:
 
     def _validate_sp_transition(self, old_status: str | None, new_status: str | None) -> None:
         if old_status == new_status or not old_status:
+            return
+        if old_status not in self.DEFAULT_SP_STATUSES or new_status not in self.DEFAULT_SP_STATUSES:
             return
         allowed = self.SP_VALID_TRANSITIONS.get(old_status, [])
         if new_status not in allowed:

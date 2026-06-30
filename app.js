@@ -1,13 +1,66 @@
-const stores = ["members", "useCases", "testCases", "bugs", "tasks", "spMigrations"];
+const stores = ["members", "useCases", "testCases", "bugs", "tasks", "spMigrations", "catalogs"];
 
-const spMigrationStatuses = ["SQL recibido", "REST/gRPC recibido", "En QA", "Matriz lista", "Evidencia QMetry", "En revision por banco", "Finalizado"];
-
-const statusLabels = {
-  backlog: "Pendiente",
-  active: "En progreso",
-  review: "En revision",
-  done: "Finalizado"
+const catalogDefinitions = {
+  tasks: {
+    title: "Tareas",
+    fields: {
+      status: {
+        label: "Estado",
+        defaults: [
+          { value: "backlog", label: "Pendiente" },
+          { value: "active", label: "En progreso" },
+          { value: "review", label: "En revision" },
+          { value: "done", label: "Finalizado" }
+        ]
+      },
+      priority: { label: "Prioridad", defaults: ["Alta", "Media", "Baja"] },
+      kind: { label: "Tipo", defaults: ["Prueba", "Documentacion", "Automatizacion", "Correccion"] }
+    }
+  },
+  spMigrations: {
+    title: "Migracion SPs",
+    fields: {
+      status: { label: "Estado", defaults: ["SQL recibido", "REST/gRPC recibido", "En QA", "Matriz lista", "Evidencia QMetry", "En revision por banco", "Finalizado"] }
+    }
+  },
+  testCases: {
+    title: "Casos de pruebas",
+    fields: {
+      status: { label: "Estado", defaults: ["Borrador", "Listo", "Ejecutado", "Bloqueado"] },
+      executionStatus: { label: "Ejecucion", defaults: ["Exitoso", "Fallido"] },
+      bankApproval: { label: "Aprobado Banco", defaults: ["Aprobado", "No Aprobado"] },
+      priority: { label: "Prioridad", defaults: ["Alta", "Media", "Baja"] }
+    }
+  },
+  useCases: {
+    title: "Casos de uso",
+    fields: {
+      status: { label: "Estado", defaults: ["Activo", "En analisis", "Aprobado", "Retirado"] },
+      priority: { label: "Prioridad", defaults: ["Alta", "Media", "Baja"] }
+    }
+  },
+  bugs: {
+    title: "Errores",
+    fields: {
+      severity: { label: "Severidad", defaults: ["Critica", "Alta", "Media", "Baja"] },
+      status: { label: "Estado", defaults: ["Abierto", "Asignado", "Resuelto", "Cerrado"] }
+    }
+  },
+  members: {
+    title: "Miembros QA",
+    fields: {
+      role: { label: "Rol", defaults: ["QA Manual", "QA Automation", "QA Lead", "Analista QA"] },
+      status: { label: "Estado", defaults: ["Disponible", "Ocupado", "Ausente"] }
+    }
+  }
 };
+
+const configurationSections = ["tasks", "spMigrations", "testCases", "useCases", "bugs", "members"];
+const defaultSpMigrationStatusValues = new Set(catalogDefinitions.spMigrations.fields.status.defaults);
+
+let catalogs = defaultCatalogs();
+let statusLabels = taskStatusLabels();
+let spMigrationStatuses = catalogValues("spMigrations", "status");
 
 const viewConfig = {
   tasks: {
@@ -56,15 +109,15 @@ const inlineEditableFields = {
   testCases: new Set(["status", "executionStatus", "bankApproval"])
 };
 
-const fieldConfig = {
+let fieldConfig = {
   tasks: [
     { name: "title", label: "Titulo", type: "text", required: true, full: true },
     { name: "spMigrationId", label: "SP asignado", type: "spMigration" },
     { name: "memberId", label: "Responsable", type: "member" },
-    { name: "status", label: "Estado", type: "select", options: Object.entries(statusLabels).map(([value, label]) => ({ value, label })) },
-    { name: "priority", label: "Prioridad", type: "select", options: ["Alta", "Media", "Baja"] },
+    { name: "status", label: "Estado", type: "select", catalogStore: "tasks", catalogField: "status", options: catalogOptions("tasks", "status") },
+    { name: "priority", label: "Prioridad", type: "select", catalogStore: "tasks", catalogField: "priority", options: catalogOptions("tasks", "priority") },
     { name: "dueDate", label: "Fecha limite", type: "date" },
-    { name: "kind", label: "Tipo", type: "select", options: ["Prueba", "Documentacion", "Automatizacion", "Correccion"] },
+    { name: "kind", label: "Tipo", type: "select", catalogStore: "tasks", catalogField: "kind", options: catalogOptions("tasks", "kind") },
     { name: "description", label: "Descripcion", type: "textarea", full: true }
   ],
   spMigrations: [
@@ -73,7 +126,7 @@ const fieldConfig = {
     { name: "sqlReceived", label: "SQL recibido", type: "checkbox" },
     { name: "devName", label: "Dev asignado", type: "text", required: true },
     { name: "qaId", label: "QA asignado", type: "member" },
-    { name: "status", label: "Estado", type: "select", options: spMigrationStatuses },
+    { name: "status", label: "Estado", type: "select", catalogStore: "spMigrations", catalogField: "status", options: catalogOptions("spMigrations", "status") },
     { name: "restReceivedDate", label: "Fecha recepción REST", type: "date" },
     { name: "restReceived", label: "REST endpoint recibido", type: "checkbox" },
     { name: "grpcReceivedDate", label: "Fecha recepción gRPC", type: "date" },
@@ -87,10 +140,10 @@ const fieldConfig = {
     { name: "code", label: "Codigo", type: "text", required: true },
     { name: "name", label: "Nombre", type: "text", required: true },
     { name: "useCaseId", label: "Caso de uso", type: "useCase" },
-    { name: "status", label: "Estado", type: "select", options: ["Borrador", "Listo", "Ejecutado", "Bloqueado"] },
-    { name: "executionStatus", label: "Ejecucion", type: "select", options: ["Exitoso", "Fallido"], default: "", emptyLabel: "Sin ejecutar" },
-    { name: "bankApproval", label: "Aprobado Banco", type: "select", options: ["Aprobado", "No Aprobado"], default: "No Aprobado" },
-    { name: "priority", label: "Prioridad", type: "select", options: ["Alta", "Media", "Baja"] },
+    { name: "status", label: "Estado", type: "select", catalogStore: "testCases", catalogField: "status", options: catalogOptions("testCases", "status") },
+    { name: "executionStatus", label: "Ejecucion", type: "select", catalogStore: "testCases", catalogField: "executionStatus", options: catalogOptions("testCases", "executionStatus"), default: "", emptyLabel: "Sin ejecutar" },
+    { name: "bankApproval", label: "Aprobado Banco", type: "select", catalogStore: "testCases", catalogField: "bankApproval", options: catalogOptions("testCases", "bankApproval"), default: "No Aprobado" },
+    { name: "priority", label: "Prioridad", type: "select", catalogStore: "testCases", catalogField: "priority", options: catalogOptions("testCases", "priority") },
     { name: "observation", label: "Observacion", type: "textarea", full: true },
     { name: "steps", label: "Pasos", type: "textarea", full: true },
     { name: "expected", label: "Resultado esperado", type: "textarea", full: true }
@@ -100,8 +153,8 @@ const fieldConfig = {
     { name: "code", label: "Codigo", type: "text", required: true },
     { name: "name", label: "Nombre", type: "text", required: true },
     { name: "actor", label: "Actor", type: "text" },
-    { name: "status", label: "Estado", type: "select", options: ["Activo", "En analisis", "Aprobado", "Retirado"] },
-    { name: "priority", label: "Prioridad", type: "select", options: ["Alta", "Media", "Baja"] },
+    { name: "status", label: "Estado", type: "select", catalogStore: "useCases", catalogField: "status", options: catalogOptions("useCases", "status") },
+    { name: "priority", label: "Prioridad", type: "select", catalogStore: "useCases", catalogField: "priority", options: catalogOptions("useCases", "priority") },
     { name: "observation", label: "Observacion", type: "textarea", full: true },
     { name: "goal", label: "Objetivo", type: "textarea", full: true },
     { name: "flow", label: "Flujo principal", type: "textarea", full: true }
@@ -111,16 +164,16 @@ const fieldConfig = {
     { name: "spMigrationId", label: "SP asociado", type: "spMigration" },
     { name: "testCaseId", label: "Caso de prueba", type: "testCase", filterBySp: true },
     { name: "memberId", label: "Responsable", type: "member" },
-    { name: "severity", label: "Severidad", type: "select", options: ["Critica", "Alta", "Media", "Baja"] },
-    { name: "status", label: "Estado", type: "select", options: ["Abierto", "Asignado", "Resuelto", "Cerrado"] },
+    { name: "severity", label: "Severidad", type: "select", catalogStore: "bugs", catalogField: "severity", options: catalogOptions("bugs", "severity") },
+    { name: "status", label: "Estado", type: "select", catalogStore: "bugs", catalogField: "status", options: catalogOptions("bugs", "status") },
     { name: "description", label: "Descripcion", type: "textarea", full: true },
     { name: "steps", label: "Como reproducir", type: "textarea", full: true }
   ],
   members: [
     { name: "name", label: "Nombre", type: "text", required: true },
-    { name: "role", label: "Rol", type: "select", options: ["QA Manual", "QA Automation", "QA Lead", "Analista QA"] },
+    { name: "role", label: "Rol", type: "select", catalogStore: "members", catalogField: "role", options: catalogOptions("members", "role") },
     { name: "email", label: "Correo", type: "email" },
-    { name: "status", label: "Estado", type: "select", options: ["Disponible", "Ocupado", "Ausente"] },
+    { name: "status", label: "Estado", type: "select", catalogStore: "members", catalogField: "status", options: catalogOptions("members", "status") },
     { name: "capacity", label: "Carga de trabajo (%)", type: "number", min: 0, max: 100 },
     { name: "focus", label: "Enfoque actual", type: "textarea", full: true }
   ]
@@ -196,6 +249,7 @@ const listFilterFields = {
 let state = {
   activeView: "dashboard",
   listView: "tasks",
+  configurationSection: "tasks",
   customFilters: Object.fromEntries(stores.map((store) => [store, []])),
   search: "",
   editing: null,
@@ -207,6 +261,103 @@ let state = {
 
 const $ = (selector) => document.querySelector(selector);
 
+function defaultCatalogs() {
+  return Object.fromEntries(Object.entries(catalogDefinitions).map(([store, section]) => [
+    store,
+    Object.fromEntries(Object.entries(section.fields).map(([field, config]) => [field, normalizeCatalogItems(config.defaults)]))
+  ]));
+}
+
+function mergeCatalogs(defaults, saved) {
+  const merged = structuredCloneSafe(defaults);
+  Object.entries(catalogDefinitions).forEach(([store, section]) => {
+    Object.keys(section.fields).forEach((field) => {
+      const savedItems = normalizeCatalogItems(saved?.[store]?.[field] || []);
+      if (savedItems.length) merged[store][field] = savedItems;
+    });
+  });
+  return merged;
+}
+
+function normalizeCatalogItems(items) {
+  return (items || [])
+    .map((item) => {
+      if (typeof item === "string") return { value: item, label: item };
+      return {
+        value: String(item?.value || item?.label || "").trim(),
+        label: String(item?.label || item?.value || "").trim()
+      };
+    })
+    .filter((item) => item.value && item.label);
+}
+
+function structuredCloneSafe(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function loadCatalogsFromRecords(records) {
+  const saved = {};
+  (records || []).forEach((record) => {
+    const store = record.store;
+    const field = record.field;
+    if (!catalogDefinitions[store]?.fields?.[field]) return;
+    saved[store] ||= {};
+    saved[store][field] = record.items;
+  });
+  return mergeCatalogs(defaultCatalogs(), saved);
+}
+
+async function saveCatalogField(store, fieldKey) {
+  const record = catalogRecordFor(store, fieldKey);
+  const payload = {
+    ...(record || {}),
+    store,
+    field: fieldKey,
+    items: catalogOptions(store, fieldKey)
+  };
+  const savedRecord = await saveRecord("catalogs", payload);
+  mergeImportedRecord("catalogs", savedRecord);
+  refreshCatalogDerivedState();
+}
+
+function catalogRecordFor(store, fieldKey) {
+  return (state.data.catalogs || []).find((record) => record.store === store && record.field === fieldKey);
+}
+
+function refreshCatalogDerivedState() {
+  statusLabels = taskStatusLabels();
+  spMigrationStatuses = catalogValues("spMigrations", "status");
+  fieldConfig = refreshFieldConfigOptions(fieldConfig);
+}
+
+function refreshFieldConfigOptions(config) {
+  Object.values(config).forEach((fields) => {
+    fields.forEach((field) => {
+      if (field.catalogStore && field.catalogField) {
+        field.options = catalogOptions(field.catalogStore, field.catalogField);
+      }
+    });
+  });
+  return config;
+}
+
+function catalogOptions(store, field) {
+  return catalogs?.[store]?.[field] || defaultCatalogs()[store]?.[field] || [];
+}
+
+function catalogValues(store, field) {
+  return catalogOptions(store, field).map((item) => item.value);
+}
+
+function catalogLabel(store, field, value) {
+  const text = String(value ?? "");
+  return catalogOptions(store, field).find((item) => item.value === text)?.label || text;
+}
+
+function taskStatusLabels() {
+  return Object.fromEntries(catalogOptions("tasks", "status").map((item) => [item.value, item.label]));
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
   await initializeAuth();
@@ -216,7 +367,7 @@ const spMigrationTransitions = {
   "SQL recibido": ["REST/gRPC recibido", "Finalizado"],
   "REST/gRPC recibido": ["En QA", "Finalizado"],
   "En QA": ["Matriz lista", "En revision por banco", "Finalizado"],
-  "Matriz lista": ["Evidencia QMetry", "Finalizado"],
+  "Matriz lista": ["Evidencia QMetry", "En revision por banco", "Finalizado"],
   "Evidencia QMetry": ["En revision por banco", "Finalizado"],
   "En revision por banco": ["Finalizado"],
   "Finalizado": []
@@ -224,6 +375,7 @@ const spMigrationTransitions = {
 
 function validateSPStatusTransition(oldStatus, newStatus) {
   if (oldStatus === newStatus) return null;
+  if (!defaultSpMigrationStatusValues.has(oldStatus) || !defaultSpMigrationStatusValues.has(newStatus)) return null;
   const allowed = spMigrationTransitions[oldStatus] || [];
   if (!allowed.includes(newStatus)) {
     return `Transición inválida: no se puede ir de "${oldStatus}" a "${newStatus}"`;
@@ -272,6 +424,9 @@ async function initializeAuth() {
 
 async function refreshData() {
   state.data = await api("/api/data");
+  state.data.catalogs ||= [];
+  catalogs = loadCatalogsFromRecords(state.data.catalogs);
+  refreshCatalogDerivedState();
 }
 
 async function saveRecord(store, record) {
@@ -385,7 +540,7 @@ function setLoginError(message) {
 
 function setView(view) {
   state.activeView = view;
-  if (!["dashboard", "indicators"].includes(view)) {
+  if (!["dashboard", "indicators", "configuration"].includes(view)) {
     state.listView = view;
   }
   document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === view));
@@ -395,20 +550,183 @@ function setView(view) {
 function render() {
   const isDashboard = state.activeView === "dashboard";
   const isIndicators = state.activeView === "indicators";
+  const isConfiguration = state.activeView === "configuration";
   $("#dashboard-view").classList.toggle("active-view", isDashboard);
   $("#indicators-view").classList.toggle("active-view", isIndicators);
-  $("#list-view").classList.toggle("active-view", !isDashboard && !isIndicators);
-  $("#new-item").classList.toggle("hidden", isIndicators);
-  $("#bulk-import").classList.toggle("hidden", isDashboard || isIndicators || !bulkImportStores.has(state.listView));
+  $("#configuration-view").classList.toggle("active-view", isConfiguration);
+  $("#list-view").classList.toggle("active-view", !isDashboard && !isIndicators && !isConfiguration);
+  $("#new-item").classList.toggle("hidden", isIndicators || isConfiguration);
+  $("#bulk-import").classList.toggle("hidden", isDashboard || isIndicators || isConfiguration || !bulkImportStores.has(state.listView));
   $("#new-item").textContent = state.activeView === "dashboard" ? "Nueva tarea" : "Nuevo";
-  $("#page-title").textContent = isDashboard ? "Tablero QA" : isIndicators ? "Indicadores" : viewConfig[state.listView].title;
+  $("#page-title").textContent = isDashboard ? "Tablero QA" : isIndicators ? "Indicadores" : isConfiguration ? "Configuracion" : viewConfig[state.listView].title;
 
   if (isDashboard) {
     renderMetrics();
     renderKanban();
   }
   if (isIndicators) renderIndicators();
-  if (!isDashboard && !isIndicators) renderList();
+  if (isConfiguration) renderConfiguration();
+  if (!isDashboard && !isIndicators && !isConfiguration) renderList();
+}
+
+function renderConfiguration() {
+  const sectionKey = state.configurationSection;
+  const section = catalogDefinitions[sectionKey];
+  const container = $("#configuration-content");
+  if (!section || !container) return;
+
+  container.innerHTML = `
+    <div class="configuration-layout">
+      <aside class="config-menu" aria-label="Submenus de configuracion">
+        ${configurationSections.map((key) => `
+          <button class="config-menu-item ${key === sectionKey ? "active" : ""}" type="button" data-config-section="${escapeHtml(key)}">
+            ${escapeHtml(catalogDefinitions[key].title)}
+          </button>
+        `).join("")}
+      </aside>
+      <section class="panel config-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Listas editables</p>
+            <h2>${escapeHtml(section.title)}</h2>
+          </div>
+        </div>
+        <div class="config-field-grid">
+          ${Object.entries(section.fields).map(([fieldKey, field]) => catalogFieldCard(sectionKey, fieldKey, field)).join("")}
+        </div>
+      </section>
+    </div>
+  `;
+
+  container.querySelectorAll("[data-config-section]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.configurationSection = button.dataset.configSection;
+      renderConfiguration();
+    });
+  });
+  container.querySelectorAll("[data-catalog-add]").forEach((button) => {
+    button.addEventListener("click", () => addCatalogItem(button.dataset.store, button.dataset.field));
+  });
+  container.querySelectorAll("[data-catalog-input]").forEach((input) => {
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        addCatalogItem(input.dataset.store, input.dataset.field);
+      }
+    });
+  });
+  container.querySelectorAll("[data-catalog-save]").forEach((button) => {
+    button.addEventListener("click", () => updateCatalogItem(button.dataset.store, button.dataset.field, button.dataset.value));
+  });
+  container.querySelectorAll("[data-catalog-delete]").forEach((button) => {
+    button.addEventListener("click", () => deleteCatalogItem(button.dataset.store, button.dataset.field, button.dataset.value));
+  });
+}
+
+function catalogFieldCard(store, fieldKey, field) {
+  const items = catalogOptions(store, fieldKey);
+  return `
+    <article class="config-field-card">
+      <div class="config-field-heading">
+        <h3>${escapeHtml(field.label)}</h3>
+        <span class="count-pill">${items.length}</span>
+      </div>
+      <div class="catalog-list">
+        ${items.map((item) => catalogItemRow(store, fieldKey, item)).join("")}
+      </div>
+      <div class="catalog-add-row">
+        <input type="text" placeholder="Nuevo valor" data-catalog-input data-store="${escapeHtml(store)}" data-field="${escapeHtml(fieldKey)}">
+        <button class="secondary-button" type="button" data-catalog-add data-store="${escapeHtml(store)}" data-field="${escapeHtml(fieldKey)}">Agregar</button>
+      </div>
+    </article>
+  `;
+}
+
+function catalogItemRow(store, fieldKey, item) {
+  const usageCount = catalogUsageCount(store, fieldKey, item.value);
+  const deleteDisabled = usageCount > 0 ? "disabled" : "";
+  const usageLabel = usageCount ? `${usageCount} en uso` : "Sin uso";
+  return `
+    <div class="catalog-row">
+      <input type="text" value="${escapeHtml(item.label)}" aria-label="Valor de catalogo" data-catalog-edit="${escapeHtml(item.value)}">
+      <span class="catalog-usage">${escapeHtml(usageLabel)}</span>
+      <button class="ghost-button" type="button" data-catalog-save data-store="${escapeHtml(store)}" data-field="${escapeHtml(fieldKey)}" data-value="${escapeHtml(item.value)}">Guardar</button>
+      <button class="ghost-button danger" type="button" data-catalog-delete data-store="${escapeHtml(store)}" data-field="${escapeHtml(fieldKey)}" data-value="${escapeHtml(item.value)}" ${deleteDisabled}>Eliminar</button>
+    </div>
+  `;
+}
+
+async function addCatalogItem(store, fieldKey) {
+  const input = $(`[data-catalog-input][data-store="${store}"][data-field="${fieldKey}"]`);
+  const label = input?.value.trim();
+  if (!label) return;
+  const items = catalogOptions(store, fieldKey);
+  if (items.some((item) => normalizeFilterText(item.label) === normalizeFilterText(label))) {
+    alert("Ese valor ya existe en la lista.");
+    return;
+  }
+  items.push({ value: uniqueCatalogValue(store, fieldKey, label), label });
+  catalogs[store][fieldKey] = items;
+  try {
+    await saveCatalogField(store, fieldKey);
+    render();
+  } catch (error) {
+    alert(`Error: ${error.message}`);
+  }
+}
+
+async function updateCatalogItem(store, fieldKey, value) {
+  const input = Array.from(document.querySelectorAll("[data-catalog-edit]")).find((element) => element.dataset.catalogEdit === value);
+  const label = input?.value.trim();
+  if (!label) return;
+  const items = catalogOptions(store, fieldKey);
+  if (items.some((item) => item.value !== value && normalizeFilterText(item.label) === normalizeFilterText(label))) {
+    alert("Ese valor ya existe en la lista.");
+    return;
+  }
+  const item = items.find((entry) => entry.value === value);
+  if (!item) return;
+  item.label = label;
+  catalogs[store][fieldKey] = items;
+  try {
+    await saveCatalogField(store, fieldKey);
+    render();
+  } catch (error) {
+    alert(`Error: ${error.message}`);
+  }
+}
+
+async function deleteCatalogItem(store, fieldKey, value) {
+  const usageCount = catalogUsageCount(store, fieldKey, value);
+  if (usageCount > 0) {
+    alert(`No se puede eliminar porque hay ${usageCount} registro(s) usando este valor.`);
+    return;
+  }
+  const items = catalogOptions(store, fieldKey);
+  if (items.length <= 1) {
+    alert("La lista debe conservar al menos un valor.");
+    return;
+  }
+  catalogs[store][fieldKey] = items.filter((item) => item.value !== value);
+  try {
+    await saveCatalogField(store, fieldKey);
+    render();
+  } catch (error) {
+    alert(`Error: ${error.message}`);
+  }
+}
+
+function uniqueCatalogValue(store, fieldKey, label) {
+  const base = store === "tasks" && fieldKey === "status" ? cssToken(label) || "estado" : label;
+  const values = new Set(catalogValues(store, fieldKey));
+  if (!values.has(base)) return base;
+  let index = 2;
+  while (values.has(`${base}-${index}`)) index += 1;
+  return `${base}-${index}`;
+}
+
+function catalogUsageCount(store, fieldKey, value) {
+  return (state.data[store] ?? []).filter((record) => String(record[fieldKey] ?? "") === value).length;
 }
 
 function renderMetrics() {
@@ -487,7 +805,7 @@ function taskCard(task) {
       <div class="card-meta">
         <span>${escapeHtml(sp)}</span>
         <span>${escapeHtml(member || "Sin responsable")}</span>
-        <span>${escapeHtml(task.kind || "Tarea")}</span>
+        <span>${escapeHtml(catalogLabel("tasks", "kind", task.kind) || "Tarea")}</span>
         <span>${escapeHtml(task.dueDate || "Sin fecha")}</span>
       </div>
     </article>
@@ -513,9 +831,9 @@ function renderWorkload() {
           <div class="avatar">${escapeHtml(initials)}</div>
           <div>
             <strong>${escapeHtml(member.name)}</strong>
-            <div class="card-meta">${escapeHtml(member.role || "QA")} - ${tasks.length} tarea(s)</div>
+            <div class="card-meta">${escapeHtml(catalogLabel("members", "role", member.role) || "QA")} - ${tasks.length} tarea(s)</div>
           </div>
-          <span class="status-pill">${escapeHtml(member.status || "Disponible")}</span>
+          <span class="status-pill">${escapeHtml(catalogLabel("members", "status", member.status) || "Disponible")}</span>
         </div>
         <div class="progress" aria-label="Carga ${capacity}%"><span style="width: ${capacity}%"></span></div>
         <p class="card-meta">${escapeHtml(member.focus || "Sin enfoque registrado")}</p>
@@ -602,11 +920,11 @@ function renderIndicators() {
             value: tasks.filter((task) => task.status === status).length
           })))}
           ${barChart("SP por estado", spMigrationStatuses.map((status) => ({
-            label: status,
+            label: catalogLabel("spMigrations", "status", status),
             value: spMigrations.filter((sp) => sp.status === status).length
           })))}
-          ${barChart("Errores activos por severidad", ["Critica", "Alta", "Media", "Baja"].map((severity) => ({
-            label: severity,
+          ${barChart("Errores activos por severidad", catalogValues("bugs", "severity").map((severity) => ({
+            label: catalogLabel("bugs", "severity", severity),
             value: activeBugs.filter((bug) => bug.severity === severity).length
           })))}
           ${barChart("Carga por miembro", memberStats.map((member) => ({
@@ -628,7 +946,7 @@ function memberIndicatorRow(member) {
         <div class="avatar">${escapeHtml(initials)}</div>
         <div>
           <strong>${escapeHtml(member.name)}</strong>
-          <div class="card-meta">${escapeHtml(member.role || "QA")} - ${escapeHtml(member.status || "Disponible")}</div>
+          <div class="card-meta">${escapeHtml(catalogLabel("members", "role", member.role) || "QA")} - ${escapeHtml(catalogLabel("members", "status", member.status) || "Disponible")}</div>
         </div>
         <span class="status-pill">${member.capacity}% carga</span>
       </div>
@@ -866,6 +1184,13 @@ function filterValueFor(store, record, fieldKey) {
   if (fieldKey === "useCase") return findUseCase(record.useCaseId);
   if (fieldKey === "testCase") return findTestCase(record.testCaseId);
   if (fieldKey === "status" && store === "tasks") return statusLabels[record.status] || record.status;
+  if (fieldKey === "status" && hasCatalogField(store, "status")) return catalogLabel(store, "status", record.status);
+  if (fieldKey === "priority" && hasCatalogField(store, "priority")) return catalogLabel(store, "priority", record.priority);
+  if (fieldKey === "severity" && hasCatalogField(store, "severity")) return catalogLabel(store, "severity", record.severity);
+  if (fieldKey === "kind" && hasCatalogField(store, "kind")) return catalogLabel(store, "kind", record.kind);
+  if (fieldKey === "role" && hasCatalogField(store, "role")) return catalogLabel(store, "role", record.role);
+  if (fieldKey === "executionStatus" && hasCatalogField(store, "executionStatus")) return catalogLabel(store, "executionStatus", record.executionStatus);
+  if (fieldKey === "bankApproval" && hasCatalogField(store, "bankApproval")) return catalogLabel(store, "bankApproval", record.bankApproval);
   if (fieldKey === "capacity") return `${record.capacity || 0}%`;
   if (fieldKey === "sql") return artifactFilterText(record.sqlReceived);
   if (fieldKey === "rest") return artifactFilterText(record.restReceived);
@@ -873,6 +1198,10 @@ function filterValueFor(store, record, fieldKey) {
   if (fieldKey === "matrix") return artifactFilterText(record.equivalenceMatrixReady);
   if (fieldKey === "qmetry") return artifactFilterText(record.qmetryEvidenceReady);
   return record[fieldKey] ?? "";
+}
+
+function hasCatalogField(store, fieldKey) {
+  return Boolean(catalogDefinitions[store]?.fields?.[fieldKey]);
 }
 
 function artifactFilterText(done) {
@@ -896,7 +1225,7 @@ function tableRow(store, record) {
       findSpMigration(record.spMigrationId),
       findName("members", record.memberId) || "Sin responsable",
       { html: statusBadge(statusText) },
-      { html: pill(record.priority, `priority-${record.priority}`) },
+      { html: pill(catalogLabel("tasks", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
       record.dueDate || "Sin fecha",
       edit
     ]);
@@ -906,7 +1235,7 @@ function tableRow(store, record) {
       record.spName,
       record.devName || "Sin dev",
       findName("members", record.qaId) || "Sin QA",
-      { html: statusBadge(record.status) },
+      { html: statusBadge(catalogLabel("spMigrations", "status", record.status)) },
       { html: artifactBadge(record.sqlReceived, record.sqlReceivedDate) },
       { html: artifactBadge(record.restReceived, record.restReceivedDate) },
       { html: artifactBadge(record.grpcReceived, record.grpcReceivedDate) },
@@ -923,7 +1252,7 @@ function tableRow(store, record) {
       { html: inlineSelect(store, record, "status") },
       { html: inlineSelect(store, record, "executionStatus") },
       { html: inlineSelect(store, record, "bankApproval") },
-      { html: pill(record.priority, `priority-${record.priority}`) },
+      { html: pill(catalogLabel("testCases", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
       record.observation || "Sin observacion",
       edit
     ]);
@@ -933,8 +1262,8 @@ function tableRow(store, record) {
       findSpMigration(record.spMigrationId),
       record.code,
       record.name,
-      { html: statusBadge(record.status) },
-      { html: pill(record.priority, `priority-${record.priority}`) },
+      { html: statusBadge(catalogLabel("useCases", "status", record.status)) },
+      { html: pill(catalogLabel("useCases", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
       record.observation || "Sin observacion",
       edit
     ]);
@@ -944,13 +1273,20 @@ function tableRow(store, record) {
       record.title,
       findBugSpMigration(record),
       findTestCase(record.testCaseId),
-      { html: pill(record.severity, `severity-${record.severity}`) },
-      { html: statusBadge(record.status) },
+      { html: pill(catalogLabel("bugs", "severity", record.severity), `severity-${cssToken(record.severity)}`) },
+      { html: statusBadge(catalogLabel("bugs", "status", record.status)) },
       findName("members", record.memberId) || "Sin responsable",
       edit
     ]);
   }
-  return row([record.name, record.role, { html: statusBadge(record.status) }, `${record.capacity || 0}%`, record.email || "Sin correo", edit]);
+  return row([
+    record.name,
+    catalogLabel("members", "role", record.role),
+    { html: statusBadge(catalogLabel("members", "status", record.status)) },
+    `${record.capacity || 0}%`,
+    record.email || "Sin correo",
+    edit
+  ]);
 }
 
 function row(cells) {

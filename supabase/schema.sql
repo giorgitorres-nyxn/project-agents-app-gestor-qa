@@ -45,12 +45,20 @@ create table if not exists public."spMigrations" (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.catalogs (
+  id uuid primary key default gen_random_uuid(),
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists members_payload_gin on public.members using gin (payload);
 create index if not exists use_cases_payload_gin on public."useCases" using gin (payload);
 create index if not exists test_cases_payload_gin on public."testCases" using gin (payload);
 create index if not exists bugs_payload_gin on public.bugs using gin (payload);
 create index if not exists tasks_payload_gin on public.tasks using gin (payload);
 create index if not exists sp_migrations_payload_gin on public."spMigrations" using gin (payload);
+create index if not exists catalogs_payload_gin on public.catalogs using gin (payload);
 
 create or replace function public.touch_updated_at()
 returns trigger
@@ -106,12 +114,18 @@ create trigger touch_sp_migrations_updated_at
 before insert or update on public."spMigrations"
 for each row execute function public.touch_updated_at();
 
+drop trigger if exists touch_catalogs_updated_at on public.catalogs;
+create trigger touch_catalogs_updated_at
+before insert or update on public.catalogs
+for each row execute function public.touch_updated_at();
+
 alter table public.members enable row level security;
 alter table public."useCases" enable row level security;
 alter table public."testCases" enable row level security;
 alter table public.bugs enable row level security;
 alter table public.tasks enable row level security;
 alter table public."spMigrations" enable row level security;
+alter table public.catalogs enable row level security;
 
 -- Politicas iniciales: cualquier usuario autenticado puede leer y editar.
 -- Para restringir a correos especificos, crear una tabla de perfiles/roles y reemplazar estas politicas.
@@ -132,3 +146,6 @@ create policy "authenticated tasks write" on public.tasks for all to authenticat
 
 create policy "authenticated spMigrations read" on public."spMigrations" for select to authenticated using (true);
 create policy "authenticated spMigrations write" on public."spMigrations" for all to authenticated using (true) with check (true);
+
+create policy "authenticated catalogs read" on public.catalogs for select to authenticated using (true);
+create policy "authenticated catalogs write" on public.catalogs for all to authenticated using (true) with check (true);
