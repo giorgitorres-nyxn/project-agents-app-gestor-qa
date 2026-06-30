@@ -665,12 +665,16 @@ async function addCatalogItem(store, fieldKey) {
     alert("Ese valor ya existe en la lista.");
     return;
   }
+  const previousItems = structuredCloneSafe(items);
   items.push({ value: uniqueCatalogValue(store, fieldKey, label), label });
   catalogs[store][fieldKey] = items;
   try {
     await saveCatalogField(store, fieldKey);
     render();
   } catch (error) {
+    catalogs[store][fieldKey] = previousItems;
+    refreshCatalogDerivedState();
+    render();
     alert(`Error: ${error.message}`);
   }
 }
@@ -686,12 +690,16 @@ async function updateCatalogItem(store, fieldKey, value) {
   }
   const item = items.find((entry) => entry.value === value);
   if (!item) return;
+  const previousItems = structuredCloneSafe(items);
   item.label = label;
   catalogs[store][fieldKey] = items;
   try {
     await saveCatalogField(store, fieldKey);
     render();
   } catch (error) {
+    catalogs[store][fieldKey] = previousItems;
+    refreshCatalogDerivedState();
+    render();
     alert(`Error: ${error.message}`);
   }
 }
@@ -707,11 +715,15 @@ async function deleteCatalogItem(store, fieldKey, value) {
     alert("La lista debe conservar al menos un valor.");
     return;
   }
+  const previousItems = structuredCloneSafe(items);
   catalogs[store][fieldKey] = items.filter((item) => item.value !== value);
   try {
     await saveCatalogField(store, fieldKey);
     render();
   } catch (error) {
+    catalogs[store][fieldKey] = previousItems;
+    refreshCatalogDerivedState();
+    render();
     alert(`Error: ${error.message}`);
   }
 }
