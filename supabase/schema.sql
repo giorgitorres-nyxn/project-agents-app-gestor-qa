@@ -149,3 +149,63 @@ create policy "authenticated spMigrations write" on public."spMigrations" for al
 
 create policy "authenticated catalogs read" on public.catalogs for select to authenticated using (true);
 create policy "authenticated catalogs write" on public.catalogs for all to authenticated using (true) with check (true);
+
+-- Consola SQL usada por el endpoint serverless /api/sql-console.
+-- Ejecuta una sola sentencia DML por solicitud y devuelve filas para SELECT o RETURNING.
+create or replace function public.run_sql_console(query_text text)
+returns jsonb
+language plpgsql
+set search_path = public, pg_temp
+set statement_timeout = '10s'
+as $$
+declare
+  statement text := trim(coalesce(query_text, ''));
+  command text;
+  rows_result jsonb := '[]'::jsonb;
+  affected_count integer := 0;
+begin
+  statement := regexp_replace(statement, '\s*;\s*$', '');
+
+  if statement = '' then
+    raise exception 'La consulta SQL esta vacia.';
+  end if;
+
+  if statement ~ ';' then
+    raise exception 'La consola permite una sola sentencia SQL por ejecucion.';
+  end if;
+
+  command := lower((regexp_match(statement, '^\s*([a-zA-Z]+)'))[1]);
+
+  if command not in ('select', 'with', 'insert', 'update', 'delete') then
+    raise exception 'Sentencia no permitida: %. Usa SELECT, WITH, INSERT, UPDATE o DELETE.', coalesce(command, '');
+  end if;
+
+  if command in ('select', 'with') then
+    execute format(
+      'select coalesce(jsonb_agg(to_jsonb(sql_console_result)), ''[]''::jsonb), count(*)::int from (%s) sql_console_result',
+      statement
+    )
+    into rows_result, affected_count;
+  elsif statement ~* '\breturning\b' then
+    execute format(
+      'with sql_console_result as (%s) select coalesce(jsonb_agg(to_jsonb(sql_console_result)), ''[]''::jsonb), count(*)::int from sql_console_result',
+      statement
+    )
+    into rows_result, affected_count;
+  else
+    execute statement;
+    get diagnostics affected_count = row_count;
+  end if;
+
+  return jsonb_build_object(
+    'command', upper(command),
+    'rowCount', affected_count,
+    'rows', rows_result
+  );
+end;
+$$;
+
+revoke all on function public.run_sql_console(text) from public;
+revoke all on function public.run_sql_console(text) from anon;
+revoke all on function public.run_sql_console(text) from authenticated;
+grant execute on function public.run_sql_console(text) to service_role;

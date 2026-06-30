@@ -898,6 +898,105 @@ h2 {
   text-align: right;
 }
 
+.sql-console-panel {
+  min-width: 0;
+}
+
+.sql-console-actions,
+.sql-console-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sql-console-editor {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.sql-console-editor label {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+#sql-console-query {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.sql-console-toolbar {
+  justify-content: flex-end;
+}
+
+.sql-console-result {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.sql-console-meta,
+.sql-console-empty,
+.sql-console-error {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: #f8fafc;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.sql-console-error {
+  border-color: rgba(220, 38, 38, 0.25);
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.sql-result-table-wrap {
+  max-height: 520px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.sql-result-table {
+  min-width: 720px;
+  font-size: 0.86rem;
+}
+
+.sql-result-table th,
+.sql-result-table td {
+  max-width: 420px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sql-result-table code {
+  font-family: Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.sql-null {
+  color: var(--muted);
+  font-weight: 850;
+}
+
 .custom-filter {
   flex: 1 1 560px;
   display: grid;

@@ -55,7 +55,22 @@ const catalogDefinitions = {
   }
 };
 
-const configurationSections = ["tasks", "spMigrations", "testCases", "useCases", "bugs", "members"];
+const sqlConsoleSection = "sqlConsole";
+const configurationSections = ["tasks", "spMigrations", "testCases", "useCases", "bugs", "members", sqlConsoleSection];
+const sqlConsoleExamples = [
+  {
+    label: "SPs",
+    query: 'select id, payload->>\'spName\' as sp_name, payload->>\'status\' as status, created_at from public."spMigrations" order by created_at desc limit 20'
+  },
+  {
+    label: "Bugs",
+    query: "select id, payload->>'title' as title, payload->>'severity' as severity, payload->>'status' as status from public.bugs order by created_at desc limit 20"
+  },
+  {
+    label: "TC01",
+    query: "select id, payload from public.\"testCases\" where payload->>'code' = 'TC01' limit 5"
+  }
+];
 const defaultSpMigrationStatusValues = new Set(catalogDefinitions.spMigrations.fields.status.defaults);
 
 let catalogs = defaultCatalogs();
@@ -254,6 +269,12 @@ let state = {
   search: "",
   editing: null,
   importingStore: null,
+  sqlConsole: {
+    query: sqlConsoleExamples[0].query,
+    result: null,
+    error: "",
+    running: false
+  },
   currentUser: null,
   pagination: Object.fromEntries(stores.map((store) => [store, { page: 1, pageSize: defaultPageSize }])),
   data: Object.fromEntries(stores.map((store) => [store, []]))
@@ -573,28 +594,18 @@ function renderConfiguration() {
   const sectionKey = state.configurationSection;
   const section = catalogDefinitions[sectionKey];
   const container = $("#configuration-content");
-  if (!section || !container) return;
+  if (!container || (sectionKey !== sqlConsoleSection && !section)) return;
 
   container.innerHTML = `
     <div class="configuration-layout">
       <aside class="config-menu" aria-label="Submenus de configuracion">
         ${configurationSections.map((key) => `
           <button class="config-menu-item ${key === sectionKey ? "active" : ""}" type="button" data-config-section="${escapeHtml(key)}">
-            ${escapeHtml(catalogDefinitions[key].title)}
+            ${escapeHtml(configurationSectionTitle(key))}
           </button>
         `).join("")}
       </aside>
-      <section class="panel config-panel">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">Listas editables</p>
-            <h2>${escapeHtml(section.title)}</h2>
-          </div>
-        </div>
-        <div class="config-field-grid">
-          ${Object.entries(section.fields).map(([fieldKey, field]) => catalogFieldCard(sectionKey, fieldKey, field)).join("")}
-        </div>
-      </section>
+      ${sectionKey === sqlConsoleSection ? sqlConsolePanel() : catalogConfigPanel(sectionKey, section)}
     </div>
   `;
 
@@ -604,6 +615,10 @@ function renderConfiguration() {
       renderConfiguration();
     });
   });
+  if (sectionKey === sqlConsoleSection) {
+    bindSqlConsole(container);
+    return;
+  }
   container.querySelectorAll("[data-catalog-add]").forEach((button) => {
     button.addEventListener("click", () => addCatalogItem(button.dataset.store, button.dataset.field));
   });
@@ -621,6 +636,159 @@ function renderConfiguration() {
   container.querySelectorAll("[data-catalog-delete]").forEach((button) => {
     button.addEventListener("click", () => deleteCatalogItem(button.dataset.store, button.dataset.field, button.dataset.value));
   });
+}
+
+function configurationSectionTitle(key) {
+  if (key === sqlConsoleSection) return "Consola Supabase";
+  return catalogDefinitions[key]?.title || key;
+}
+
+function catalogConfigPanel(sectionKey, section) {
+  return `
+    <section class="panel config-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Listas editables</p>
+          <h2>${escapeHtml(section.title)}</h2>
+        </div>
+      </div>
+      <div class="config-field-grid">
+        ${Object.entries(section.fields).map(([fieldKey, field]) => catalogFieldCard(sectionKey, fieldKey, field)).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function sqlConsolePanel() {
+  const consoleState = state.sqlConsole;
+  return `
+    <section class="panel config-panel sql-console-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Base de datos</p>
+          <h2>Consola Supabase</h2>
+        </div>
+        <div class="sql-console-actions">
+          ${sqlConsoleExamples.map((example) => `
+            <button class="ghost-button" type="button" data-sql-example="${escapeHtml(example.query)}">${escapeHtml(example.label)}</button>
+          `).join("")}
+        </div>
+      </div>
+      <form id="sql-console-form" class="sql-console-editor">
+        <label for="sql-console-query">SQL</label>
+        <textarea id="sql-console-query" spellcheck="false" autocomplete="off">${escapeHtml(consoleState.query)}</textarea>
+        <div class="sql-console-toolbar">
+          <button class="ghost-button" type="button" data-sql-clear>Limpiar</button>
+          <button class="primary-button" type="submit" ${consoleState.running ? "disabled" : ""}>${consoleState.running ? "Ejecutando" : "Ejecutar"}</button>
+        </div>
+      </form>
+      ${sqlConsoleResult()}
+    </section>
+  `;
+}
+
+function bindSqlConsole(container) {
+  const queryInput = $("#sql-console-query");
+  container.querySelector("#sql-console-form")?.addEventListener("submit", runSqlConsole);
+  queryInput?.addEventListener("input", () => {
+    state.sqlConsole.query = queryInput.value;
+  });
+  container.querySelector("[data-sql-clear]")?.addEventListener("click", () => {
+    state.sqlConsole = { ...state.sqlConsole, query: "", result: null, error: "" };
+    renderConfiguration();
+  });
+  container.querySelectorAll("[data-sql-example]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.sqlConsole = { ...state.sqlConsole, query: button.dataset.sqlExample || "", result: null, error: "" };
+      renderConfiguration();
+      $("#sql-console-query")?.focus();
+    });
+  });
+}
+
+async function runSqlConsole(event) {
+  event.preventDefault();
+  const query = $("#sql-console-query")?.value.trim() || "";
+  if (!query) return;
+
+  state.sqlConsole = { ...state.sqlConsole, query, result: null, error: "", running: true };
+  renderConfiguration();
+
+  try {
+    const result = await api("/api/sql-console", { method: "POST", body: JSON.stringify({ query }) });
+    state.sqlConsole = { ...state.sqlConsole, result, error: "" };
+    if (["INSERT", "UPDATE", "DELETE"].includes(result.command)) {
+      await refreshData();
+    }
+  } catch (error) {
+    state.sqlConsole = { ...state.sqlConsole, result: null, error: error.message || "No se pudo ejecutar la consulta." };
+  } finally {
+    state.sqlConsole.running = false;
+    renderConfiguration();
+  }
+}
+
+function sqlConsoleResult() {
+  const { result, error, running } = state.sqlConsole;
+  if (running) {
+    return `<div class="sql-console-empty">Ejecutando consulta</div>`;
+  }
+  if (error) {
+    return `<div class="sql-console-error">${escapeHtml(error)}</div>`;
+  }
+  if (!result) {
+    return `<div class="sql-console-empty">Sin resultados</div>`;
+  }
+
+  const rows = Array.isArray(result.rows) ? result.rows : [];
+  const meta = [
+    result.command || "SQL",
+    `${Number(result.rowCount || 0)} fila(s)`,
+    `${Number(result.durationMs || 0)} ms`
+  ].join(" · ");
+
+  return `
+    <div class="sql-console-result">
+      <div class="sql-console-meta">${escapeHtml(meta)}</div>
+      ${rows.length ? sqlConsoleTable(rows) : `<div class="sql-console-empty">Operacion ejecutada</div>`}
+    </div>
+  `;
+}
+
+function sqlConsoleTable(rows) {
+  const columns = sqlConsoleColumns(rows);
+  return `
+    <div class="sql-result-table-wrap">
+      <table class="sql-result-table">
+        <thead>
+          <tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>
+        </thead>
+        <tbody>
+          ${rows.map((row) => `
+            <tr>
+              ${columns.map((column) => `<td>${sqlConsoleCell(row?.[column])}</td>`).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function sqlConsoleColumns(rows) {
+  const columns = [];
+  rows.forEach((row) => {
+    Object.keys(row || {}).forEach((key) => {
+      if (!columns.includes(key)) columns.push(key);
+    });
+  });
+  return columns;
+}
+
+function sqlConsoleCell(value) {
+  if (value === null || value === undefined) return `<span class="sql-null">NULL</span>`;
+  if (typeof value === "object") return `<code>${escapeHtml(JSON.stringify(value))}</code>`;
+  return escapeHtml(String(value));
 }
 
 function catalogFieldCard(store, fieldKey, field) {

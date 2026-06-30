@@ -19,6 +19,14 @@
 
 ---
 
+### Cambio: Consola SQL de Supabase
+
+- Se agrego el submenu `Consola Supabase` dentro de Configuracion.
+- La consola ejecuta consultas mediante la API serverless y muestra resultados tabulares para `SELECT` o sentencias con `RETURNING`.
+- El endpoint queda restringido a roles administrativos (`QA Lead`, `Admin` o `DBA`) y usa la funcion `public.run_sql_console` definida en `supabase/schema.sql`.
+
+---
+
 ## 2026-06-25
 
 ### Cambio: Importacion robusta, paginacion y ejecucion de casos

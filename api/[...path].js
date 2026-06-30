@@ -37,6 +37,8 @@ module.exports = async function handler(req, res) {
     const user = await currentUser(req);
     if (!user) return sendJson(res, 401, { error: "No autenticado" });
 
+    if (parts.join("/") === "sql-console" && req.method === "POST") return handleSqlConsole(req, res, user);
+
     if (req.method === "GET") return handleGet(req, res, parts);
     if (req.method === "POST") return handleCreate(req, res, parts);
     if (req.method === "PUT") return handleUpdate(req, res, parts);
@@ -122,6 +124,34 @@ async function handleDelete(req, res, parts) {
   const { error } = await supabase().from(store).delete().eq("id", recordId);
   if (error) throw error;
   return res.status(204).end();
+}
+
+async function handleSqlConsole(req, res, user) {
+  if (!canUseSqlConsole(user)) {
+    return sendJson(res, 403, { error: "Solo roles administrativos pueden usar la consola Supabase." });
+  }
+
+  const query = String(req.body?.query || "").trim();
+  if (!query) return sendJson(res, 400, { error: "Escribe una consulta SQL para ejecutar." });
+  if (query.length > 20000) return sendJson(res, 400, { error: "La consulta supera el limite de 20000 caracteres." });
+
+  const startedAt = Date.now();
+  const { data, error } = await supabase().rpc("run_sql_console", { query_text: query });
+  if (error) {
+    if (isMissingSqlConsoleFunction(error)) {
+      throw new Error("Falta aplicar la funcion public.run_sql_console desde supabase/schema.sql.");
+    }
+    throw error;
+  }
+
+  return sendJson(res, 200, {
+    ...(data || {}),
+    durationMs: Date.now() - startedAt
+  });
+}
+
+function canUseSqlConsole(user) {
+  return /\b(admin|dba|lead)\b/i.test(String(user?.role || ""));
 }
 
 async function currentUser(req) {
@@ -236,6 +266,13 @@ function isMissingTableError(error) {
     ["42P01", "PGRST205"].includes(error?.code) ||
     /relation .* does not exist/i.test(error?.message || "") ||
     /could not find .* table .*catalogs/i.test(error?.message || "")
+  );
+}
+
+function isMissingSqlConsoleFunction(error) {
+  return (
+    ["42883", "PGRST202"].includes(error?.code) ||
+    /run_sql_console/i.test(error?.message || "")
   );
 }
 
