@@ -232,7 +232,11 @@ async function saveRecord(store, record, recordId = null) {
 }
 
 function isMissingTableError(error) {
-  return error?.code === "42P01" || /relation .* does not exist/i.test(error?.message || "");
+  return (
+    ["42P01", "PGRST205"].includes(error?.code) ||
+    /relation .* does not exist/i.test(error?.message || "") ||
+    /could not find .* table .*catalogs/i.test(error?.message || "")
+  );
 }
 
 function rowToRecord(row) {
