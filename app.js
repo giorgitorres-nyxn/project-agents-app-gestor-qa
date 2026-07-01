@@ -986,36 +986,71 @@ function renderIndicators() {
   const bankRejectedTests = testCases.filter((test) => test.bankApproval === "No Aprobado").length;
   const bankPendingTests = testCases.length - bankApprovedTests - bankRejectedTests;
   const blockedTests = testCases.filter((test) => test.status === "Bloqueado").length;
+  const highPriorityActiveBugs = activeBugs.filter((bug) => ["Critica", "Alta"].includes(bug.severity)).length;
   const completedSp = spMigrations.filter((sp) => sp.status === "Finalizado").length;
   const qmetryReady = spMigrations.filter((sp) => sp.qmetryEvidenceReady || sp.status === "Evidencia QMetry").length;
+  const matrixReady = spMigrations.filter((sp) => sp.equivalenceMatrixReady || ["Matriz lista", "Evidencia QMetry", "En revision por banco", "Finalizado"].includes(sp.status)).length;
   const averageCapacity = allMembers.length
     ? Math.round(allMembers.reduce((total, member) => total + Number(member.capacity || 0), 0) / allMembers.length)
     : 0;
+  const defectDensity = executedTests > 0 ? Math.round((bugs.length / executedTests) * 100) : 0;
+  const blockRate = percentage(blockedTests, testCases.length);
+  const successRateExecuted = percentage(successfulTests, executedTests);
+  const failedRateExecuted = percentage(failedTests, executedTests);
+  const bankReadiness = readinessScore({
+    executedPct: percentage(executedTests, testCases.length),
+    bankApprovedPct: percentage(bankApprovedTests, testCases.length),
+    matrixPct: percentage(matrixReady, spMigrations.length),
+    qmetryPct: percentage(qmetryReady, spMigrations.length),
+    highPriorityActiveBugs,
+    blockedTests
+  });
+  const health = healthStatus({
+    readiness: bankReadiness,
+    failedPct: failedRateExecuted,
+    blockedPct: blockRate,
+    highPriorityActiveBugs
+  });
 
   const memberStats = members.map((member) => {
     const memberTasks = activeTasks.filter((task) => task.memberId === member.id);
     const memberBugs = activeBugs.filter((bug) => bug.memberId === member.id);
     const memberSp = spMigrations.filter((sp) => sp.qaId === member.id && sp.status !== "Finalizado");
+    const capacity = Number(member.capacity || 0);
+    const riskScore = operationalRiskScore({
+      activeTasks: memberTasks.length,
+      reviewTasks: memberTasks.filter((task) => task.status === "review").length,
+      activeBugs: memberBugs.length,
+      activeSp: memberSp.length,
+      capacity
+    });
     return {
       ...member,
       activeTasks: memberTasks.length,
       reviewTasks: memberTasks.filter((task) => task.status === "review").length,
       activeBugs: memberBugs.length,
       activeSp: memberSp.length,
-      capacity: Number(member.capacity || 0)
+      capacity,
+      riskScore
     };
   }).sort((a, b) => (b.activeTasks + b.activeBugs + b.activeSp) - (a.activeTasks + a.activeBugs + a.activeSp));
 
   const scopeLabel = selectedSp ? selectedSp.spName : "Todos los SP";
+  const riskiestMember = [...memberStats].sort((a, b) => b.riskScore - a.riskScore)[0];
+  const spHealthItems = spMigrations.map((sp) => spHealthItem(sp, allTestCases, allBugs));
   const cards = [
     ["Casos ejecutados", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} con resultado`],
     ["TC aprobados banco", `${percentage(bankApprovedTests, testCases.length)}%`, `${bankApprovedTests} de ${testCases.length} aprobados`],
-    ["Ejecucion exitosa", `${percentage(successfulTests, testCases.length)}%`, `${successfulTests} exitosos, ${failedTests} fallidos`],
+    ["Calidad entrega", `${successRateExecuted}%`, `${failedRateExecuted}% fallidos sobre ejecutados`],
     ["Sin ejecutar", `${percentage(pendingExecutionTests, testCases.length)}%`, `${pendingExecutionTests} de ${testCases.length} pendientes`],
+    ["Densidad defectos", defectDensity, "errores por 100 TC ejecutados"],
+    ["Tasa bloqueo", `${blockRate}%`, `${blockedTests} de ${testCases.length} casos bloqueados`],
+    ["Preparacion banco", `${bankReadiness}%`, `${matrixReady} matriz, ${qmetryReady} QMetry`],
+    ["Salud SP", health.label, `${health.score}% de salud operativa`],
     ["SP finalizados", `${percentage(completedSp, spMigrations.length)}%`, `${completedSp} de ${spMigrations.length} cerrados`],
-    ["Errores activos", activeBugs.length, `${activeBugs.filter((bug) => ["Critica", "Alta"].includes(bug.severity)).length} de alta prioridad`],
+    ["Errores activos", activeBugs.length, `${highPriorityActiveBugs} de alta prioridad`],
     ["QMetry listo", qmetryReady, selectedSpId ? "para el SP elegido" : "evidencia o etapa QMetry"],
-    ["Bloqueos", blockedTests, "casos de prueba bloqueados"],
+    ["Riesgo QA", riskiestMember ? riskiestMember.riskScore : 0, riskiestMember ? riskiestMember.name : "sin asignaciones"],
     ["Carga promedio", `${averageCapacity}%`, `${allMembers.length} miembro(s) QA`]
   ];
 
@@ -1065,6 +1100,16 @@ function renderIndicators() {
         label: catalogLabel("testCases", "status", status),
         value: testCases.filter((test) => test.status === status).length
       })), testCases.length)}
+      ${detailBreakdown("Calidad sobre ejecutados", [
+        { label: "Exitosos", value: successfulTests },
+        { label: "Fallidos", value: failedTests }
+      ], executedTests)}
+      ${percentBreakdown("Preparacion banco", [
+        { label: "TC ejecutados", value: `${executedTests}/${testCases.length}`, pct: percentage(executedTests, testCases.length) },
+        { label: "TC aprobados", value: `${bankApprovedTests}/${testCases.length}`, pct: percentage(bankApprovedTests, testCases.length) },
+        { label: "Matriz lista", value: `${matrixReady}/${spMigrations.length}`, pct: percentage(matrixReady, spMigrations.length) },
+        { label: "QMetry listo", value: `${qmetryReady}/${spMigrations.length}`, pct: percentage(qmetryReady, spMigrations.length) }
+      ])}
     </div>
 
     <div class="indicators-layout">
@@ -1108,6 +1153,15 @@ function renderIndicators() {
             label: catalogLabel("useCases", "status", status),
             value: useCases.filter((useCase) => useCase.status === status).length
           })))}
+          ${barChart("Salud por SP", spHealthItems.map((item) => ({
+            label: `${item.label} (${item.status})`,
+            value: item.score,
+            suffix: "%"
+          })))}
+          ${barChart("Riesgo por miembro", memberStats.map((member) => ({
+            label: member.name,
+            value: member.riskScore
+          })))}
           ${barChart("Carga por miembro", memberStats.map((member) => ({
             label: member.name,
             value: member.capacity,
@@ -1128,6 +1182,63 @@ function hasExecutionResult(testCase) {
   return ["Exitoso", "Fallido"].includes(testCase.executionStatus);
 }
 
+function readinessScore({ executedPct, bankApprovedPct, matrixPct, qmetryPct, highPriorityActiveBugs, blockedTests }) {
+  const penalty = Math.min((highPriorityActiveBugs * 8) + (blockedTests * 4), 35);
+  return clampPercent(Math.round(
+    (executedPct * 0.25)
+    + (bankApprovedPct * 0.35)
+    + (matrixPct * 0.2)
+    + (qmetryPct * 0.2)
+    - penalty
+  ));
+}
+
+function healthStatus({ readiness, failedPct, blockedPct, highPriorityActiveBugs }) {
+  const score = clampPercent(Math.round(readiness - (failedPct * 0.25) - (blockedPct * 0.2) - Math.min(highPriorityActiveBugs * 6, 24)));
+  if (score >= 75) return { label: "Verde", score };
+  if (score >= 45) return { label: "Amarillo", score };
+  return { label: "Rojo", score };
+}
+
+function operationalRiskScore({ activeTasks, reviewTasks, activeBugs, activeSp, capacity }) {
+  return Math.round((activeSp * 12) + (activeBugs * 8) + (reviewTasks * 4) + (activeTasks * 3) + (clampPercent(capacity) / 5));
+}
+
+function spHealthItem(sp, allTestCases, allBugs) {
+  const spTests = allTestCases.filter((test) => testCaseBelongsToSp(test, sp.id));
+  const spBugs = allBugs.filter((bug) => (bug.spMigrationId || findBugSpMigrationId(bug)) === sp.id);
+  const spActiveBugs = spBugs.filter((bug) => !["Resuelto", "Cerrado"].includes(bug.status));
+  const spExecuted = spTests.filter((test) => hasExecutionResult(test)).length;
+  const spSuccessful = spTests.filter((test) => test.executionStatus === "Exitoso").length;
+  const spFailed = spTests.filter((test) => test.executionStatus === "Fallido").length;
+  const spApproved = spTests.filter((test) => test.bankApproval === "Aprobado").length;
+  const spBlocked = spTests.filter((test) => test.status === "Bloqueado").length;
+  const spHighPriorityBugs = spActiveBugs.filter((bug) => ["Critica", "Alta"].includes(bug.severity)).length;
+  const matrixPct = sp.equivalenceMatrixReady || ["Matriz lista", "Evidencia QMetry", "En revision por banco", "Finalizado"].includes(sp.status) ? 100 : 0;
+  const qmetryPct = sp.qmetryEvidenceReady || sp.status === "Evidencia QMetry" || sp.status === "Finalizado" ? 100 : 0;
+  const readiness = readinessScore({
+    executedPct: percentage(spExecuted, spTests.length),
+    bankApprovedPct: percentage(spApproved, spTests.length),
+    matrixPct,
+    qmetryPct,
+    highPriorityActiveBugs: spHighPriorityBugs,
+    blockedTests: spBlocked
+  });
+  const health = healthStatus({
+    readiness,
+    failedPct: percentage(spFailed, spExecuted),
+    blockedPct: percentage(spBlocked, spTests.length),
+    highPriorityActiveBugs: spHighPriorityBugs
+  });
+  return {
+    label: sp.spName || "Sin nombre",
+    status: health.label,
+    score: health.score,
+    successful: spSuccessful,
+    failed: spFailed
+  };
+}
+
 function detailBreakdown(title, items, total) {
   const visibleItems = items.length ? items : [{ label: "Sin datos", value: 0 }];
   return `
@@ -1144,6 +1255,29 @@ function detailBreakdown(title, items, total) {
                 <strong>${escapeHtml(value)} (${pct}%)</strong>
               </div>
               <div class="bar-track"><span style="width: ${Math.max(pct, value ? 4 : 0)}%"></span></div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function percentBreakdown(title, items) {
+  const visibleItems = items.length ? items : [{ label: "Sin datos", value: "0", pct: 0 }];
+  return `
+    <article class="detail-card">
+      <h3>${escapeHtml(title)}</h3>
+      <div class="detail-list">
+        ${visibleItems.map((item) => {
+          const pct = clampPercent(item.pct);
+          return `
+            <div class="detail-row">
+              <div class="detail-label">
+                <span>${escapeHtml(item.label)}</span>
+                <strong>${escapeHtml(item.value)} (${pct}%)</strong>
+              </div>
+              <div class="bar-track"><span style="width: ${Math.max(pct, pct ? 4 : 0)}%"></span></div>
             </div>
           `;
         }).join("")}
@@ -1376,15 +1510,24 @@ function applyCustomFilters(records, store) {
 }
 
 function matchesCustomFilter(store, record, filter) {
-  const rawValue = filterValueFor(store, record, filter.fieldKey);
-  const text = normalizeFilterText(rawValue);
+  const values = filterValuesFor(store, record, filter.fieldKey);
+  const texts = values.map(normalizeFilterText).filter(Boolean);
   const expected = normalizeFilterText(filter.value);
 
-  if (filter.operator === "empty") return !text;
-  if (filter.operator === "notEmpty") return Boolean(text);
-  if (filter.operator === "equals") return text === expected;
-  if (filter.operator === "notContains") return !text.includes(expected);
-  return text.includes(expected);
+  if (filter.operator === "empty") return !texts.length;
+  if (filter.operator === "notEmpty") return Boolean(texts.length);
+  if (filter.operator === "equals") return texts.some((text) => text === expected);
+  if (filter.operator === "notContains") return texts.every((text) => !text.includes(expected));
+  return texts.some((text) => text.includes(expected));
+}
+
+function filterValuesFor(store, record, fieldKey) {
+  const values = [filterValueFor(store, record, fieldKey)];
+  if (hasCatalogField(store, fieldKey)) {
+    values.push(record[fieldKey]);
+    values.push(catalogLabel(store, fieldKey, record[fieldKey]));
+  }
+  return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
 }
 
 function filterValueFor(store, record, fieldKey) {
