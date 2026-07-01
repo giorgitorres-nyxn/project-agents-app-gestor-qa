@@ -7,7 +7,7 @@
     "doc": "docs"
   },
   "scripts": {
-    "check": "node --check app.js && node --check api/[...path].js && node --check api/auth/login.js && node --check api/auth/logout.js && node --check api/auth/me.js && node --check scripts/import-to-supabase.js",
+    "check": "node --check app.js && node --check src/domain/projectConfig.js && node --check api/[...path].js && node --check api/_lib/auth.js && node --check api/_lib/http.js && node --check api/_lib/recordsRepository.js && node --check api/_lib/sqlConsole.js && node --check api/_lib/supabaseClient.js && node --check api/auth/login.js && node --check api/auth/logout.js && node --check api/auth/me.js && node --check scripts/import-to-supabase.js",
     "import:supabase": "node scripts/import-to-supabase.js",
     "test": "npm run check"
   },
