@@ -214,6 +214,7 @@ let state = {
   configurationSection: "tasks",
   customFilters: Object.fromEntries(stores.map((store) => [store, []])),
   search: "",
+  indicatorsSpMigrationId: "",
   editing: null,
   importingStore: null,
   sqlConsole: {
@@ -957,13 +958,33 @@ function renderIndicators() {
   const container = $("#indicators-content");
   const members = filterRecords(state.data.members ?? []);
   const allMembers = state.data.members ?? [];
-  const tasks = state.data.tasks ?? [];
-  const bugs = state.data.bugs ?? [];
-  const testCases = state.data.testCases ?? [];
-  const spMigrations = state.data.spMigrations ?? [];
+  const allTasks = state.data.tasks ?? [];
+  const allBugs = state.data.bugs ?? [];
+  const allTestCases = state.data.testCases ?? [];
+  const allUseCases = state.data.useCases ?? [];
+  const allSpMigrations = state.data.spMigrations ?? [];
+  const selectedSpId = allSpMigrations.some((sp) => sp.id === state.indicatorsSpMigrationId)
+    ? state.indicatorsSpMigrationId
+    : "";
+  state.indicatorsSpMigrationId = selectedSpId;
+
+  const selectedSp = allSpMigrations.find((sp) => sp.id === selectedSpId);
+  const tasks = selectedSpId ? allTasks.filter((task) => task.spMigrationId === selectedSpId) : allTasks;
+  const testCases = selectedSpId ? allTestCases.filter((test) => testCaseBelongsToSp(test, selectedSpId)) : allTestCases;
+  const useCases = selectedSpId ? allUseCases.filter((useCase) => useCase.spMigrationId === selectedSpId) : allUseCases;
+  const bugs = selectedSpId
+    ? allBugs.filter((bug) => (bug.spMigrationId || findBugSpMigrationId(bug)) === selectedSpId)
+    : allBugs;
+  const spMigrations = selectedSpId ? allSpMigrations.filter((sp) => sp.id === selectedSpId) : allSpMigrations;
   const activeTasks = tasks.filter((task) => task.status !== "done");
   const activeBugs = bugs.filter((bug) => !["Resuelto", "Cerrado"].includes(bug.status));
-  const executedTests = testCases.filter((test) => test.status === "Ejecutado").length;
+  const executedTests = testCases.filter((test) => hasExecutionResult(test)).length;
+  const successfulTests = testCases.filter((test) => test.executionStatus === "Exitoso").length;
+  const failedTests = testCases.filter((test) => test.executionStatus === "Fallido").length;
+  const pendingExecutionTests = testCases.length - executedTests;
+  const bankApprovedTests = testCases.filter((test) => test.bankApproval === "Aprobado").length;
+  const bankRejectedTests = testCases.filter((test) => test.bankApproval === "No Aprobado").length;
+  const bankPendingTests = testCases.length - bankApprovedTests - bankRejectedTests;
   const blockedTests = testCases.filter((test) => test.status === "Bloqueado").length;
   const completedSp = spMigrations.filter((sp) => sp.status === "Finalizado").length;
   const qmetryReady = spMigrations.filter((sp) => sp.qmetryEvidenceReady || sp.status === "Evidencia QMetry").length;
@@ -985,16 +1006,36 @@ function renderIndicators() {
     };
   }).sort((a, b) => (b.activeTasks + b.activeBugs + b.activeSp) - (a.activeTasks + a.activeBugs + a.activeSp));
 
+  const scopeLabel = selectedSp ? selectedSp.spName : "Todos los SP";
   const cards = [
-    ["Ejecucion de casos", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} ejecutados`],
+    ["Casos ejecutados", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} con resultado`],
+    ["TC aprobados banco", `${percentage(bankApprovedTests, testCases.length)}%`, `${bankApprovedTests} de ${testCases.length} aprobados`],
+    ["Ejecucion exitosa", `${percentage(successfulTests, testCases.length)}%`, `${successfulTests} exitosos, ${failedTests} fallidos`],
+    ["Sin ejecutar", `${percentage(pendingExecutionTests, testCases.length)}%`, `${pendingExecutionTests} de ${testCases.length} pendientes`],
     ["SP finalizados", `${percentage(completedSp, spMigrations.length)}%`, `${completedSp} de ${spMigrations.length} cerrados`],
-    ["Carga promedio", `${averageCapacity}%`, `${allMembers.length} miembro(s) QA`],
     ["Errores activos", activeBugs.length, `${activeBugs.filter((bug) => ["Critica", "Alta"].includes(bug.severity)).length} de alta prioridad`],
-    ["QMetry listo", qmetryReady, "evidencia o etapa QMetry"],
-    ["Bloqueos", blockedTests, "casos de prueba bloqueados"]
+    ["QMetry listo", qmetryReady, selectedSpId ? "para el SP elegido" : "evidencia o etapa QMetry"],
+    ["Bloqueos", blockedTests, "casos de prueba bloqueados"],
+    ["Carga promedio", `${averageCapacity}%`, `${allMembers.length} miembro(s) QA`]
   ];
 
   container.innerHTML = `
+    <section class="panel indicator-toolbar">
+      <div class="indicator-scope">
+        <div>
+          <p class="eyebrow">Filtro</p>
+          <h2>${escapeHtml(scopeLabel)}</h2>
+        </div>
+        <label class="indicator-select" for="indicator-sp-filter">
+          <span>SP</span>
+          <select id="indicator-sp-filter">
+            <option value="">Todos los SP</option>
+            ${allSpMigrations.map((sp) => `<option value="${escapeHtml(sp.id)}" ${sp.id === selectedSpId ? "selected" : ""}>${escapeHtml(sp.spName || "Sin nombre")}</option>`).join("")}
+          </select>
+        </label>
+      </div>
+    </section>
+
     <div class="indicator-grid">
       ${cards.map(([label, value, detail]) => `
         <article class="metric indicator-card">
@@ -1003,6 +1044,27 @@ function renderIndicators() {
           <span>${escapeHtml(detail)}</span>
         </article>
       `).join("")}
+    </div>
+
+    <div class="detail-grid">
+      ${detailBreakdown("Ejecucion de casos", [
+        { label: "Exitosos", value: successfulTests },
+        { label: "Fallidos", value: failedTests },
+        { label: "Sin ejecutar", value: pendingExecutionTests }
+      ], testCases.length)}
+      ${detailBreakdown("Aprobacion banco", [
+        { label: "Aprobados", value: bankApprovedTests },
+        { label: "No aprobados", value: bankRejectedTests },
+        { label: "Sin decision", value: bankPendingTests }
+      ], testCases.length)}
+      ${detailBreakdown("Errores por estado", catalogValues("bugs", "status").map((status) => ({
+        label: catalogLabel("bugs", "status", status),
+        value: bugs.filter((bug) => bug.status === status).length
+      })), bugs.length)}
+      ${detailBreakdown("Casos por estado", catalogValues("testCases", "status").map((status) => ({
+        label: catalogLabel("testCases", "status", status),
+        value: testCases.filter((test) => test.status === status).length
+      })), testCases.length)}
     </div>
 
     <div class="indicators-layout">
@@ -1034,9 +1096,17 @@ function renderIndicators() {
             label: catalogLabel("spMigrations", "status", status),
             value: spMigrations.filter((sp) => sp.status === status).length
           })))}
+          ${barChart("Errores por estado", catalogValues("bugs", "status").map((status) => ({
+            label: catalogLabel("bugs", "status", status),
+            value: bugs.filter((bug) => bug.status === status).length
+          })))}
           ${barChart("Errores activos por severidad", catalogValues("bugs", "severity").map((severity) => ({
             label: catalogLabel("bugs", "severity", severity),
             value: activeBugs.filter((bug) => bug.severity === severity).length
+          })))}
+          ${barChart("Casos de uso por estado", catalogValues("useCases", "status").map((status) => ({
+            label: catalogLabel("useCases", "status", status),
+            value: useCases.filter((useCase) => useCase.status === status).length
           })))}
           ${barChart("Carga por miembro", memberStats.map((member) => ({
             label: member.name,
@@ -1046,6 +1116,39 @@ function renderIndicators() {
         </div>
       </section>
     </div>
+  `;
+
+  container.querySelector("#indicator-sp-filter")?.addEventListener("change", (event) => {
+    state.indicatorsSpMigrationId = event.target.value;
+    renderIndicators();
+  });
+}
+
+function hasExecutionResult(testCase) {
+  return ["Exitoso", "Fallido"].includes(testCase.executionStatus);
+}
+
+function detailBreakdown(title, items, total) {
+  const visibleItems = items.length ? items : [{ label: "Sin datos", value: 0 }];
+  return `
+    <article class="detail-card">
+      <h3>${escapeHtml(title)}</h3>
+      <div class="detail-list">
+        ${visibleItems.map((item) => {
+          const value = Number(item.value || 0);
+          const pct = percentage(value, total);
+          return `
+            <div class="detail-row">
+              <div class="detail-label">
+                <span>${escapeHtml(item.label)}</span>
+                <strong>${escapeHtml(value)} (${pct}%)</strong>
+              </div>
+              <div class="bar-track"><span style="width: ${Math.max(pct, value ? 4 : 0)}%"></span></div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </article>
   `;
 }
 
