@@ -2,6 +2,17 @@
 
 ## 2026-07-01
 
+### Cambio: Arquitectura modular tipo MVC
+
+- Se agrego `docs/ARQUITECTURA_MVC.md` con las capas Domain/View/Controller/Services y reglas para futuros refactors.
+- Se creo `src/domain/projectConfig.js` como fuente compartida para stores, catalogos y transiciones de SP.
+- Se separo infraestructura serverless en `api/_lib/` para cliente Supabase, auth, repositorio, SQL console y helpers HTTP.
+- Se adelgazo `api/[...path].js` para que opere como controlador/router serverless.
+- Se actualizo `index.html` para cargar el dominio compartido antes de `app.js` y mostrar Vercel + Supabase como entorno activo.
+- Se amplio `npm run check` para validar los modulos nuevos.
+
+---
+
 ### Cambio: Ambiente oficial de pruebas
 
 - Se documento que el proyecto usara solo Vercel y Supabase como entorno activo.

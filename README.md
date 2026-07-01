@@ -19,6 +19,7 @@ El proyecto se trabaja exclusivamente sobre Vercel y Supabase.
 - API serverless para Vercel en `api/[...path].js`.
 - Base de datos Supabase Postgres con tablas JSONB.
 - Esquema y politicas en `supabase/schema.sql`.
+- Organizacion modular tipo MVC documentada en `docs/ARQUITECTURA_MVC.md`.
 
 ## Funcionalidades
 
