@@ -10,7 +10,8 @@ El proyecto se trabaja exclusivamente sobre Vercel y Supabase.
 - API serverless en `api/`.
 - Base de datos Supabase Postgres definida en `supabase/schema.sql`.
 - No se debe levantar ni configurar `server.py`, SQLite local o `data/gestor_qa.db`, salvo solicitud explicita del usuario.
-- Las pruebas funcionales deben hacerse contra la URL de Vercel o una preview de Vercel indicada por el usuario.
+- Todas las pruebas funcionales deben hacerse contra `https://project-agents-app-gestor-qa.vercel.app/`.
+- Solo usar previews de Vercel para pruebas cuando el usuario indique una URL de preview especifica.
 
 ## Arquitectura
 
@@ -47,4 +48,4 @@ Este contexto puede cambiar; cada cambio funcional debe documentarse en `docs/CH
 
 ## Como validar
 
-Validar cambios contra la app publicada en Vercel o contra una preview de Vercel. Para cambios de base de datos, aplicar primero las instrucciones de `supabase/schema.sql` en Supabase.
+Validar cambios contra `https://project-agents-app-gestor-qa.vercel.app/`. Solo validar contra una preview de Vercel cuando el usuario indique explicitamente esa URL. Para cambios de base de datos, aplicar primero las instrucciones de `supabase/schema.sql` en Supabase.

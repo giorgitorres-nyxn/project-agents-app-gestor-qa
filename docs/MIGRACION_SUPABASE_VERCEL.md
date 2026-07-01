@@ -1,10 +1,10 @@
 # Supabase y Vercel
 
-Gestor QA usa Vercel y Supabase como entorno activo. Las referencias a `server.py`, SQLite local o `data/gestor_qa.db` son legado y no deben usarse para nuevas validaciones, configuraciones o desarrollo, salvo solicitud explicita del usuario.
+Gestor QA usa Vercel y Supabase como unico entorno activo. Las pruebas funcionales deben ejecutarse contra `https://project-agents-app-gestor-qa.vercel.app/`, salvo que el usuario indique explicitamente una URL de preview de Vercel. Las referencias a `server.py`, SQLite local o `data/gestor_qa.db` son legado y no deben usarse para nuevas validaciones, configuraciones o desarrollo, salvo solicitud explicita del usuario.
 
 ## Objetivo actual
 
-- Publicar el frontend en Vercel.
+- Mantener el frontend publicado en Vercel.
 - Usar Supabase Postgres como base de datos compartida.
 - Agregar autenticacion para colaboradores.
 - Mantener la funcionalidad actual: tablero, CRUD, indicadores, filtros personalizados y exportacion.
@@ -90,17 +90,16 @@ Estas rutas las atiende `api/[...path].js` contra Supabase. No usar `python serv
    ```
 
 5. Configurar `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en Vercel.
-6. Probar la preview de Vercel.
-7. Probar CRUD e indicadores con Playwright contra Vercel.
+6. Probar el despliegue en `https://project-agents-app-gestor-qa.vercel.app/`, o una preview de Vercel solo si fue indicada por el usuario.
+7. Probar CRUD e indicadores con Playwright contra ese ambiente de Vercel.
 8. Hacer deploy desde la rama de trabajo o abrir PR hacia `main`.
 
 ## Decisiones pendientes
 
 - Si todos los colaboradores pueden editar todo o si habra roles.
 - Si se permitiran adjuntos/evidencias en Supabase Storage.
-- Si el despliegue inicial sera una preview de Vercel o produccion.
 - Si se migra la base `data/gestor_qa.db`, un export JSON o un archivo externo de casos.
-- Como se protegera el acceso antes de publicar la URL final.
+- Como se protegera el acceso al ambiente publicado.
 
 ## Nota de seguridad
 

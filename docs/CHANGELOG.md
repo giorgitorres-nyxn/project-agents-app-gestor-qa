@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-01
+
+### Cambio: Ambiente oficial de pruebas
+
+- Se documento que el proyecto usara solo Vercel y Supabase como entorno activo.
+- Se fijo `https://project-agents-app-gestor-qa.vercel.app/` como ambiente obligatorio para pruebas funcionales.
+- Se dejo el uso de previews de Vercel solo como excepcion cuando el usuario indique una URL especifica.
+
+---
+
 ## 2026-06-30
 
 ### Cambio: Entorno unico Vercel/Supabase

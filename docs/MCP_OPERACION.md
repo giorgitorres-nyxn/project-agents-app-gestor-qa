@@ -1,6 +1,6 @@
 # Operacion con MCP
 
-Este proyecto debe operarse contra Vercel, Supabase y GitHub. No usar SQLite ni `server.py` para validaciones normales.
+Este proyecto debe operarse contra Vercel, Supabase y GitHub. No usar SQLite ni `server.py` para validaciones normales. Todas las pruebas funcionales deben realizarse contra `https://project-agents-app-gestor-qa.vercel.app/`, salvo que el usuario indique explicitamente una URL de preview de Vercel.
 
 ## GitHub
 
