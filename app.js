@@ -979,11 +979,11 @@ function renderIndicators() {
   const activeTasks = tasks.filter((task) => task.status !== "done");
   const activeBugs = bugs.filter((bug) => !["Resuelto", "Cerrado"].includes(bug.status));
   const executedTests = testCases.filter((test) => hasExecutionResult(test)).length;
-  const successfulTests = testCases.filter((test) => test.executionStatus === "Exitoso").length;
-  const failedTests = testCases.filter((test) => test.executionStatus === "Fallido").length;
+  const successfulTests = testCases.filter((test) => effectiveFieldValue("testCases", test, "executionStatus") === "Exitoso").length;
+  const failedTests = testCases.filter((test) => effectiveFieldValue("testCases", test, "executionStatus") === "Fallido").length;
   const pendingExecutionTests = testCases.length - executedTests;
-  const bankApprovedTests = testCases.filter((test) => test.bankApproval === "Aprobado").length;
-  const bankRejectedTests = testCases.filter((test) => test.bankApproval === "No Aprobado").length;
+  const bankApprovedTests = testCases.filter((test) => effectiveFieldValue("testCases", test, "bankApproval") === "Aprobado").length;
+  const bankRejectedTests = testCases.filter((test) => effectiveFieldValue("testCases", test, "bankApproval") === "No Aprobado").length;
   const bankPendingTests = testCases.length - bankApprovedTests - bankRejectedTests;
   const blockedTests = testCases.filter((test) => test.status === "Bloqueado").length;
   const highPriorityActiveBugs = activeBugs.filter((bug) => ["Critica", "Alta"].includes(bug.severity)).length;
@@ -1039,19 +1039,19 @@ function renderIndicators() {
   const riskiestMember = [...memberStats].sort((a, b) => b.riskScore - a.riskScore)[0];
   const spHealthItems = spMigrations.map((sp) => spHealthItem(sp, allTestCases, allBugs));
   const cards = [
-    ["Casos ejecutados", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} con resultado`],
-    ["TC aprobados banco", `${percentage(bankApprovedTests, testCases.length)}%`, `${bankApprovedTests} de ${testCases.length} aprobados`],
-    ["Calidad entrega", `${successRateExecuted}%`, `${failedRateExecuted}% fallidos sobre ejecutados`],
-    ["Sin ejecutar", `${percentage(pendingExecutionTests, testCases.length)}%`, `${pendingExecutionTests} de ${testCases.length} pendientes`],
-    ["Densidad defectos", defectDensity, "errores por 100 TC ejecutados"],
-    ["Tasa bloqueo", `${blockRate}%`, `${blockedTests} de ${testCases.length} casos bloqueados`],
-    ["Preparacion banco", `${bankReadiness}%`, `${matrixReady} matriz, ${qmetryReady} QMetry`],
-    ["Salud SP", health.label, `${health.score}% de salud operativa`],
-    ["SP finalizados", `${percentage(completedSp, spMigrations.length)}%`, `${completedSp} de ${spMigrations.length} cerrados`],
-    ["Errores activos", activeBugs.length, `${highPriorityActiveBugs} de alta prioridad`],
-    ["QMetry listo", qmetryReady, selectedSpId ? "para el SP elegido" : "evidencia o etapa QMetry"],
-    ["Riesgo QA", riskiestMember ? riskiestMember.riskScore : 0, riskiestMember ? riskiestMember.name : "sin asignaciones"],
-    ["Carga promedio", `${averageCapacity}%`, `${allMembers.length} miembro(s) QA`]
+    indicatorMetric("Casos ejecutados", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} con resultado`, metricTone(percentage(executedTests, testCases.length), "high"), "Mide avance real de ejecucion. Formula: TC con ejecucion Exitoso o Fallido / total de TC."),
+    indicatorMetric("TC aprobados banco", `${percentage(bankApprovedTests, testCases.length)}%`, `${bankApprovedTests} de ${testCases.length} aprobados`, metricTone(percentage(bankApprovedTests, testCases.length), "high"), "Mide aceptacion del banco. Formula: TC con Aprobado Banco = Aprobado / total de TC."),
+    indicatorMetric("Calidad entrega", `${successRateExecuted}%`, `${failedRateExecuted}% fallidos sobre ejecutados`, metricTone(successRateExecuted, "high"), "Mide calidad solo sobre lo ejecutado. Formula: TC Exitosos / TC ejecutados."),
+    indicatorMetric("Sin ejecutar", `${percentage(pendingExecutionTests, testCases.length)}%`, `${pendingExecutionTests} de ${testCases.length} pendientes`, metricTone(percentage(pendingExecutionTests, testCases.length), "low"), "Mide deuda de ejecucion. Formula: TC sin resultado de ejecucion / total de TC."),
+    indicatorMetric("Densidad defectos", defectDensity, "errores por 100 TC ejecutados", metricTone(defectDensity, "low", { good: 10, warning: 25 }), "Mide concentracion de errores. Formula: errores registrados / TC ejecutados * 100."),
+    indicatorMetric("Tasa bloqueo", `${blockRate}%`, `${blockedTests} de ${testCases.length} casos bloqueados`, metricTone(blockRate, "low"), "Mide bloqueo de pruebas. Formula: TC con estado Bloqueado / total de TC."),
+    indicatorMetric("Preparacion banco", `${bankReadiness}%`, `${matrixReady} matriz, ${qmetryReady} QMetry`, metricTone(bankReadiness, "high"), "Score ponderado. Formula: ejecucion 25% + aprobacion banco 35% + matriz 20% + QMetry 20% - penalizacion por errores altos y bloqueos."),
+    indicatorMetric("Salud SP", health.label, `${health.score}% de salud operativa`, metricTone(health.score, "high"), "Semaforo operativo. Formula: preparacion banco - penalizacion por fallidos, bloqueos y errores activos de severidad Critica/Alta."),
+    indicatorMetric("SP finalizados", `${percentage(completedSp, spMigrations.length)}%`, `${completedSp} de ${spMigrations.length} cerrados`, metricTone(percentage(completedSp, spMigrations.length), "high"), "Mide cierre de alcance. Formula: SP con estado Finalizado / total de SP."),
+    indicatorMetric("Errores activos", activeBugs.length, `${highPriorityActiveBugs} de alta prioridad`, metricTone(activeBugs.length, "lowCount", { good: 0, warning: 5 }), "Errores abiertos para seguimiento. Formula: errores cuyo estado no es Resuelto ni Cerrado."),
+    indicatorMetric("QMetry listo", qmetryReady, selectedSpId ? "para el SP elegido" : "evidencia o etapa QMetry", metricTone(percentage(qmetryReady, spMigrations.length), "high"), "Mide evidencia lista. Formula: SP con evidencia QMetry marcada o estado Evidencia QMetry."),
+    indicatorMetric("Riesgo QA", riskiestMember ? riskiestMember.riskScore : 0, riskiestMember ? riskiestMember.name : "sin asignaciones", metricTone(riskiestMember?.riskScore || 0, "low", { good: 25, warning: 50 }), "Mide carga operativa por QA. Formula: SP activos*12 + errores activos*8 + tareas en revision*4 + tareas activas*3 + carga/5."),
+    indicatorMetric("Carga promedio", `${averageCapacity}%`, `${allMembers.length} miembro(s) QA`, metricTone(averageCapacity, "balanced"), "Promedio de carga declarada del equipo. Formula: suma de carga de miembros QA / numero de miembros.")
   ];
 
   container.innerHTML = `
@@ -1072,43 +1072,41 @@ function renderIndicators() {
     </section>
 
     <div class="indicator-grid">
-      ${cards.map(([label, value, detail]) => `
-        <article class="metric indicator-card">
-          <span>${escapeHtml(label)}</span>
-          <strong>${escapeHtml(value)}</strong>
-          <span>${escapeHtml(detail)}</span>
-        </article>
-      `).join("")}
+      ${cards.map(metricCard).join("")}
     </div>
 
     <div class="detail-grid">
       ${detailBreakdown("Ejecucion de casos", [
-        { label: "Exitosos", value: successfulTests },
-        { label: "Fallidos", value: failedTests },
-        { label: "Sin ejecutar", value: pendingExecutionTests }
+        { label: "Exitosos", value: successfulTests, tone: "good", tooltip: "Formula: TC con Ejecucion = Exitoso / total de TC." },
+        { label: "Fallidos", value: failedTests, tone: "danger", tooltip: "Formula: TC con Ejecucion = Fallido / total de TC." },
+        { label: "Sin ejecutar", value: pendingExecutionTests, tone: "warning", tooltip: "Formula: TC sin resultado de ejecucion / total de TC." }
       ], testCases.length)}
       ${detailBreakdown("Aprobacion banco", [
-        { label: "Aprobados", value: bankApprovedTests },
-        { label: "No aprobados", value: bankRejectedTests },
-        { label: "Sin decision", value: bankPendingTests }
+        { label: "Aprobados", value: bankApprovedTests, tone: "good", tooltip: "Formula: TC con Aprobado Banco = Aprobado / total de TC." },
+        { label: "No aprobados", value: bankRejectedTests, tone: "danger", tooltip: "Formula: TC con Aprobado Banco = No Aprobado / total de TC." },
+        { label: "Sin decision", value: bankPendingTests, tone: "warning", tooltip: "Formula: TC sin valor de aprobacion banco / total de TC." }
       ], testCases.length)}
       ${detailBreakdown("Errores por estado", catalogValues("bugs", "status").map((status) => ({
         label: catalogLabel("bugs", "status", status),
-        value: bugs.filter((bug) => bug.status === status).length
+        value: bugs.filter((bug) => bug.status === status).length,
+        tone: ["Resuelto", "Cerrado"].includes(status) ? "good" : "danger",
+        tooltip: `Formula: errores con estado ${catalogLabel("bugs", "status", status)} / total de errores.`
       })), bugs.length)}
       ${detailBreakdown("Casos por estado", catalogValues("testCases", "status").map((status) => ({
         label: catalogLabel("testCases", "status", status),
-        value: testCases.filter((test) => test.status === status).length
+        value: testCases.filter((test) => test.status === status).length,
+        tone: status === "Ejecutado" ? "good" : status === "Bloqueado" ? "danger" : "neutral",
+        tooltip: `Formula: TC con estado ${catalogLabel("testCases", "status", status)} / total de TC.`
       })), testCases.length)}
       ${detailBreakdown("Calidad sobre ejecutados", [
-        { label: "Exitosos", value: successfulTests },
-        { label: "Fallidos", value: failedTests }
+        { label: "Exitosos", value: successfulTests, tone: "good", tooltip: "Formula: TC con Ejecucion = Exitoso / TC ejecutados." },
+        { label: "Fallidos", value: failedTests, tone: "danger", tooltip: "Formula: TC con Ejecucion = Fallido / TC ejecutados." }
       ], executedTests)}
       ${percentBreakdown("Preparacion banco", [
-        { label: "TC ejecutados", value: `${executedTests}/${testCases.length}`, pct: percentage(executedTests, testCases.length) },
-        { label: "TC aprobados", value: `${bankApprovedTests}/${testCases.length}`, pct: percentage(bankApprovedTests, testCases.length) },
-        { label: "Matriz lista", value: `${matrixReady}/${spMigrations.length}`, pct: percentage(matrixReady, spMigrations.length) },
-        { label: "QMetry listo", value: `${qmetryReady}/${spMigrations.length}`, pct: percentage(qmetryReady, spMigrations.length) }
+        { label: "TC ejecutados", value: `${executedTests}/${testCases.length}`, pct: percentage(executedTests, testCases.length), tooltip: "Formula: TC ejecutados / total de TC." },
+        { label: "TC aprobados", value: `${bankApprovedTests}/${testCases.length}`, pct: percentage(bankApprovedTests, testCases.length), tooltip: "Formula: TC aprobados por banco / total de TC." },
+        { label: "Matriz lista", value: `${matrixReady}/${spMigrations.length}`, pct: percentage(matrixReady, spMigrations.length), tooltip: "Formula: SP con matriz lista / total de SP." },
+        { label: "QMetry listo", value: `${qmetryReady}/${spMigrations.length}`, pct: percentage(qmetryReady, spMigrations.length), tooltip: "Formula: SP con evidencia QMetry / total de SP." }
       ])}
     </div>
 
@@ -1156,16 +1154,22 @@ function renderIndicators() {
           ${barChart("Salud por SP", spHealthItems.map((item) => ({
             label: `${item.label} (${item.status})`,
             value: item.score,
-            suffix: "%"
+            suffix: "%",
+            tone: metricTone(item.score, "high"),
+            tooltip: "Formula: preparacion banco - penalizacion por fallidos, bloqueos y errores activos Critica/Alta."
           })))}
           ${barChart("Riesgo por miembro", memberStats.map((member) => ({
             label: member.name,
-            value: member.riskScore
+            value: member.riskScore,
+            tone: metricTone(member.riskScore, "low", { good: 25, warning: 50 }),
+            tooltip: "Formula: SP activos*12 + errores activos*8 + tareas en revision*4 + tareas activas*3 + carga/5."
           })))}
           ${barChart("Carga por miembro", memberStats.map((member) => ({
             label: member.name,
             value: member.capacity,
-            suffix: "%"
+            suffix: "%",
+            tone: metricTone(member.capacity, "balanced"),
+            tooltip: "Formula: porcentaje de carga declarado para el miembro QA."
           })))}
         </div>
       </section>
@@ -1179,7 +1183,43 @@ function renderIndicators() {
 }
 
 function hasExecutionResult(testCase) {
-  return ["Exitoso", "Fallido"].includes(testCase.executionStatus);
+  return ["Exitoso", "Fallido"].includes(effectiveFieldValue("testCases", testCase, "executionStatus"));
+}
+
+function indicatorMetric(label, value, detail, tone, tooltip) {
+  return { label, value, detail, tone, tooltip };
+}
+
+function metricCard(metric) {
+  return `
+    <article class="metric indicator-card indicator-${escapeHtml(metric.tone || "neutral")}" title="${escapeHtml(metric.tooltip || "")}" aria-label="${escapeHtml(`${metric.label}. ${metric.detail}. ${metric.tooltip || ""}`)}">
+      <span>${escapeHtml(metric.label)}</span>
+      <strong>${escapeHtml(metric.value)}</strong>
+      <span>${escapeHtml(metric.detail)}</span>
+    </article>
+  `;
+}
+
+function metricTone(value, direction, thresholds = {}) {
+  const number = Number(value || 0);
+  const good = thresholds.good ?? (direction === "high" ? 70 : 10);
+  const warning = thresholds.warning ?? (direction === "high" ? 40 : 30);
+  if (direction === "high") {
+    if (number >= good) return "good";
+    if (number >= warning) return "warning";
+    return "danger";
+  }
+  if (direction === "low" || direction === "lowCount") {
+    if (number <= good) return "good";
+    if (number <= warning) return "warning";
+    return "danger";
+  }
+  if (direction === "balanced") {
+    if (number <= 80) return "good";
+    if (number <= 95) return "warning";
+    return "danger";
+  }
+  return "neutral";
 }
 
 function readinessScore({ executedPct, bankApprovedPct, matrixPct, qmetryPct, highPriorityActiveBugs, blockedTests }) {
@@ -1248,8 +1288,10 @@ function detailBreakdown(title, items, total) {
         ${visibleItems.map((item) => {
           const value = Number(item.value || 0);
           const pct = percentage(value, total);
+          const tone = item.tone || metricTone(pct, "high");
+          const tooltip = item.tooltip || `Formula: ${item.label} / total (${total}).`;
           return `
-            <div class="detail-row">
+            <div class="detail-row detail-${escapeHtml(tone)}" title="${escapeHtml(tooltip)}">
               <div class="detail-label">
                 <span>${escapeHtml(item.label)}</span>
                 <strong>${escapeHtml(value)} (${pct}%)</strong>
@@ -1271,8 +1313,10 @@ function percentBreakdown(title, items) {
       <div class="detail-list">
         ${visibleItems.map((item) => {
           const pct = clampPercent(item.pct);
+          const tone = item.tone || metricTone(pct, "high");
+          const tooltip = item.tooltip || `Formula: ${item.label}.`;
           return `
-            <div class="detail-row">
+            <div class="detail-row detail-${escapeHtml(tone)}" title="${escapeHtml(tooltip)}">
               <div class="detail-label">
                 <span>${escapeHtml(item.label)}</span>
                 <strong>${escapeHtml(item.value)} (${pct}%)</strong>
@@ -1319,8 +1363,10 @@ function barChart(title, items) {
         ${visibleItems.length ? visibleItems.map((item) => {
           const value = Number(item.value || 0);
           const width = Math.max(Math.round((value / max) * 100), 4);
+          const tone = item.tone || "neutral";
+          const tooltip = item.tooltip || `${title}. Valor: ${item.label} = ${value}${item.suffix || ""}.`;
           return `
-            <div class="bar-row">
+            <div class="bar-row bar-${escapeHtml(tone)}" title="${escapeHtml(tooltip)}">
               <div class="bar-label">
                 <span>${escapeHtml(item.label)}</span>
                 <strong>${escapeHtml(value)}${escapeHtml(item.suffix || "")}</strong>
@@ -1524,8 +1570,10 @@ function matchesCustomFilter(store, record, filter) {
 function filterValuesFor(store, record, fieldKey) {
   const values = [filterValueFor(store, record, fieldKey)];
   if (hasCatalogField(store, fieldKey)) {
+    const effectiveValue = effectiveFieldValue(store, record, fieldKey);
     values.push(record[fieldKey]);
-    values.push(catalogLabel(store, fieldKey, record[fieldKey]));
+    values.push(effectiveValue);
+    values.push(catalogLabel(store, fieldKey, effectiveValue));
   }
   return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
 }
@@ -1546,8 +1594,8 @@ function filterValueFor(store, record, fieldKey) {
   if (fieldKey === "severity" && hasCatalogField(store, "severity")) return catalogLabel(store, "severity", record.severity);
   if (fieldKey === "kind" && hasCatalogField(store, "kind")) return catalogLabel(store, "kind", record.kind);
   if (fieldKey === "role" && hasCatalogField(store, "role")) return catalogLabel(store, "role", record.role);
-  if (fieldKey === "executionStatus" && hasCatalogField(store, "executionStatus")) return catalogLabel(store, "executionStatus", record.executionStatus);
-  if (fieldKey === "bankApproval" && hasCatalogField(store, "bankApproval")) return catalogLabel(store, "bankApproval", record.bankApproval);
+  if (fieldKey === "executionStatus" && hasCatalogField(store, "executionStatus")) return catalogLabel(store, "executionStatus", effectiveFieldValue(store, record, "executionStatus"));
+  if (fieldKey === "bankApproval" && hasCatalogField(store, "bankApproval")) return catalogLabel(store, "bankApproval", effectiveFieldValue(store, record, "bankApproval"));
   if (fieldKey === "capacity") return `${record.capacity || 0}%`;
   if (fieldKey === "sql") return artifactFilterText(record.sqlReceived);
   if (fieldKey === "rest") return artifactFilterText(record.restReceived);
@@ -1559,6 +1607,13 @@ function filterValueFor(store, record, fieldKey) {
 
 function hasCatalogField(store, fieldKey) {
   return Boolean(catalogDefinitions[store]?.fields?.[fieldKey]);
+}
+
+function effectiveFieldValue(store, record, fieldName) {
+  const value = record?.[fieldName];
+  if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+  const field = fieldConfig[store]?.find((item) => item.name === fieldName);
+  return defaultValue(field);
 }
 
 function artifactFilterText(done) {
