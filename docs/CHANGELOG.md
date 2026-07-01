@@ -2,6 +2,17 @@
 
 ## 2026-07-01
 
+### Cambio: Separacion frontend MVC
+
+- Se redujo `app.js` a bootstrap del frontend.
+- Se movio estado/configuracion de frontend a `src/frontend/appState.js`.
+- Se movio el cliente de API a `src/services/apiClient.js`.
+- Se separaron vistas en `src/views/` y controladores en `src/controllers/`.
+- Se agrego `src/shared/frontendHelpers.js` para helpers compartidos de UI.
+- Se actualizo `npm run check` para validar automaticamente todos los archivos JavaScript del proyecto.
+
+---
+
 ### Cambio: Arquitectura modular tipo MVC
 
 - Se agrego `docs/ARQUITECTURA_MVC.md` con las capas Domain/View/Controller/Services y reglas para futuros refactors.
