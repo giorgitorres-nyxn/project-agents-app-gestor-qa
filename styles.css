@@ -1110,13 +1110,13 @@ h2 {
   color: #991b1b;
 }
 
-.sql-copy-fields-button {
+.sql-copy-result-button {
   white-space: nowrap;
 }
 
 .sql-result-table-wrap {
   max-height: min(56vh, 640px);
-  overflow: auto;
+  overflow: scroll;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   border: 1px solid var(--line);
@@ -1125,6 +1125,7 @@ h2 {
 
 .sql-result-table {
   min-width: 720px;
+  width: max-content;
   font-size: 0.86rem;
 }
 
@@ -1138,10 +1139,10 @@ h2 {
 
 .sql-result-table th,
 .sql-result-table td {
-  max-width: 420px;
+  min-width: 160px;
+  max-width: 680px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
 }
 
 .sql-result-table code {
@@ -1631,7 +1632,7 @@ dialog::backdrop {
     grid-template-columns: 1fr;
   }
 
-  .sql-copy-fields-button {
+  .sql-copy-result-button {
     justify-self: start;
   }
 

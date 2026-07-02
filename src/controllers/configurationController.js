@@ -47,7 +47,7 @@ function bindSqlConsole(container) {
       $("#sql-console-query")?.focus();
     });
   });
-  container.querySelector("[data-sql-copy-fields]")?.addEventListener("click", copySqlConsoleFields);
+  container.querySelector("[data-sql-copy-result]")?.addEventListener("click", copySqlConsoleResult);
 }
 
 async function runSqlConsole(event) {
@@ -72,20 +72,20 @@ async function runSqlConsole(event) {
   }
 }
 
-async function copySqlConsoleFields(event) {
+async function copySqlConsoleResult(event) {
   const button = event.currentTarget;
   const rows = Array.isArray(state.sqlConsole.result?.rows) ? state.sqlConsole.result.rows : [];
-  const fields = sqlConsoleColumns(rows);
-  if (!fields.length) return;
+  const text = sqlConsoleCopyText(rows);
+  if (!text) return;
 
   try {
-    await copyTextToClipboard(fields.join("\t"));
+    await copyTextToClipboard(text);
     button.textContent = "Copiado";
     window.setTimeout(() => {
-      if (document.body.contains(button)) button.textContent = "Copiar campos";
+      if (document.body.contains(button)) button.textContent = "Copiar resultado";
     }, 1400);
   } catch (error) {
-    alert("No se pudieron copiar los campos.");
+    alert("No se pudo copiar el resultado.");
   }
 }
 

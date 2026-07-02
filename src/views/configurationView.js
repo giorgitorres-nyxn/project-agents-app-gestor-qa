@@ -92,7 +92,7 @@ function sqlConsoleResult() {
 
   const columns = sqlConsoleColumns(rows);
   const copyButton = columns.length
-    ? `<button class="ghost-button sql-copy-fields-button" type="button" data-sql-copy-fields>Copiar campos</button>`
+    ? `<button class="ghost-button sql-copy-result-button" type="button" data-sql-copy-result>Copiar resultado</button>`
     : "";
 
   return `
@@ -136,9 +136,29 @@ function sqlConsoleColumns(rows) {
 }
 
 function sqlConsoleCell(value) {
-  if (value === null || value === undefined) return `<span class="sql-null">NULL</span>`;
-  if (typeof value === "object") return `<code>${escapeHtml(JSON.stringify(value))}</code>`;
-  return escapeHtml(String(value));
+  const text = sqlConsoleValueText(value);
+  if (value === null || value === undefined) return `<span class="sql-null">${escapeHtml(text)}</span>`;
+  if (typeof value === "object") return `<code>${escapeHtml(text)}</code>`;
+  return escapeHtml(text);
+}
+
+function sqlConsoleCopyText(rows) {
+  const columns = sqlConsoleColumns(rows);
+  const lines = [columns.map(sqlConsoleTsvValue).join("\t")];
+  rows.forEach((row) => {
+    lines.push(columns.map((column) => sqlConsoleTsvValue(sqlConsoleValueText(row?.[column]))).join("\t"));
+  });
+  return lines.join("\n");
+}
+
+function sqlConsoleValueText(value) {
+  if (value === null || value === undefined) return "NULL";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function sqlConsoleTsvValue(value) {
+  return String(value).replace(/\r?\n/g, " ").replaceAll("\t", " ");
 }
 
 function catalogFieldCard(store, fieldKey, field) {
