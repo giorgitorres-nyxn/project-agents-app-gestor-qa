@@ -22,20 +22,29 @@ function renderIndicators() {
     ? allBugs.filter((bug) => (bug.spMigrationId || findBugSpMigrationId(bug)) === selectedSpId)
     : allBugs;
   const spMigrations = selectedSpId ? allSpMigrations.filter((sp) => sp.id === selectedSpId) : allSpMigrations;
-  const activeTasks = tasks.filter((task) => task.status !== "done");
-  const activeBugs = bugs.filter((bug) => !["Resuelto", "Cerrado"].includes(bug.status));
+  const executionValues = catalogValues("testCases", "executionStatus");
+  const bankApprovalValues = catalogValues("testCases", "bankApproval");
+  const successfulExecutionValue = catalogValueByTerms("testCases", "executionStatus", ["Exitoso", "Passed", "Pass", "OK"], 0);
+  const failedExecutionValue = catalogValueByTerms("testCases", "executionStatus", ["Fallido", "Failed", "Fail"], 1);
+  const bankApprovedValue = catalogValueByTerms("testCases", "bankApproval", ["Aprobado", "Approved"], 0);
+  const bankRejectedValue = catalogValueByTerms("testCases", "bankApproval", ["No Aprobado", "Rechazado", "Rejected"], 1);
+  const activeTasks = tasks.filter((task) => !isTaskDone(task));
+  const activeBugs = bugs.filter((bug) => !isBugClosed(bug));
   const executedTests = testCases.filter((test) => hasExecutionResult(test)).length;
-  const successfulTests = testCases.filter((test) => effectiveFieldValue("testCases", test, "executionStatus") === "Exitoso").length;
-  const failedTests = testCases.filter((test) => effectiveFieldValue("testCases", test, "executionStatus") === "Fallido").length;
+  const successfulTests = testCases.filter((test) => effectiveCatalogValue("testCases", test, "executionStatus") === successfulExecutionValue).length;
+  const failedTests = testCases.filter((test) => effectiveCatalogValue("testCases", test, "executionStatus") === failedExecutionValue).length;
   const pendingExecutionTests = testCases.length - executedTests;
-  const bankApprovedTests = testCases.filter((test) => effectiveFieldValue("testCases", test, "bankApproval") === "Aprobado").length;
-  const bankRejectedTests = testCases.filter((test) => effectiveFieldValue("testCases", test, "bankApproval") === "No Aprobado").length;
+  const bankApprovedTests = testCases.filter((test) => effectiveCatalogValue("testCases", test, "bankApproval") === bankApprovedValue).length;
+  const bankRejectedTests = testCases.filter((test) => effectiveCatalogValue("testCases", test, "bankApproval") === bankRejectedValue).length;
   const bankPendingTests = testCases.length - bankApprovedTests - bankRejectedTests;
-  const blockedTests = testCases.filter((test) => test.status === "Bloqueado").length;
-  const highPriorityActiveBugs = activeBugs.filter((bug) => ["Critica", "Alta"].includes(bug.severity)).length;
-  const completedSp = spMigrations.filter((sp) => sp.status === "Finalizado").length;
-  const qmetryReady = spMigrations.filter((sp) => sp.qmetryEvidenceReady || sp.status === "Evidencia QMetry").length;
-  const matrixReady = spMigrations.filter((sp) => sp.equivalenceMatrixReady || ["Matriz lista", "Evidencia QMetry", "En revision por banco", "Finalizado"].includes(sp.status)).length;
+  const blockedTests = testCases.filter((test) => isBlockedTest(test)).length;
+  const highPriorityActiveBugs = activeBugs.filter((bug) => isHighPriorityBug(bug)).length;
+  const completedSp = spMigrations.filter((sp) => isCompletedSp(sp)).length;
+  const sqlReady = spMigrations.filter((sp) => sp.sqlReceived).length;
+  const restReady = spMigrations.filter((sp) => sp.restReceived).length;
+  const grpcReady = spMigrations.filter((sp) => sp.grpcReceived).length;
+  const qmetryReady = spMigrations.filter((sp) => isQmetryReady(sp)).length;
+  const matrixReady = spMigrations.filter((sp) => isMatrixReady(sp)).length;
   const averageCapacity = allMembers.length
     ? Math.round(allMembers.reduce((total, member) => total + Number(member.capacity || 0), 0) / allMembers.length)
     : 0;
@@ -61,11 +70,11 @@ function renderIndicators() {
   const memberStats = members.map((member) => {
     const memberTasks = activeTasks.filter((task) => task.memberId === member.id);
     const memberBugs = activeBugs.filter((bug) => bug.memberId === member.id);
-    const memberSp = spMigrations.filter((sp) => sp.qaId === member.id && sp.status !== "Finalizado");
+    const memberSp = spMigrations.filter((sp) => sp.qaId === member.id && !isCompletedSp(sp));
     const capacity = Number(member.capacity || 0);
     const riskScore = operationalRiskScore({
       activeTasks: memberTasks.length,
-      reviewTasks: memberTasks.filter((task) => task.status === "review").length,
+      reviewTasks: memberTasks.filter((task) => isTaskInReview(task)).length,
       activeBugs: memberBugs.length,
       activeSp: memberSp.length,
       capacity
@@ -73,7 +82,7 @@ function renderIndicators() {
     return {
       ...member,
       activeTasks: memberTasks.length,
-      reviewTasks: memberTasks.filter((task) => task.status === "review").length,
+      reviewTasks: memberTasks.filter((task) => isTaskInReview(task)).length,
       activeBugs: memberBugs.length,
       activeSp: memberSp.length,
       capacity,
@@ -85,17 +94,18 @@ function renderIndicators() {
   const riskiestMember = [...memberStats].sort((a, b) => b.riskScore - a.riskScore)[0];
   const spHealthItems = spMigrations.map((sp) => spHealthItem(sp, allTestCases, allBugs));
   const cards = [
-    indicatorMetric("Casos ejecutados", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} con resultado`, metricTone(percentage(executedTests, testCases.length), "high"), "Mide avance real de ejecucion. Formula: TC con ejecucion Exitoso o Fallido / total de TC."),
-    indicatorMetric("TC aprobados banco", `${percentage(bankApprovedTests, testCases.length)}%`, `${bankApprovedTests} de ${testCases.length} aprobados`, metricTone(percentage(bankApprovedTests, testCases.length), "high"), "Mide aceptacion del banco. Formula: TC con Aprobado Banco = Aprobado / total de TC."),
-    indicatorMetric("Calidad entrega", `${successRateExecuted}%`, `${failedRateExecuted}% fallidos sobre ejecutados`, metricTone(successRateExecuted, "high"), "Mide calidad solo sobre lo ejecutado. Formula: TC Exitosos / TC ejecutados."),
+    indicatorMetric("Casos ejecutados", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} con ${fieldLabel("testCases", "executionStatus")}`, metricTone(percentage(executedTests, testCases.length), "high"), `Mide avance real de ejecucion. Formula: TC con ${fieldLabel("testCases", "executionStatus")} informado / total de TC.`),
+    indicatorMetric("TC aprobados banco", `${percentage(bankApprovedTests, testCases.length)}%`, `${bankApprovedTests} de ${testCases.length} aprobados`, metricTone(percentage(bankApprovedTests, testCases.length), "high"), `Mide aceptacion del banco. Formula: TC con ${fieldLabel("testCases", "bankApproval")} = ${catalogLabel("testCases", "bankApproval", bankApprovedValue)} / total de TC.`),
+    indicatorMetric("Calidad entrega", `${successRateExecuted}%`, `${failedRateExecuted}% fallidos sobre ejecutados`, metricTone(successRateExecuted, "high"), `Mide calidad solo sobre lo ejecutado. Formula: TC con ${fieldLabel("testCases", "executionStatus")} = ${catalogLabel("testCases", "executionStatus", successfulExecutionValue)} / TC ejecutados.`),
     indicatorMetric("Sin ejecutar", `${percentage(pendingExecutionTests, testCases.length)}%`, `${pendingExecutionTests} de ${testCases.length} pendientes`, metricTone(percentage(pendingExecutionTests, testCases.length), "low"), "Mide deuda de ejecucion. Formula: TC sin resultado de ejecucion / total de TC."),
     indicatorMetric("Densidad defectos", defectDensity, "errores por 100 TC ejecutados", metricTone(defectDensity, "low", { good: 10, warning: 25 }), "Mide concentracion de errores. Formula: errores registrados / TC ejecutados * 100."),
-    indicatorMetric("Tasa bloqueo", `${blockRate}%`, `${blockedTests} de ${testCases.length} casos bloqueados`, metricTone(blockRate, "low"), "Mide bloqueo de pruebas. Formula: TC con estado Bloqueado / total de TC."),
+    indicatorMetric("Tasa bloqueo", `${blockRate}%`, `${blockedTests} de ${testCases.length} casos bloqueados`, metricTone(blockRate, "low"), `Mide bloqueo de pruebas. Formula: TC con ${fieldLabel("testCases", "status")} = Bloqueado / total de TC.`),
     indicatorMetric("Preparacion banco", `${bankReadiness}%`, `${matrixReady} matriz, ${qmetryReady} QMetry`, metricTone(bankReadiness, "high"), "Score ponderado. Formula: ejecucion 25% + aprobacion banco 35% + matriz 20% + QMetry 20% - penalizacion por errores altos y bloqueos."),
     indicatorMetric("Salud SP", health.label, `${health.score}% de salud operativa`, metricTone(health.score, "high"), "Semaforo operativo. Formula: preparacion banco - penalizacion por fallidos, bloqueos y errores activos de severidad Critica/Alta."),
     indicatorMetric("SP finalizados", `${percentage(completedSp, spMigrations.length)}%`, `${completedSp} de ${spMigrations.length} cerrados`, metricTone(percentage(completedSp, spMigrations.length), "high"), "Mide cierre de alcance. Formula: SP con estado Finalizado / total de SP."),
     indicatorMetric("Errores activos", activeBugs.length, `${highPriorityActiveBugs} de alta prioridad`, metricTone(activeBugs.length, "lowCount", { good: 0, warning: 5 }), "Errores abiertos para seguimiento. Formula: errores cuyo estado no es Resuelto ni Cerrado."),
     indicatorMetric("QMetry listo", qmetryReady, selectedSpId ? "para el SP elegido" : "evidencia o etapa QMetry", metricTone(percentage(qmetryReady, spMigrations.length), "high"), "Mide evidencia lista. Formula: SP con evidencia QMetry marcada o estado Evidencia QMetry."),
+    indicatorMetric("REST/gRPC listos", `${percentage(Math.min(restReady, grpcReady), spMigrations.length)}%`, `${restReady} REST, ${grpcReady} gRPC`, metricTone(percentage(Math.min(restReady, grpcReady), spMigrations.length), "high"), "Mide disponibilidad de endpoints. Formula: SP con REST y gRPC listos / total de SP."),
     indicatorMetric("Riesgo QA", riskiestMember ? riskiestMember.riskScore : 0, riskiestMember ? riskiestMember.name : "sin asignaciones", metricTone(riskiestMember?.riskScore || 0, "low", { good: 25, warning: 50 }), "Mide carga operativa por QA. Formula: SP activos*12 + errores activos*8 + tareas en revision*4 + tareas activas*3 + carga/5."),
     indicatorMetric("Carga promedio", `${averageCapacity}%`, `${allMembers.length} miembro(s) QA`, metricTone(averageCapacity, "balanced"), "Promedio de carga declarada del equipo. Formula: suma de carga de miembros QA / numero de miembros.")
   ];
@@ -122,32 +132,59 @@ function renderIndicators() {
     </div>
 
     <div class="detail-grid">
-      ${detailBreakdown("Ejecucion de casos", [
-        { label: "Exitosos", value: successfulTests, tone: "good", tooltip: "Formula: TC con Ejecucion = Exitoso / total de TC." },
-        { label: "Fallidos", value: failedTests, tone: "danger", tooltip: "Formula: TC con Ejecucion = Fallido / total de TC." },
+      ${detailBreakdown(fieldLabel("testCases", "executionStatus"), [
+        ...executionValues.map((value) => ({
+          label: catalogLabel("testCases", "executionStatus", value),
+          value: testCases.filter((test) => effectiveCatalogValue("testCases", test, "executionStatus") === value).length,
+          tone: value === successfulExecutionValue ? "good" : value === failedExecutionValue ? "danger" : "neutral",
+          tooltip: `Formula: TC con ${fieldLabel("testCases", "executionStatus")} = ${catalogLabel("testCases", "executionStatus", value)} / total de TC.`
+        })),
         { label: "Sin ejecutar", value: pendingExecutionTests, tone: "warning", tooltip: "Formula: TC sin resultado de ejecucion / total de TC." }
       ], testCases.length)}
-      ${detailBreakdown("Aprobacion banco", [
-        { label: "Aprobados", value: bankApprovedTests, tone: "good", tooltip: "Formula: TC con Aprobado Banco = Aprobado / total de TC." },
-        { label: "No aprobados", value: bankRejectedTests, tone: "danger", tooltip: "Formula: TC con Aprobado Banco = No Aprobado / total de TC." },
+      ${detailBreakdown(fieldLabel("testCases", "bankApproval"), [
+        ...bankApprovalValues.map((value) => ({
+          label: catalogLabel("testCases", "bankApproval", value),
+          value: testCases.filter((test) => effectiveCatalogValue("testCases", test, "bankApproval") === value).length,
+          tone: value === bankApprovedValue ? "good" : value === bankRejectedValue ? "danger" : "neutral",
+          tooltip: `Formula: TC con ${fieldLabel("testCases", "bankApproval")} = ${catalogLabel("testCases", "bankApproval", value)} / total de TC.`
+        })),
         { label: "Sin decision", value: bankPendingTests, tone: "warning", tooltip: "Formula: TC sin valor de aprobacion banco / total de TC." }
       ], testCases.length)}
       ${detailBreakdown("Errores por estado", catalogValues("bugs", "status").map((status) => ({
         label: catalogLabel("bugs", "status", status),
         value: bugs.filter((bug) => bug.status === status).length,
-        tone: ["Resuelto", "Cerrado"].includes(status) ? "good" : "danger",
+        tone: isCatalogMatch("bugs", "status", status, ["Resuelto", "Cerrado", "Closed", "Done"]) ? "good" : "danger",
         tooltip: `Formula: errores con estado ${catalogLabel("bugs", "status", status)} / total de errores.`
       })), bugs.length)}
       ${detailBreakdown("Casos por estado", catalogValues("testCases", "status").map((status) => ({
         label: catalogLabel("testCases", "status", status),
         value: testCases.filter((test) => test.status === status).length,
-        tone: status === "Ejecutado" ? "good" : status === "Bloqueado" ? "danger" : "neutral",
+        tone: isCatalogMatch("testCases", "status", status, ["Ejecutado", "Finalizado", "Completado"]) ? "good" : isCatalogMatch("testCases", "status", status, ["Bloqueado"]) ? "danger" : "neutral",
         tooltip: `Formula: TC con estado ${catalogLabel("testCases", "status", status)} / total de TC.`
       })), testCases.length)}
+      ${detailBreakdown(fieldLabel("testCases", "priority"), catalogValues("testCases", "priority").map((priority) => ({
+        label: catalogLabel("testCases", "priority", priority),
+        value: testCases.filter((test) => effectiveCatalogValue("testCases", test, "priority") === priority).length,
+        tone: isCatalogMatch("testCases", "priority", priority, ["Alta", "High"]) ? "warning" : "neutral",
+        tooltip: `Formula: TC con ${fieldLabel("testCases", "priority")} = ${catalogLabel("testCases", "priority", priority)} / total de TC.`
+      })), testCases.length)}
+      ${detailBreakdown(fieldLabel("bugs", "severity"), catalogValues("bugs", "severity").map((severity) => ({
+        label: catalogLabel("bugs", "severity", severity),
+        value: bugs.filter((bug) => effectiveCatalogValue("bugs", bug, "severity") === severity).length,
+        tone: isCatalogMatch("bugs", "severity", severity, ["Critica", "Alta", "Critical", "High"]) ? "danger" : "neutral",
+        tooltip: `Formula: errores con ${fieldLabel("bugs", "severity")} = ${catalogLabel("bugs", "severity", severity)} / total de errores.`
+      })), bugs.length)}
       ${detailBreakdown("Calidad sobre ejecutados", [
-        { label: "Exitosos", value: successfulTests, tone: "good", tooltip: "Formula: TC con Ejecucion = Exitoso / TC ejecutados." },
-        { label: "Fallidos", value: failedTests, tone: "danger", tooltip: "Formula: TC con Ejecucion = Fallido / TC ejecutados." }
+        { label: catalogLabel("testCases", "executionStatus", successfulExecutionValue), value: successfulTests, tone: "good", tooltip: `Formula: TC con ${fieldLabel("testCases", "executionStatus")} = ${catalogLabel("testCases", "executionStatus", successfulExecutionValue)} / TC ejecutados.` },
+        { label: catalogLabel("testCases", "executionStatus", failedExecutionValue), value: failedTests, tone: "danger", tooltip: `Formula: TC con ${fieldLabel("testCases", "executionStatus")} = ${catalogLabel("testCases", "executionStatus", failedExecutionValue)} / TC ejecutados.` }
       ], executedTests)}
+      ${detailBreakdown("Artefactos SP", [
+        { label: fieldLabel("spMigrations", "sqlReceived"), value: sqlReady, tone: "neutral", tooltip: "Formula: SP con SQL recibido / total de SP." },
+        { label: fieldLabel("spMigrations", "restReceived"), value: restReady, tone: "neutral", tooltip: "Formula: SP con REST recibido / total de SP." },
+        { label: fieldLabel("spMigrations", "grpcReceived"), value: grpcReady, tone: "neutral", tooltip: "Formula: SP con gRPC recibido / total de SP." },
+        { label: fieldLabel("spMigrations", "equivalenceMatrixReady"), value: matrixReady, tone: "good", tooltip: "Formula: SP con matriz lista o estado equivalente / total de SP." },
+        { label: fieldLabel("spMigrations", "qmetryEvidenceReady"), value: qmetryReady, tone: "good", tooltip: "Formula: SP con evidencia QMetry o estado equivalente / total de SP." }
+      ], spMigrations.length)}
       ${percentBreakdown("Preparacion banco", [
         { label: "TC ejecutados", value: `${executedTests}/${testCases.length}`, pct: percentage(executedTests, testCases.length), tooltip: "Formula: TC ejecutados / total de TC." },
         { label: "TC aprobados", value: `${bankApprovedTests}/${testCases.length}`, pct: percentage(bankApprovedTests, testCases.length), tooltip: "Formula: TC aprobados por banco / total de TC." },
@@ -191,8 +228,19 @@ function renderIndicators() {
           })))}
           ${barChart("Errores activos por severidad", catalogValues("bugs", "severity").map((severity) => ({
             label: catalogLabel("bugs", "severity", severity),
-            value: activeBugs.filter((bug) => bug.severity === severity).length
+            value: activeBugs.filter((bug) => effectiveCatalogValue("bugs", bug, "severity") === severity).length
           })))}
+          ${barChart("Casos por prioridad", catalogValues("testCases", "priority").map((priority) => ({
+            label: catalogLabel("testCases", "priority", priority),
+            value: testCases.filter((test) => effectiveCatalogValue("testCases", test, "priority") === priority).length
+          })))}
+          ${barChart("Artefactos por SP", [
+            { label: fieldLabel("spMigrations", "sqlReceived"), value: sqlReady },
+            { label: fieldLabel("spMigrations", "restReceived"), value: restReady },
+            { label: fieldLabel("spMigrations", "grpcReceived"), value: grpcReady },
+            { label: fieldLabel("spMigrations", "equivalenceMatrixReady"), value: matrixReady },
+            { label: fieldLabel("spMigrations", "qmetryEvidenceReady"), value: qmetryReady }
+          ])}
           ${barChart("Casos de uso por estado", catalogValues("useCases", "status").map((status) => ({
             label: catalogLabel("useCases", "status", status),
             value: useCases.filter((useCase) => useCase.status === status).length
@@ -229,7 +277,72 @@ function renderIndicators() {
 }
 
 function hasExecutionResult(testCase) {
-  return ["Exitoso", "Fallido"].includes(effectiveFieldValue("testCases", testCase, "executionStatus"));
+  const value = effectiveCatalogValue("testCases", testCase, "executionStatus");
+  return Boolean(value && catalogValues("testCases", "executionStatus").includes(value));
+}
+
+function effectiveCatalogValue(store, record, fieldName) {
+  return String(effectiveFieldValue(store, record, fieldName) ?? "").trim();
+}
+
+function fieldLabel(store, fieldName) {
+  return fieldConfig[store]?.find((field) => field.name === fieldName)?.label || fieldName;
+}
+
+function catalogValueByTerms(store, fieldName, terms, fallbackIndex = 0) {
+  const items = catalogOptions(store, fieldName);
+  const normalizedTerms = terms.map(normalizeFilterText);
+  const item = items.find((entry) => {
+    return [entry.value, entry.label].some((text) => normalizedTerms.includes(normalizeFilterText(text)));
+  });
+  return item?.value || items[fallbackIndex]?.value || "";
+}
+
+function isCatalogMatch(store, fieldName, value, terms) {
+  const normalizedTerms = terms.map(normalizeFilterText);
+  const item = catalogOptions(store, fieldName).find((entry) => entry.value === value);
+  return [value, item?.label].some((text) => normalizedTerms.includes(normalizeFilterText(text)));
+}
+
+function isTaskDone(task) {
+  return isCatalogMatch("tasks", "status", effectiveCatalogValue("tasks", task, "status"), ["done", "Finalizado", "Completado", "Cerrado"]);
+}
+
+function isTaskInReview(task) {
+  return isCatalogMatch("tasks", "status", effectiveCatalogValue("tasks", task, "status"), ["review", "En revision"]);
+}
+
+function isBugClosed(bug) {
+  return isCatalogMatch("bugs", "status", effectiveCatalogValue("bugs", bug, "status"), ["Resuelto", "Cerrado", "Closed", "Done"]);
+}
+
+function isHighPriorityBug(bug) {
+  return isCatalogMatch("bugs", "severity", effectiveCatalogValue("bugs", bug, "severity"), ["Critica", "Alta", "Critical", "High"]);
+}
+
+function isBlockedTest(testCase) {
+  return isCatalogMatch("testCases", "status", effectiveCatalogValue("testCases", testCase, "status"), ["Bloqueado", "Blocked"]);
+}
+
+function isCompletedSp(sp) {
+  return isCatalogMatch("spMigrations", "status", effectiveCatalogValue("spMigrations", sp, "status"), ["Finalizado", "Completado", "Cerrado", "Done"]);
+}
+
+function spStatusReached(sp, terms) {
+  const status = effectiveCatalogValue("spMigrations", sp, "status");
+  const targetValue = catalogValueByTerms("spMigrations", "status", terms, -1);
+  const statusIndex = spMigrationStatuses.indexOf(status);
+  const targetIndex = spMigrationStatuses.indexOf(targetValue);
+  if (statusIndex >= 0 && targetIndex >= 0) return statusIndex >= targetIndex;
+  return isCatalogMatch("spMigrations", "status", status, terms);
+}
+
+function isMatrixReady(sp) {
+  return Boolean(sp.equivalenceMatrixReady || spStatusReached(sp, ["Matriz lista", "Evidencia QMetry", "En revision por banco", "Finalizado"]));
+}
+
+function isQmetryReady(sp) {
+  return Boolean(sp.qmetryEvidenceReady || spStatusReached(sp, ["Evidencia QMetry", "Finalizado"]));
 }
 
 function indicatorMetric(label, value, detail, tone, tooltip) {
@@ -293,15 +406,18 @@ function operationalRiskScore({ activeTasks, reviewTasks, activeBugs, activeSp, 
 function spHealthItem(sp, allTestCases, allBugs) {
   const spTests = allTestCases.filter((test) => testCaseBelongsToSp(test, sp.id));
   const spBugs = allBugs.filter((bug) => (bug.spMigrationId || findBugSpMigrationId(bug)) === sp.id);
-  const spActiveBugs = spBugs.filter((bug) => !["Resuelto", "Cerrado"].includes(bug.status));
+  const spActiveBugs = spBugs.filter((bug) => !isBugClosed(bug));
   const spExecuted = spTests.filter((test) => hasExecutionResult(test)).length;
-  const spSuccessful = spTests.filter((test) => test.executionStatus === "Exitoso").length;
-  const spFailed = spTests.filter((test) => test.executionStatus === "Fallido").length;
-  const spApproved = spTests.filter((test) => test.bankApproval === "Aprobado").length;
-  const spBlocked = spTests.filter((test) => test.status === "Bloqueado").length;
-  const spHighPriorityBugs = spActiveBugs.filter((bug) => ["Critica", "Alta"].includes(bug.severity)).length;
-  const matrixPct = sp.equivalenceMatrixReady || ["Matriz lista", "Evidencia QMetry", "En revision por banco", "Finalizado"].includes(sp.status) ? 100 : 0;
-  const qmetryPct = sp.qmetryEvidenceReady || sp.status === "Evidencia QMetry" || sp.status === "Finalizado" ? 100 : 0;
+  const successfulExecutionValue = catalogValueByTerms("testCases", "executionStatus", ["Exitoso", "Passed", "Pass", "OK"], 0);
+  const failedExecutionValue = catalogValueByTerms("testCases", "executionStatus", ["Fallido", "Failed", "Fail"], 1);
+  const bankApprovedValue = catalogValueByTerms("testCases", "bankApproval", ["Aprobado", "Approved"], 0);
+  const spSuccessful = spTests.filter((test) => effectiveCatalogValue("testCases", test, "executionStatus") === successfulExecutionValue).length;
+  const spFailed = spTests.filter((test) => effectiveCatalogValue("testCases", test, "executionStatus") === failedExecutionValue).length;
+  const spApproved = spTests.filter((test) => effectiveCatalogValue("testCases", test, "bankApproval") === bankApprovedValue).length;
+  const spBlocked = spTests.filter((test) => isBlockedTest(test)).length;
+  const spHighPriorityBugs = spActiveBugs.filter((bug) => isHighPriorityBug(bug)).length;
+  const matrixPct = isMatrixReady(sp) ? 100 : 0;
+  const qmetryPct = isQmetryReady(sp) ? 100 : 0;
   const readiness = readinessScore({
     executedPct: percentage(spExecuted, spTests.length),
     bankApprovedPct: percentage(spApproved, spTests.length),

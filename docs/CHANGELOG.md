@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-02
+
+### Cambio: Indicadores alineados a campos actuales
+
+- La pestana `Indicadores` ahora calcula sus metricas usando los catalogos y campos vigentes de tareas, SP, casos de prueba, errores y miembros QA.
+- Se agregaron desgloses para prioridad de casos, severidad de errores y artefactos de SP: SQL, REST, gRPC, matriz y QMetry.
+- La salud por SP y el riesgo por miembro reutilizan los valores actuales de estado, ejecucion, aprobacion banco y severidad.
+
+---
+
 ## 2026-07-01
 
 ### Cambio: Separacion frontend MVC
