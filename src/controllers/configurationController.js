@@ -47,6 +47,7 @@ function bindSqlConsole(container) {
       $("#sql-console-query")?.focus();
     });
   });
+  container.querySelector("[data-sql-copy-fields]")?.addEventListener("click", copySqlConsoleFields);
 }
 
 async function runSqlConsole(event) {
@@ -69,6 +70,41 @@ async function runSqlConsole(event) {
     state.sqlConsole.running = false;
     renderConfiguration();
   }
+}
+
+async function copySqlConsoleFields(event) {
+  const button = event.currentTarget;
+  const rows = Array.isArray(state.sqlConsole.result?.rows) ? state.sqlConsole.result.rows : [];
+  const fields = sqlConsoleColumns(rows);
+  if (!fields.length) return;
+
+  try {
+    await copyTextToClipboard(fields.join("\t"));
+    button.textContent = "Copiado";
+    window.setTimeout(() => {
+      if (document.body.contains(button)) button.textContent = "Copiar campos";
+    }, 1400);
+  } catch (error) {
+    alert("No se pudieron copiar los campos.");
+  }
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const input = document.createElement("textarea");
+  input.value = text;
+  input.setAttribute("readonly", "");
+  input.style.position = "fixed";
+  input.style.top = "-1000px";
+  document.body.appendChild(input);
+  input.select();
+  const copied = document.execCommand("copy");
+  input.remove();
+  if (!copied) throw new Error("copy failed");
 }
 
 async function addCatalogItem(store, fieldKey) {

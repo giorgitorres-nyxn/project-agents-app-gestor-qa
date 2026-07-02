@@ -90,16 +90,23 @@ function sqlConsoleResult() {
     `${Number(result.durationMs || 0)} ms`
   ].join(" · ");
 
+  const columns = sqlConsoleColumns(rows);
+  const copyButton = columns.length
+    ? `<button class="ghost-button sql-copy-fields-button" type="button" data-sql-copy-fields>Copiar campos</button>`
+    : "";
+
   return `
     <div class="sql-console-result">
-      <div class="sql-console-meta">${escapeHtml(meta)}</div>
-      ${rows.length ? sqlConsoleTable(rows) : `<div class="sql-console-empty">Operacion ejecutada</div>`}
+      <div class="sql-console-result-heading">
+        <div class="sql-console-meta">${escapeHtml(meta)}</div>
+        ${copyButton}
+      </div>
+      ${rows.length ? sqlConsoleTable(rows, columns) : `<div class="sql-console-empty">Operacion ejecutada</div>`}
     </div>
   `;
 }
 
-function sqlConsoleTable(rows) {
-  const columns = sqlConsoleColumns(rows);
+function sqlConsoleTable(rows, columns) {
   return `
     <div class="sql-result-table-wrap">
       <table class="sql-result-table">
