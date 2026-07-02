@@ -17,6 +17,23 @@ function defaultValue(field) {
   return "";
 }
 
+function normalizeOption(option) {
+  if (typeof option === "string") return { value: option, label: option };
+  return {
+    value: String(option?.value ?? ""),
+    label: String(option?.label ?? option?.value ?? "")
+  };
+}
+
+function optionsWithCurrentValue(options, currentValue) {
+  const normalizedOptions = (options || []).map(normalizeOption);
+  const value = String(currentValue ?? "").trim();
+  if (!value || normalizedOptions.some((option) => String(option.value) === value)) {
+    return normalizedOptions;
+  }
+  return [{ value, label: value }, ...normalizedOptions];
+}
+
 function exportData() {
   window.location.href = "/api/export";
 }

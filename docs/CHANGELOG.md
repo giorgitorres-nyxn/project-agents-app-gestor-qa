@@ -2,6 +2,13 @@
 
 ## 2026-07-02
 
+### Correccion: Estados legados en selects
+
+- Los selects de tabla y formulario conservan el valor real guardado en Supabase aunque no exista en el catalogo actual.
+- Esto evita que un caso con `Estado = Pendiente` se muestre visualmente como la primera opcion del catalogo, por ejemplo `Listo`.
+
+---
+
 ### Cambio: Indicadores alineados a campos actuales
 
 - La pestana `Indicadores` ahora calcula sus metricas usando los catalogos y campos vigentes de tareas, SP, casos de prueba, errores y miembros QA.

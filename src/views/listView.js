@@ -325,10 +325,11 @@ function inlineSelect(store, record, fieldName) {
   if (!inlineEditableFields[store]?.has(fieldName)) return escapeHtml(record[fieldName] || "");
   const field = fieldConfig[store]?.find((item) => item.name === fieldName);
   const value = record[fieldName] ?? defaultValue(field);
-  let selectOptions = (field?.options ?? []).map((option) => typeof option === "string" ? { value: option, label: option } : option);
+  let selectOptions = (field?.options ?? []).map(normalizeOption);
   if (field?.emptyLabel) selectOptions = [{ value: "", label: field.emptyLabel }, ...selectOptions];
+  selectOptions = optionsWithCurrentValue(selectOptions, value);
   const options = selectOptions.map((item) => {
-    return `<option value="${escapeHtml(item.value)}" ${item.value === value ? "selected" : ""}>${escapeHtml(item.label)}</option>`;
+    return `<option value="${escapeHtml(item.value)}" ${String(item.value) === String(value) ? "selected" : ""}>${escapeHtml(item.label)}</option>`;
   }).join("");
   return `
     <select class="inline-select status-${cssToken(value || "pendiente")}" data-inline-field="${escapeHtml(fieldName)}" data-record-id="${escapeHtml(record.id)}" aria-label="${escapeHtml(field?.label || fieldName)}">

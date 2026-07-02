@@ -45,8 +45,9 @@ function optionsFor(field, value, record = {}) {
     options = [{ value: "", label: "Sin SP" }, ...spMigrations.map((item) => ({ value: item.id, label: item.spName }))];
   }
   if (field.type === "select") {
-    options = (field.options ?? []).map((option) => typeof option === "string" ? { value: option, label: option } : option);
+    options = (field.options ?? []).map(normalizeOption);
     if (field.emptyLabel) options = [{ value: "", label: field.emptyLabel }, ...options];
   }
-  return options.map((option) => `<option value="${escapeHtml(option.value)}" ${option.value === value ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("");
+  options = optionsWithCurrentValue(options, value);
+  return options.map((option) => `<option value="${escapeHtml(option.value)}" ${String(option.value) === String(value) ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("");
 }
