@@ -1,10 +1,11 @@
 // Dialog editor controller.
 
-function openEditor(store, recordId = null) {
+function openEditor(store, recordId = null, overrides = null) {
   const storeData = state.data[store] ?? [];
   const record = recordId ? storeData.find((item) => item.id === recordId) : null;
-  const formRecord = store === "bugs" ? withBugSpMigration(record || {}) : (record || {});
-  state.editing = { store, id: recordId };
+  const baseRecord = store === "bugs" ? withBugSpMigration(record || {}) : (record || {});
+  const formRecord = overrides ? { ...baseRecord, ...overrides } : baseRecord;
+  state.editing = { store, id: recordId, originalStatus: record?.status ?? null };
   $("#dialog-kicker").textContent = viewConfig[store]?.kicker || "Registro";
   $("#dialog-title").textContent = record ? `Editar ${singular(store)}` : `Nuevo ${singular(store)}`;
   $("#delete-item").classList.toggle("hidden", !record);
@@ -45,6 +46,17 @@ async function handleFormSubmit(event) {
     }
   });
   if (editingId) record.id = editingId;
+
+  if (store === "tasks" && editingId && record.status !== existing.status) {
+    const comment = (formData.get("statusChangeComment") || "").trim();
+    record.statusHistory = [
+      ...(existing.statusHistory || []),
+      { at: new Date().toISOString(), from: existing.status, to: record.status, comment }
+    ];
+    if (isTaskIterationTransition(existing.status, record.status)) {
+      record.iterations = (existing.iterations || 0) + 1;
+    }
+  }
 
   try {
     await saveRecord(store, record);

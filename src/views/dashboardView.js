@@ -31,10 +31,20 @@ function renderMetrics() {
 }
 
 function renderKanban() {
-  const board = $("#kanban-board");
-  const tasks = state.data.tasks ?? [];
+  document.querySelectorAll("[data-kanban-root]").forEach(renderKanbanRoot);
+}
+
+function renderKanbanRoot(root) {
+  renderKanbanFilterBar(root);
+  renderKanbanBoard(root);
+}
+
+function renderKanbanBoard(root) {
+  const board = root.querySelector("[data-kanban-board]");
+  if (!board) return;
+  const tasks = applyKanbanFilters(filterRecords(state.data.tasks ?? []));
   board.innerHTML = Object.keys(statusLabels).map((status) => {
-    const filtered = filterRecords(tasks.filter((task) => task.status === status));
+    const filtered = tasks.filter((task) => task.status === status);
     return `
       <div class="kanban-column" data-status="${status}">
         <div class="column-heading">
@@ -53,15 +63,90 @@ function renderKanban() {
 
   board.querySelectorAll(".kanban-column").forEach((column) => {
     column.addEventListener("dragover", (event) => event.preventDefault());
-    column.addEventListener("drop", async (event) => {
+    column.addEventListener("drop", (event) => {
       event.preventDefault();
       const task = state.data.tasks.find((item) => item.id === event.dataTransfer.getData("text/plain"));
-      if (!task) return;
-      await saveRecord("tasks", { ...task, status: column.dataset.status });
-      await refreshData();
-      render();
+      if (!task || task.status === column.dataset.status) return;
+      openEditor("tasks", task.id, { status: column.dataset.status });
     });
   });
+}
+
+function renderKanbanFilterBar(root) {
+  const container = root.querySelector("[data-kanban-filters]");
+  if (!container) return;
+  const fields = listFilterFields.tasks ?? [];
+  const activeFilters = state.kanbanFilters ?? [];
+  container.innerHTML = `
+    <div class="filter-builder">
+      <select data-kf-field aria-label="Campo para filtrar">
+        ${fields.map((field) => `<option value="${escapeHtml(field.key)}">${escapeHtml(field.label)}</option>`).join("")}
+      </select>
+      <select data-kf-operator aria-label="Condicion del filtro">
+        <option value="contains">Contiene</option>
+        <option value="equals">Es igual a</option>
+        <option value="notContains">No contiene</option>
+        <option value="empty">Esta vacio</option>
+        <option value="notEmpty">No esta vacio</option>
+      </select>
+      <input data-kf-value type="search" placeholder="Valor del filtro" aria-label="Valor del filtro">
+      <button class="secondary-button" type="button" data-kf-add>Agregar filtro</button>
+      <button class="ghost-button ${activeFilters.length ? "" : "hidden"}" type="button" data-kf-clear>Limpiar</button>
+    </div>
+    <div class="filter-chips">
+      ${activeFilters.map((filter) => kanbanFilterChip(filter)).join("")}
+    </div>
+  `;
+
+  const fieldSelect = container.querySelector("[data-kf-field]");
+  const operatorSelect = container.querySelector("[data-kf-operator]");
+  const valueInput = container.querySelector("[data-kf-value]");
+
+  const addFilter = () => {
+    const operator = operatorSelect.value;
+    const value = valueInput.value.trim();
+    if (!["empty", "notEmpty"].includes(operator) && !value) return;
+    state.kanbanFilters = [
+      ...(state.kanbanFilters ?? []),
+      { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, fieldKey: fieldSelect.value, operator, value }
+    ];
+    renderKanban();
+  };
+
+  container.querySelector("[data-kf-add]").addEventListener("click", addFilter);
+  valueInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addFilter();
+    }
+  });
+  container.querySelector("[data-kf-clear]").addEventListener("click", () => {
+    state.kanbanFilters = [];
+    renderKanban();
+  });
+  container.querySelectorAll("[data-kf-remove]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.kanbanFilters = activeFilters.filter((filter) => filter.id !== button.dataset.kfRemove);
+      renderKanban();
+    });
+  });
+}
+
+function kanbanFilterChip(filter) {
+  const field = (listFilterFields.tasks ?? []).find((item) => item.key === filter.fieldKey);
+  const label = `${field?.label || filter.fieldKey} ${operatorLabel(filter.operator)}${filter.value ? ` "${filter.value}"` : ""}`;
+  return `
+    <span class="filter-chip">
+      ${escapeHtml(label)}
+      <button type="button" aria-label="Quitar filtro" data-kf-remove="${escapeHtml(filter.id)}">×</button>
+    </span>
+  `;
+}
+
+function applyKanbanFilters(records) {
+  const activeFilters = state.kanbanFilters ?? [];
+  if (!activeFilters.length) return records;
+  return records.filter((record) => activeFilters.every((filter) => matchesCustomFilter("tasks", record, filter)));
 }
 
 function taskCard(task) {

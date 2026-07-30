@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-30
+
+### Cambio: Comentario obligatorio, iteraciones y mejoras a Flujo de trabajo
+
+- Pestana `Tareas`: al cambiar el estado de una tarea (desde el formulario de edicion o arrastrando una tarjeta en el tablero Kanban), ahora es obligatorio registrar un comentario explicando el motivo del cambio. El comentario se acumula como historial por tarea (`statusHistory`, visible en el formulario de edicion).
+- Nuevo campo `iterations` en tareas: se incrementa automaticamente en 1 cada vez que una tarea retrocede de "En revision" o "Finalizado" hacia "En progreso" o "Pendiente". Se muestra en la pestana Tareas (columna Iteraciones) y en el formulario de edicion.
+- Regla compartida `isTaskIterationTransition` agregada a `src/domain/projectConfig.js`.
+- Tablero "Flujo de trabajo" (Kanban del Dashboard): ahora tiene su propia barra de filtros (independiente de los filtros de la pestana Tareas) y un boton "Expandir" que abre el tablero en un overlay de pantalla completa dentro de la misma app, con los mismos filtros y tarjetas.
+- Arrastrar una tarjeta a otra columna del Kanban ahora abre el formulario de edicion con el estado destino preseleccionado, para exigir el comentario obligatorio antes de confirmar el movimiento.
+
+---
+
 ## 2026-07-02
 
 ### Cambio: Indicadores alineados a campos actuales

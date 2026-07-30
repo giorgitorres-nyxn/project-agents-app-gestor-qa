@@ -521,6 +521,44 @@ h2 {
   font-weight: 900;
 }
 
+.panel-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.custom-filter.kanban-filter-bar {
+  justify-items: stretch;
+  padding: 14px 18px 0;
+}
+
+.kanban-filter-bar .filter-builder,
+.kanban-filter-bar .filter-chips {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.kanban-expand-dialog {
+  width: min(1440px, calc(100vw - 24px));
+  height: calc(100vh - 24px);
+  max-height: calc(100vh - 24px);
+}
+
+.kanban-expand-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.kanban-expand-card .kanban-filter-bar {
+  flex: 0 0 auto;
+}
+
+.kanban-expanded {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
 .count-pill,
 .status-pill,
 .priority-pill,
@@ -1436,6 +1474,60 @@ dialog::backdrop {
 .field textarea {
   min-height: 104px;
   resize: vertical;
+}
+
+.static-value {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 10px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.field-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+#status-comment-field.is-required label {
+  color: var(--accent);
+}
+
+#status-comment-field.is-required textarea {
+  border-color: rgba(15, 118, 110, 0.55);
+}
+
+.status-history-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.status-history-list li {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  background: var(--surface-soft);
+}
+
+.status-history-list li strong {
+  display: block;
+  font-size: 0.86rem;
+}
+
+.status-history-list li p {
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
 }
 
 .import-form-grid {

@@ -3,7 +3,8 @@
 const {
   stores,
   catalogDefinitions,
-  spTransitionError
+  spTransitionError,
+  isTaskIterationTransition
 } = window.GestorQAProject;
 
 const sqlConsoleSection = "sqlConsole";
@@ -31,7 +32,7 @@ const viewConfig = {
     title: "Tareas",
     kicker: "Asignacion",
     store: "tasks",
-    columns: ["Titulo", "SP asignado", "Responsable", "Estado", "Prioridad", "Vence", ""]
+    columns: ["Titulo", "SP asignado", "Responsable", "Estado", "Iteraciones", "Prioridad", "Vence", ""]
   },
   spMigrations: {
     title: "Migracion de SP",
@@ -218,6 +219,7 @@ let state = {
   search: "",
   indicatorsSpMigrationId: "",
   editing: null,
+  kanbanFilters: [],
   importingStore: null,
   sqlConsole: {
     query: sqlConsoleExamples[0].query,

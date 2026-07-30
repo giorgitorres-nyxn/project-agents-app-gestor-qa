@@ -76,6 +76,13 @@
 
   const defaultSpMigrationStatusValues = new Set(catalogDefinitions.spMigrations.fields.status.defaults);
 
+  const taskIterationSourceStatuses = new Set(["review", "done"]);
+  const taskIterationTargetStatuses = new Set(["active", "backlog"]);
+
+  function isTaskIterationTransition(oldStatus, newStatus) {
+    return taskIterationSourceStatuses.has(oldStatus) && taskIterationTargetStatuses.has(newStatus);
+  }
+
   function spTransitionError(oldStatus, newStatus) {
     if (oldStatus === newStatus || !oldStatus) return null;
     if (!defaultSpMigrationStatusValues.has(oldStatus) || !defaultSpMigrationStatusValues.has(newStatus)) return null;
@@ -95,6 +102,7 @@
     spMigrationTransitions,
     defaultSpMigrationStatusValues,
     spTransitionError,
-    validateSpTransition
+    validateSpTransition,
+    isTaskIterationTransition
   };
 });
