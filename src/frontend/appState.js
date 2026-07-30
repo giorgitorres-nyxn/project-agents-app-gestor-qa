@@ -219,7 +219,7 @@ let state = {
   search: "",
   indicatorsSpMigrationId: "",
   editing: null,
-  kanbanFilters: [],
+  kanbanFilters: { memberId: "", dueDate: "" },
   importingStore: null,
   sqlConsole: {
     query: sqlConsoleExamples[0].query,
