@@ -1,32 +1,34 @@
-const { createClient } = require("@supabase/supabase-js");
-
-const stores = ["members", "useCases", "testCases", "bugs", "tasks", "spMigrations"];
-
-const spMigrationTransitions = {
-  "SQL recibido": ["REST/gRPC recibido", "Finalizado"],
-  "REST/gRPC recibido": ["En QA", "Finalizado"],
-  "En QA": ["Matriz lista", "En revision por banco", "Finalizado"],
-  "Matriz lista": ["Evidencia QMetry", "Finalizado"],
-  "Evidencia QMetry": ["En revision por banco", "Finalizado"],
-  "En revision por banco": ["Finalizado"],
-  "Finalizado": []
-};
-
-function supabase() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    throw new Error("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en variables de entorno.");
-  }
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
-}
+const { stores, validateSpTransition } = require("../src/domain/projectConfig");
+const {
+  clearCookieHeader,
+  cookieHeader,
+  currentUser,
+  defaultPassword,
+  signSession,
+  userFromEmail
+} = require("./_lib/auth");
+const { apiParts, recordRoute, sendJson } = require("./_lib/http");
+const {
+  deleteRecord,
+  getAllData,
+  getRecord,
+  saveRecord
+} = require("./_lib/recordsRepository");
+const { canUseSqlConsole, runSqlConsole } = require("./_lib/sqlConsole");
 
 module.exports = async function handler(req, res) {
   try {
     const parts = apiParts(req);
-    if (req.method === "GET") return handleGet(req, res, parts);
+    if (parts.join("/") === "auth/login" && req.method === "POST") return handleLogin(req, res);
+    if (parts.join("/") === "auth/logout" && req.method === "POST") return handleLogout(res);
+    if (parts.join("/") === "auth/me" && req.method === "GET") return handleMe(req, res);
+
+    const user = await currentUser(req);
+    if (!user) return sendJson(res, 401, { error: "No autenticado" });
+
+    if (parts.join("/") === "sql-console" && req.method === "POST") return handleSqlConsole(req, res, user);
+
+    if (req.method === "GET") return handleGet(res, parts);
     if (req.method === "POST") return handleCreate(req, res, parts);
     if (req.method === "PUT") return handleUpdate(req, res, parts);
     if (req.method === "DELETE") return handleDelete(req, res, parts);
@@ -36,7 +38,31 @@ module.exports = async function handler(req, res) {
   }
 };
 
-async function handleGet(req, res, parts) {
+async function handleLogin(req, res) {
+  const { email = "", password = "" } = req.body || {};
+  if (password !== defaultPassword) {
+    return sendJson(res, 401, { error: "Credenciales invalidas" });
+  }
+
+  const user = await userFromEmail(email);
+  if (!user) return sendJson(res, 401, { error: "Credenciales invalidas" });
+
+  res.setHeader("Set-Cookie", cookieHeader(signSession(user.email)));
+  return sendJson(res, 200, { user });
+}
+
+function handleLogout(res) {
+  res.setHeader("Set-Cookie", clearCookieHeader());
+  return sendJson(res, 200, { ok: true });
+}
+
+async function handleMe(req, res) {
+  const user = await currentUser(req);
+  if (!user) return sendJson(res, 401, { error: "No autenticado" });
+  return sendJson(res, 200, { user });
+}
+
+async function handleGet(res, parts) {
   if (parts.length === 1 && parts[0] === "data") {
     return sendJson(res, 200, await getAllData());
   }
@@ -61,15 +87,15 @@ async function handleCreate(req, res, parts) {
 }
 
 async function handleUpdate(req, res, parts) {
-  if (parts.length !== 2 || !stores.includes(parts[0])) {
+  const route = recordRoute(req, parts);
+  if (!route || !stores.includes(route.store)) {
     return sendJson(res, 400, { error: "Ruta de escritura invalida" });
   }
-  const [store, recordId] = parts;
+  const { store, recordId } = route;
   const existing = await getRecord(store, recordId);
-  if (!existing) return sendJson(res, 404, { error: "Registro no encontrado" });
 
-  const payload = { ...existing, ...(req.body || {}), id: recordId };
-  if (store === "spMigrations" && existing.status !== payload.status) {
+  const payload = { ...(existing || {}), ...(req.body || {}), id: recordId };
+  if (store === "spMigrations" && existing && existing.status !== payload.status) {
     validateSpTransition(existing.status, payload.status);
   }
 
@@ -78,76 +104,22 @@ async function handleUpdate(req, res, parts) {
 }
 
 async function handleDelete(req, res, parts) {
-  if (parts.length !== 2 || !stores.includes(parts[0])) {
+  const route = recordRoute(req, parts);
+  if (!route || !stores.includes(route.store)) {
     return sendJson(res, 400, { error: "Ruta DELETE invalida" });
   }
-  const [store, recordId] = parts;
-  const { error } = await supabase().from(store).delete().eq("id", recordId);
-  if (error) throw error;
+  await deleteRecord(route.store, route.recordId);
   return res.status(204).end();
 }
 
-async function getAllData() {
-  const entries = await Promise.all(stores.map(async (store) => [store, await listRecords(store)]));
-  return Object.fromEntries(entries);
-}
-
-async function listRecords(store) {
-  const { data, error } = await supabase()
-    .from(store)
-    .select("id,payload,created_at,updated_at")
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return data.map(rowToRecord);
-}
-
-async function getRecord(store, recordId) {
-  const { data, error } = await supabase()
-    .from(store)
-    .select("id,payload,created_at,updated_at")
-    .eq("id", recordId)
-    .maybeSingle();
-  if (error) throw error;
-  return data ? rowToRecord(data) : null;
-}
-
-async function saveRecord(store, record, recordId = null) {
-  const row = { payload: record };
-  if (recordId) row.id = recordId;
-
-  const query = recordId
-    ? supabase().from(store).update(row).eq("id", recordId)
-    : supabase().from(store).insert(row);
-
-  const { data, error } = await query.select("id,payload,created_at,updated_at").single();
-  if (error) throw error;
-  return rowToRecord(data);
-}
-
-function rowToRecord(row) {
-  return {
-    ...(row.payload || {}),
-    id: row.id,
-    createdAt: row.payload?.createdAt || row.created_at,
-    updatedAt: row.payload?.updatedAt || row.updated_at
-  };
-}
-
-function validateSpTransition(oldStatus, newStatus) {
-  if (oldStatus === newStatus || !oldStatus) return;
-  const allowed = spMigrationTransitions[oldStatus] || [];
-  if (!allowed.includes(newStatus)) {
-    throw new Error(`Transicion invalida: no se puede ir de "${oldStatus}" a "${newStatus}"`);
+async function handleSqlConsole(req, res, user) {
+  if (!canUseSqlConsole(user)) {
+    return sendJson(res, 403, { error: "Solo roles administrativos pueden usar la consola Supabase." });
   }
-}
 
-function apiParts(req) {
-  const raw = req.query?.path;
-  if (Array.isArray(raw)) return raw.filter(Boolean);
-  if (typeof raw === "string") return raw.split("/").filter(Boolean);
-  return req.url.split("?")[0].replace(/^\/api\/?/, "").split("/").filter(Boolean);
-}
+  const query = String(req.body?.query || "").trim();
+  if (!query) return sendJson(res, 400, { error: "Escribe una consulta SQL para ejecutar." });
+  if (query.length > 20000) return sendJson(res, 400, { error: "La consulta supera el limite de 20000 caracteres." });
 
-function sendJson(res, status, payload) {
-  return res.status(status).json(payload);
+  return sendJson(res, 200, await runSqlConsole(query));
 }

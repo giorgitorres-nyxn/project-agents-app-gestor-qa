@@ -1,20 +1,27 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import json
 import sqlite3
+import time
 import uuid
 from datetime import date, datetime, timedelta
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 
 ROOT_DIR = Path(__file__).resolve().parent
 DATA_DIR = ROOT_DIR / "data"
 DB_PATH = DATA_DIR / "gestor_qa.db"
-VALID_STORES = ("members", "useCases", "testCases", "bugs", "tasks", "spMigrations")
+VALID_STORES = ("members", "useCases", "testCases", "bugs", "tasks", "spMigrations", "catalogs")
+DEFAULT_PASSWORD = "BbQAGestor"
+SESSION_COOKIE = "qa_session"
+SESSION_TTL_SECONDS = 8 * 60 * 60
 
 
 class DatabaseManager:
@@ -111,11 +118,12 @@ class QAService:
         "SQL recibido": ["REST/gRPC recibido", "Finalizado"],
         "REST/gRPC recibido": ["En QA", "Finalizado"],
         "En QA": ["Matriz lista", "En revision por banco", "Finalizado"],
-        "Matriz lista": ["Evidencia QMetry", "Finalizado"],
+        "Matriz lista": ["Evidencia QMetry", "En revision por banco", "Finalizado"],
         "Evidencia QMetry": ["En revision por banco", "Finalizado"],
         "En revision por banco": ["Finalizado"],
         "Finalizado": []
     }
+    DEFAULT_SP_STATUSES = set(SP_VALID_TRANSITIONS)
 
     def __init__(self, database: DatabaseManager) -> None:
         self.repositories = {store: JsonRepository(database, store) for store in VALID_STORES}
@@ -142,6 +150,41 @@ class QAService:
     def delete(self, store: str, record_id: str) -> None:
         self._validate_store(store)
         self.repositories[store].delete(record_id)
+
+    def authenticate(self, email: str, password: str) -> dict[str, Any]:
+        if password != DEFAULT_PASSWORD:
+            raise ValueError("Credenciales invalidas")
+        normalized_email = email.strip().lower()
+        member = next(
+            (
+                item for item in self.repositories["members"].list()
+                if str(item.get("email", "")).strip().lower() == normalized_email
+            ),
+            None,
+        )
+        if not member:
+            raise ValueError("Credenciales invalidas")
+        return self._public_user(member)
+
+    def user_from_email(self, email: str) -> dict[str, Any] | None:
+        normalized_email = email.strip().lower()
+        member = next(
+            (
+                item for item in self.repositories["members"].list()
+                if str(item.get("email", "")).strip().lower() == normalized_email
+            ),
+            None,
+        )
+        return self._public_user(member) if member else None
+
+    @staticmethod
+    def _public_user(member: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": member.get("id", ""),
+            "name": member.get("name", ""),
+            "email": member.get("email", ""),
+            "role": member.get("role", ""),
+        }
 
     def seed_if_empty(self) -> None:
         if self.repositories["members"].list():
@@ -229,6 +272,8 @@ class QAService:
     def _validate_sp_transition(self, old_status: str | None, new_status: str | None) -> None:
         if old_status == new_status or not old_status:
             return
+        if old_status not in self.DEFAULT_SP_STATUSES or new_status not in self.DEFAULT_SP_STATUSES:
+            return
         allowed = self.SP_VALID_TRANSITIONS.get(old_status, [])
         if new_status not in allowed:
             raise ValueError(f"Transición inválida: no se puede ir de \"{old_status}\" a \"{new_status}\"")
@@ -251,16 +296,24 @@ class QARequestHandler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self) -> None:
+        parts = self._api_parts()
+        if parts == ["auth", "login"]:
+            return self._handle_login()
+        if parts == ["auth", "logout"]:
+            return self._handle_logout()
         self._handle_write("POST")
 
     def do_PUT(self) -> None:
         self._handle_write("PUT")
 
     def do_DELETE(self) -> None:
+        if not self._require_auth():
+            return
         parts = self._api_parts()
-        if len(parts) != 2:
+        route = self._record_route(parts)
+        if not route:
             return self._send_json({"error": "Ruta DELETE invalida"}, HTTPStatus.BAD_REQUEST)
-        store, record_id = parts
+        store, record_id = route
         try:
             self.service.delete(store, record_id)
             self.send_response(HTTPStatus.NO_CONTENT)
@@ -270,6 +323,10 @@ class QARequestHandler(SimpleHTTPRequestHandler):
 
     def _handle_api_get(self) -> None:
         parts = self._api_parts()
+        if parts == ["auth", "me"]:
+            return self._handle_me()
+        if not self._require_auth():
+            return
         if parts == ["data"]:
             return self._send_json(self.service.get_all_data())
         if parts == ["export"]:
@@ -277,22 +334,102 @@ class QARequestHandler(SimpleHTTPRequestHandler):
         self._send_json({"error": "Ruta GET no encontrada"}, HTTPStatus.NOT_FOUND)
 
     def _handle_write(self, method: str) -> None:
+        if not self._require_auth():
+            return
         parts = self._api_parts()
         payload = self._read_json()
         try:
             if method == "POST" and len(parts) == 1:
                 record = self.service.create(parts[0], payload)
                 return self._send_json(record, HTTPStatus.CREATED)
-            if method == "PUT" and len(parts) == 2:
-                record = self.service.update(parts[0], parts[1], payload)
+            route = self._record_route(parts)
+            if method == "PUT" and route:
+                record = self.service.update(route[0], route[1], payload)
                 return self._send_json(record)
             self._send_json({"error": "Ruta de escritura invalida"}, HTTPStatus.BAD_REQUEST)
         except ValueError as error:
             self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
 
+    def _handle_login(self) -> None:
+        payload = self._read_json()
+        try:
+            user = self.service.authenticate(str(payload.get("email", "")), str(payload.get("password", "")))
+            token = self._sign_session(user["email"])
+            self._send_json({"user": user}, headers=[self._cookie_header(token)])
+        except ValueError as error:
+            self._send_json({"error": str(error)}, HTTPStatus.UNAUTHORIZED)
+
+    def _handle_logout(self) -> None:
+        self._send_json({"ok": True}, headers=[self._clear_cookie_header()])
+
+    def _handle_me(self) -> None:
+        user = self._current_user()
+        if not user:
+            return self._send_json({"error": "No autenticado"}, HTTPStatus.UNAUTHORIZED)
+        return self._send_json({"user": user})
+
+    def _require_auth(self) -> bool:
+        if self._current_user():
+            return True
+        self._send_json({"error": "No autenticado"}, HTTPStatus.UNAUTHORIZED)
+        return False
+
+    def _current_user(self) -> dict[str, Any] | None:
+        token = self._cookies().get(SESSION_COOKIE, "")
+        email = self._verify_session(token)
+        return self.service.user_from_email(email) if email else None
+
+    def _cookies(self) -> dict[str, str]:
+        header = self.headers.get("Cookie", "")
+        cookies: dict[str, str] = {}
+        for part in header.split(";"):
+            if "=" not in part:
+                continue
+            key, value = part.split("=", 1)
+            cookies[key.strip()] = value.strip()
+        return cookies
+
+    @staticmethod
+    def _sign_session(email: str) -> str:
+        expires_at = str(int(time.time()) + SESSION_TTL_SECONDS)
+        payload = f"{email.strip().lower()}|{expires_at}"
+        signature = hmac.new(DEFAULT_PASSWORD.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+        token = f"{payload}|{signature}".encode("utf-8")
+        return base64.urlsafe_b64encode(token).decode("ascii")
+
+    @staticmethod
+    def _verify_session(token: str) -> str | None:
+        try:
+            decoded = base64.urlsafe_b64decode(token.encode("ascii")).decode("utf-8")
+            email, expires_at, signature = decoded.rsplit("|", 2)
+            if int(expires_at) < int(time.time()):
+                return None
+            payload = f"{email}|{expires_at}"
+            expected = hmac.new(DEFAULT_PASSWORD.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+            return email if hmac.compare_digest(signature, expected) else None
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
+    def _cookie_header(token: str) -> tuple[str, str]:
+        return ("Set-Cookie", f"{SESSION_COOKIE}={token}; HttpOnly; SameSite=Lax; Path=/; Max-Age={SESSION_TTL_SECONDS}")
+
+    @staticmethod
+    def _clear_cookie_header() -> tuple[str, str]:
+        return ("Set-Cookie", f"{SESSION_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0")
+
     def _api_parts(self) -> list[str]:
         path = urlparse(self.path).path
         return [part for part in path.removeprefix("/api/").split("/") if part]
+
+    def _record_route(self, parts: list[str]) -> tuple[str, str] | None:
+        if len(parts) == 2:
+            return parts[0], parts[1]
+        query = parse_qs(urlparse(self.path).query)
+        record_ids = query.get("id", [])
+        if len(parts) == 1 and record_ids:
+            return parts[0], record_ids[0]
+        return None
 
     def _read_json(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length", "0"))
@@ -301,10 +438,12 @@ class QARequestHandler(SimpleHTTPRequestHandler):
         body = self.rfile.read(length).decode("utf-8")
         return json.loads(body)
 
-    def _send_json(self, payload: Any, status: HTTPStatus = HTTPStatus.OK) -> None:
+    def _send_json(self, payload: Any, status: HTTPStatus = HTTPStatus.OK, headers: list[tuple[str, str]] | None = None) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        for key, value in headers or []:
+            self.send_header(key, value)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

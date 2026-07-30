@@ -2,7 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { createClient } = require("@supabase/supabase-js");
 
-const stores = ["members", "useCases", "testCases", "bugs", "tasks", "spMigrations"];
+const stores = ["members", "useCases", "testCases", "bugs", "tasks", "spMigrations", "catalogs"];
 
 main().catch((error) => {
   console.error(error.message || error);

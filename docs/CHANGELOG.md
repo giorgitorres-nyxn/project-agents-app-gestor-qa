@@ -1,5 +1,133 @@
 # Changelog
 
+## 2026-07-30
+
+### Cambio: Comentario obligatorio, iteraciones y mejoras a Flujo de trabajo
+
+- Pestana `Tareas`: al cambiar el estado de una tarea (desde el formulario de edicion o arrastrando una tarjeta en el tablero Kanban), ahora es obligatorio registrar un comentario explicando el motivo del cambio. El comentario se acumula como historial por tarea (`statusHistory`, visible en el formulario de edicion).
+- Nuevo campo `iterations` en tareas: se incrementa automaticamente en 1 cada vez que una tarea retrocede de "En revision" o "Finalizado" hacia "En progreso" o "Pendiente". Se muestra en la pestana Tareas (columna Iteraciones) y en el formulario de edicion.
+- Regla compartida `isTaskIterationTransition` agregada a `src/domain/projectConfig.js`.
+- Tablero "Flujo de trabajo" (Kanban del Dashboard): ahora tiene su propia barra de filtros (independiente de los filtros de la pestana Tareas) y un boton "Expandir" que abre el tablero en un overlay de pantalla completa dentro de la misma app, con los mismos filtros y tarjetas.
+- Arrastrar una tarjeta a otra columna del Kanban ahora abre el formulario de edicion con el estado destino preseleccionado, para exigir el comentario obligatorio antes de confirmar el movimiento.
+
+---
+
+## 2026-07-02
+
+### Cambio: Indicadores alineados a campos actuales
+
+- La pestana `Indicadores` ahora calcula sus metricas usando los catalogos y campos vigentes de tareas, SP, casos de prueba, errores y miembros QA.
+- Se agregaron desgloses para prioridad de casos, severidad de errores y artefactos de SP: SQL, REST, gRPC, matriz y QMetry.
+- La salud por SP y el riesgo por miembro reutilizan los valores actuales de estado, ejecucion, aprobacion banco y severidad.
+
+---
+
+## 2026-07-01
+
+### Cambio: Separacion frontend MVC
+
+- Se redujo `app.js` a bootstrap del frontend.
+- Se movio estado/configuracion de frontend a `src/frontend/appState.js`.
+- Se movio el cliente de API a `src/services/apiClient.js`.
+- Se separaron vistas en `src/views/` y controladores en `src/controllers/`.
+- Se agrego `src/shared/frontendHelpers.js` para helpers compartidos de UI.
+- Se actualizo `npm run check` para validar automaticamente todos los archivos JavaScript del proyecto.
+
+---
+
+### Cambio: Arquitectura modular tipo MVC
+
+- Se agrego `docs/ARQUITECTURA_MVC.md` con las capas Domain/View/Controller/Services y reglas para futuros refactors.
+- Se creo `src/domain/projectConfig.js` como fuente compartida para stores, catalogos y transiciones de SP.
+- Se separo infraestructura serverless en `api/_lib/` para cliente Supabase, auth, repositorio, SQL console y helpers HTTP.
+- Se adelgazo `api/[...path].js` para que opere como controlador/router serverless.
+- Se actualizo `index.html` para cargar el dominio compartido antes de `app.js` y mostrar Vercel + Supabase como entorno activo.
+- Se amplio `npm run check` para validar los modulos nuevos.
+
+---
+
+### Cambio: Ambiente oficial de pruebas
+
+- Se documento que el proyecto usara solo Vercel y Supabase como entorno activo.
+- Se fijo `https://project-agents-app-gestor-qa.vercel.app/` como ambiente obligatorio para pruebas funcionales.
+- Se dejo el uso de previews de Vercel solo como excepcion cuando el usuario indique una URL especifica.
+
+---
+
+## 2026-06-30
+
+### Cambio: Entorno unico Vercel/Supabase
+
+- Se documento que el proyecto debe trabajarse exclusivamente contra Vercel y Supabase.
+- Se agrego `AGENTS.md` para indicar a futuras sesiones que no usen `server.py`, SQLite local ni `data/gestor_qa.db`.
+- Se actualizo el README y la documentacion de Supabase/Vercel para tratar SQLite como legado.
+
+---
+
+### Cambio: Configuracion de listas editables
+
+- Se agrego la pestana `Configuracion` con submenus para Tareas, Migracion SPs, Casos de pruebas, Casos de uso, Errores y Miembros QA.
+- Cada submenu permite administrar los valores de sus campos tipo lista, como `Rol` y `Estado` en Miembros QA.
+- Los catalogos se guardan en Supabase mediante el nuevo store `catalogs`, para compartir la configuracion entre usuarios.
+- Los formularios, tablas, filtros e indicadores usan los valores configurados.
+
+---
+
+### Cambio: Consola SQL de Supabase
+
+- Se agrego el submenu `Consola Supabase` dentro de Configuracion.
+- La consola ejecuta consultas mediante la API serverless y muestra resultados tabulares para `SELECT` o sentencias con `RETURNING`.
+- El endpoint queda restringido a roles administrativos (`QA Lead`, `Admin` o `DBA`) y usa la funcion `public.run_sql_console` definida en `supabase/schema.sql`.
+
+---
+
+## 2026-06-25
+
+### Cambio: Importacion robusta, paginacion y ejecucion de casos
+
+- La importacion masiva ahora acepta IDs legibles y los convierte automaticamente a UUID para Supabase.
+- Las relaciones del JSON (`spMigrationId`, `useCaseId`, `testCaseId`) se remapean durante la carga usando esos IDs legibles.
+- Se agrega paginacion a las tablas con selector de filas por pagina.
+- La tabla de casos de prueba incorpora `Ejecucion` y `Aprobado Banco`.
+- En casos de prueba, `Estado`, `Ejecucion` y `Aprobado Banco` se pueden modificar directamente desde la tabla.
+
+---
+
+### Cambio: Archivo masivo de debcred compatible con Supabase
+
+- Se ajusto `docs/gestor-qa-sp_debcred_empresa.json` para usar UUIDs en `spMigrations`, casos de uso y casos de prueba.
+- Se conservaron las relaciones internas actualizando `spMigrationId` y `useCaseId` a los nuevos IDs UUID.
+- El archivo queda listo para importacion en Vercel/Supabase sin errores por formato de ID.
+
+---
+
+### Cambio: Login simple por miembro QA
+
+- Se agrego una pantalla de inicio de sesion antes de cargar el aplicativo.
+- Cada miembro QA puede ingresar usando su correo como usuario.
+- La contrasena por defecto para todos los miembros es `BbQAGestor`.
+- Todos los usuarios autenticados tienen acceso completo al aplicativo.
+- Las APIs locales y serverless ahora requieren sesion, salvo login/logout/verificacion de sesion.
+
+---
+
+### Cambio: Importacion masiva con SP por nombre o ID
+
+- La carga masiva ahora acepta `spMigrationId` como ID interno o como nombre del SP.
+- Si el JSON trae el nombre del SP, la app lo resuelve al ID real antes de guardar.
+- En Vercel, los `PUT` usados durante importacion ahora hacen upsert para permitir IDs propios en CU y TC.
+
+---
+
+### Cambio: Carga masiva JSON para CU, TC y errores
+
+- Se agrego un boton de `Carga masiva` en las vistas de Casos de uso, Casos de prueba y Errores.
+- La carga acepta un arreglo directo para la vista actual o un objeto JSON con `useCases`, `testCases` y `bugs`.
+- Cuando el JSON trae las tres listas, se importan en orden: casos de uso, casos de prueba y errores.
+- Se agrego `docs/IMPORTACION_MASIVA_EJEMPLO.json` como estructura base para preparar archivos de importacion.
+
+---
+
 ## 2026-06-24
 
 ### Cambio: API Vercel preparada para Supabase
@@ -53,7 +181,7 @@
 - Se agrego el estado `En revision por banco` al seguimiento de migraciones de SP.
 - El estado aparece en filtros, formulario y etiquetas visuales de la vista `Migracion SP`.
 - El flujo validado queda: SQL recibido -> REST/gRPC recibido -> En QA -> Matriz lista -> Evidencia QMetry -> En revision por banco -> Finalizado.
-- Tambien se permite pasar directamente de `En QA` a `En revision por banco` cuando el proceso del banco no requiere registrar primero la matriz en la app.
+- Tambien se permite pasar directamente de `En QA` o `Matriz lista` a `En revision por banco` cuando el proceso del banco no requiere registrar primero la evidencia QMetry en la app.
 - Se conserva el cierre directo a `Finalizado` desde estados previos como cierre de emergencia.
 
 ---

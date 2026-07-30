@@ -1,10 +1,10 @@
-# Migracion a Supabase y Vercel
+# Supabase y Vercel
 
-Esta rama prepara la migracion de Gestor QA desde `server.py` + SQLite local hacia una app publicada en Vercel con datos compartidos en Supabase.
+Gestor QA usa Vercel y Supabase como unico entorno activo. Las pruebas funcionales deben ejecutarse contra `https://project-agents-app-gestor-qa.vercel.app/`, salvo que el usuario indique explicitamente una URL de preview de Vercel. Las referencias a `server.py`, SQLite local o `data/gestor_qa.db` son legado y no deben usarse para nuevas validaciones, configuraciones o desarrollo, salvo solicitud explicita del usuario.
 
-## Objetivo
+## Objetivo actual
 
-- Publicar el frontend en Vercel.
+- Mantener el frontend publicado en Vercel.
 - Usar Supabase Postgres como base de datos compartida.
 - Agregar autenticacion para colaboradores.
 - Mantener la funcionalidad actual: tablero, CRUD, indicadores, filtros personalizados y exportacion.
@@ -16,7 +16,7 @@ Para una primera migracion conservadora, mantener el modelo actual de datos en t
 Ventajas:
 
 - Reduce el cambio inicial en el frontend.
-- Permite migrar la data actual casi 1:1 desde SQLite.
+- Permite importar datos autorizados casi 1:1 desde JSON hacia Supabase.
 - Mantiene flexibilidad mientras se estabiliza el uso real con colaboradores.
 
 Mas adelante se puede normalizar a columnas reales si se necesitan reportes SQL mas fuertes, relaciones estrictas o validaciones avanzadas.
@@ -46,7 +46,7 @@ Cada tabla contiene:
 
 ## Variables necesarias
 
-En local y Vercel:
+En Vercel y scripts administrativos autorizados:
 
 ```text
 SUPABASE_URL=
@@ -71,7 +71,7 @@ La app sigue llamando las rutas existentes:
 - `PUT /api/:store/:id`
 - `DELETE /api/:store/:id`
 
-En local con `python server.py`, esas rutas siguen usando SQLite. En Vercel, esas rutas las atiende `api/[...path].js` contra Supabase.
+Estas rutas las atiende `api/[...path].js` contra Supabase. No usar `python server.py` ni SQLite local para validar estos flujos.
 
 ## Pasos propuestos
 
@@ -81,8 +81,7 @@ En local con `python server.py`, esas rutas siguen usando SQLite. En Vercel, esa
    - Magic link por correo.
    - Email/password.
    - Correos permitidos manualmente.
-4. Exportar datos actuales desde `http://127.0.0.1:8000/api/export`.
-5. Importar el JSON a Supabase:
+4. Importar JSON autorizado a Supabase cuando sea necesario:
 
    ```powershell
    $env:SUPABASE_URL="https://..."
@@ -90,19 +89,17 @@ En local con `python server.py`, esas rutas siguen usando SQLite. En Vercel, esa
    npm.cmd run import:supabase -- .\ruta\gestor-qa-export.json
    ```
 
-6. Configurar `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en Vercel.
-7. Probar la preview de Vercel.
-8. Agregar pantalla de login y control de sesion antes de abrir la app a mas personas.
-9. Probar CRUD e indicadores con Playwright.
-10. Hacer deploy desde la rama de migracion o abrir PR hacia `main`.
+5. Configurar `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en Vercel.
+6. Probar el despliegue en `https://project-agents-app-gestor-qa.vercel.app/`, o una preview de Vercel solo si fue indicada por el usuario.
+7. Probar CRUD e indicadores con Playwright contra ese ambiente de Vercel.
+8. Hacer deploy desde la rama de trabajo o abrir PR hacia `main`.
 
 ## Decisiones pendientes
 
 - Si todos los colaboradores pueden editar todo o si habra roles.
 - Si se permitiran adjuntos/evidencias en Supabase Storage.
-- Si el despliegue inicial sera una preview de Vercel o produccion.
 - Si se migra la base `data/gestor_qa.db`, un export JSON o un archivo externo de casos.
-- Como se protegera el acceso antes de publicar la URL final.
+- Como se protegera el acceso al ambiente publicado.
 
 ## Nota de seguridad
 

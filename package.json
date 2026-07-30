@@ -7,8 +7,9 @@
     "doc": "docs"
   },
   "scripts": {
-    "check": "node --check app.js && node --check api/[...path].js && node --check scripts/import-to-supabase.js",
+    "check": "node scripts/check-js.js",
     "import:supabase": "node scripts/import-to-supabase.js",
+    "validate:sql-console": "node scripts/validate-sql-console-vercel.js",
     "test": "npm run check"
   },
   "repository": {
