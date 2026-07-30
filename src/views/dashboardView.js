@@ -75,78 +75,45 @@ function renderKanbanBoard(root) {
 function renderKanbanFilterBar(root) {
   const container = root.querySelector("[data-kanban-filters]");
   if (!container) return;
-  const fields = listFilterFields.tasks ?? [];
-  const activeFilters = state.kanbanFilters ?? [];
+  const filters = state.kanbanFilters ?? { memberId: "", dueDate: "" };
+  const members = state.data.members ?? [];
   container.innerHTML = `
-    <div class="filter-builder">
-      <select data-kf-field aria-label="Campo para filtrar">
-        ${fields.map((field) => `<option value="${escapeHtml(field.key)}">${escapeHtml(field.label)}</option>`).join("")}
-      </select>
-      <select data-kf-operator aria-label="Condicion del filtro">
-        <option value="contains">Contiene</option>
-        <option value="equals">Es igual a</option>
-        <option value="notContains">No contiene</option>
-        <option value="empty">Esta vacio</option>
-        <option value="notEmpty">No esta vacio</option>
-      </select>
-      <input data-kf-value type="search" placeholder="Valor del filtro" aria-label="Valor del filtro">
-      <button class="secondary-button" type="button" data-kf-add>Agregar filtro</button>
-      <button class="ghost-button ${activeFilters.length ? "" : "hidden"}" type="button" data-kf-clear>Limpiar</button>
-    </div>
-    <div class="filter-chips">
-      ${activeFilters.map((filter) => kanbanFilterChip(filter)).join("")}
+    <div class="kanban-filter-controls">
+      <label class="kanban-filter-field">
+        <span>Responsable</span>
+        <select data-kf-member aria-label="Filtrar por responsable">
+          <option value="">Todos</option>
+          ${members.map((member) => `<option value="${escapeHtml(member.id)}" ${member.id === filters.memberId ? "selected" : ""}>${escapeHtml(member.name)}</option>`).join("")}
+        </select>
+      </label>
+      <label class="kanban-filter-field">
+        <span>Fecha limite</span>
+        <input type="date" data-kf-due value="${escapeHtml(filters.dueDate || "")}" aria-label="Filtrar por fecha limite">
+      </label>
+      <button class="ghost-button ${filters.memberId || filters.dueDate ? "" : "hidden"}" type="button" data-kf-clear>Limpiar</button>
     </div>
   `;
 
-  const fieldSelect = container.querySelector("[data-kf-field]");
-  const operatorSelect = container.querySelector("[data-kf-operator]");
-  const valueInput = container.querySelector("[data-kf-value]");
-
-  const addFilter = () => {
-    const operator = operatorSelect.value;
-    const value = valueInput.value.trim();
-    if (!["empty", "notEmpty"].includes(operator) && !value) return;
-    state.kanbanFilters = [
-      ...(state.kanbanFilters ?? []),
-      { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, fieldKey: fieldSelect.value, operator, value }
-    ];
+  container.querySelector("[data-kf-member]").addEventListener("change", (event) => {
+    state.kanbanFilters = { ...state.kanbanFilters, memberId: event.target.value };
     renderKanban();
-  };
-
-  container.querySelector("[data-kf-add]").addEventListener("click", addFilter);
-  valueInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      addFilter();
-    }
+  });
+  container.querySelector("[data-kf-due]").addEventListener("change", (event) => {
+    state.kanbanFilters = { ...state.kanbanFilters, dueDate: event.target.value };
+    renderKanban();
   });
   container.querySelector("[data-kf-clear]").addEventListener("click", () => {
-    state.kanbanFilters = [];
+    state.kanbanFilters = { memberId: "", dueDate: "" };
     renderKanban();
   });
-  container.querySelectorAll("[data-kf-remove]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.kanbanFilters = activeFilters.filter((filter) => filter.id !== button.dataset.kfRemove);
-      renderKanban();
-    });
-  });
-}
-
-function kanbanFilterChip(filter) {
-  const field = (listFilterFields.tasks ?? []).find((item) => item.key === filter.fieldKey);
-  const label = `${field?.label || filter.fieldKey} ${operatorLabel(filter.operator)}${filter.value ? ` "${filter.value}"` : ""}`;
-  return `
-    <span class="filter-chip">
-      ${escapeHtml(label)}
-      <button type="button" aria-label="Quitar filtro" data-kf-remove="${escapeHtml(filter.id)}">×</button>
-    </span>
-  `;
 }
 
 function applyKanbanFilters(records) {
-  const activeFilters = state.kanbanFilters ?? [];
-  if (!activeFilters.length) return records;
-  return records.filter((record) => activeFilters.every((filter) => matchesCustomFilter("tasks", record, filter)));
+  const { memberId, dueDate } = state.kanbanFilters ?? {};
+  return records.filter((record) =>
+    (!memberId || record.memberId === memberId) &&
+    (!dueDate || record.dueDate === dueDate)
+  );
 }
 
 function taskCard(task) {

@@ -504,10 +504,16 @@ h2 {
 
 .kanban-column {
   min-height: 420px;
+  max-height: 560px;
+  overflow-y: auto;
   background: var(--surface-soft);
   border: 1px solid #e7edf4;
   border-radius: var(--radius);
   padding: 10px;
+}
+
+.kanban-expanded .kanban-column {
+  max-height: min(70vh, 720px);
 }
 
 .column-heading {
@@ -517,6 +523,10 @@ h2 {
   gap: 8px;
   min-height: 34px;
   margin-bottom: 10px;
+  padding-top: 2px;
+  position: sticky;
+  top: 0;
+  background: var(--surface-soft);
   color: var(--ink-soft);
   font-weight: 900;
 }
@@ -527,15 +537,34 @@ h2 {
   gap: 10px;
 }
 
-.custom-filter.kanban-filter-bar {
-  justify-items: stretch;
+.kanban-filter-bar {
   padding: 14px 18px 0;
 }
 
-.kanban-filter-bar .filter-builder,
-.kanban-filter-bar .filter-chips {
-  width: 100%;
-  justify-content: flex-start;
+.kanban-filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.kanban-filter-field {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 850;
+  color: var(--ink-soft);
+}
+
+.kanban-filter-field select,
+.kanban-filter-field input {
+  min-width: 200px;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  background: #ffffff;
+  color: var(--ink);
 }
 
 .kanban-expand-dialog {
