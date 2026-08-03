@@ -634,6 +634,12 @@ h2 {
 
 .card-title strong {
   line-height: 1.25;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.card-title .priority-pill {
+  flex-shrink: 0;
 }
 
 .card-meta {
