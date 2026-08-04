@@ -17,6 +17,64 @@ function renderForm(store, record) {
   }).join("");
 
   if (store === "bugs") bindBugSpTestCaseSelector();
+  if (store === "tasks") {
+    $("#form-fields").insertAdjacentHTML("beforeend", taskStatusChangeFieldsHtml(record));
+    if (record.id) bindTaskStatusCommentRequirement();
+  }
+}
+
+function taskStatusChangeFieldsHtml(record) {
+  if (!record.id) return "";
+  const historyHtml = taskStatusHistoryHtml(record.statusHistory);
+  return `
+    <div class="field full">
+      <label>Iteraciones</label>
+      <div class="static-value" id="task-iterations-value">${record.iterations || 0}</div>
+    </div>
+    <div class="field full" id="status-comment-field">
+      <label for="statusChangeComment">Comentario del cambio de estado</label>
+      <textarea id="statusChangeComment" name="statusChangeComment"></textarea>
+      <p class="field-hint">Obligatorio si cambias el estado.</p>
+    </div>
+    ${historyHtml}
+  `;
+}
+
+function taskStatusHistoryHtml(statusHistory) {
+  if (!statusHistory?.length) return "";
+  const items = statusHistory.slice().reverse().map((entry) => `
+    <li>
+      <strong>${escapeHtml(statusLabels[entry.from] || entry.from || "Sin estado")} &rarr; ${escapeHtml(statusLabels[entry.to] || entry.to || "Sin estado")}</strong>
+      <span class="card-meta">${escapeHtml(formatHistoryDate(entry.at))}</span>
+      <p>${escapeHtml(entry.comment || "Sin comentario")}</p>
+    </li>
+  `).join("");
+  return `
+    <div class="field full">
+      <label>Historial de cambios de estado</label>
+      <ul class="status-history-list">${items}</ul>
+    </div>
+  `;
+}
+
+function formatHistoryDate(isoDate) {
+  if (!isoDate) return "";
+  const date = new Date(isoDate);
+  return Number.isNaN(date.getTime()) ? isoDate : date.toLocaleString();
+}
+
+function bindTaskStatusCommentRequirement() {
+  const statusSelect = $("#status");
+  const commentField = $("#statusChangeComment");
+  const commentWrapper = $("#status-comment-field");
+  if (!statusSelect || !commentField) return;
+  const syncRequirement = () => {
+    const changed = statusSelect.value !== (state.editing?.originalStatus ?? null);
+    commentField.required = changed;
+    commentWrapper?.classList.toggle("is-required", changed);
+  };
+  statusSelect.addEventListener("change", syncRequirement);
+  syncRequirement();
 }
 
 function optionsFor(field, value, record = {}) {

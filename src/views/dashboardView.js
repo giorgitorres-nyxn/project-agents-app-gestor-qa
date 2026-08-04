@@ -31,10 +31,20 @@ function renderMetrics() {
 }
 
 function renderKanban() {
-  const board = $("#kanban-board");
-  const tasks = state.data.tasks ?? [];
+  document.querySelectorAll("[data-kanban-root]").forEach(renderKanbanRoot);
+}
+
+function renderKanbanRoot(root) {
+  renderKanbanFilterBar(root);
+  renderKanbanBoard(root);
+}
+
+function renderKanbanBoard(root) {
+  const board = root.querySelector("[data-kanban-board]");
+  if (!board) return;
+  const tasks = applyKanbanFilters(filterRecords(state.data.tasks ?? []));
   board.innerHTML = Object.keys(statusLabels).map((status) => {
-    const filtered = filterRecords(tasks.filter((task) => task.status === status));
+    const filtered = tasks.filter((task) => task.status === status);
     return `
       <div class="kanban-column" data-status="${status}">
         <div class="column-heading">
@@ -53,15 +63,57 @@ function renderKanban() {
 
   board.querySelectorAll(".kanban-column").forEach((column) => {
     column.addEventListener("dragover", (event) => event.preventDefault());
-    column.addEventListener("drop", async (event) => {
+    column.addEventListener("drop", (event) => {
       event.preventDefault();
       const task = state.data.tasks.find((item) => item.id === event.dataTransfer.getData("text/plain"));
-      if (!task) return;
-      await saveRecord("tasks", { ...task, status: column.dataset.status });
-      await refreshData();
-      render();
+      if (!task || task.status === column.dataset.status) return;
+      openEditor("tasks", task.id, { status: column.dataset.status });
     });
   });
+}
+
+function renderKanbanFilterBar(root) {
+  const container = root.querySelector("[data-kanban-filters]");
+  if (!container) return;
+  const filters = state.kanbanFilters ?? { memberId: "", dueDate: "" };
+  const members = state.data.members ?? [];
+  container.innerHTML = `
+    <div class="kanban-filter-controls">
+      <label class="kanban-filter-field">
+        <span>Responsable</span>
+        <select data-kf-member aria-label="Filtrar por responsable">
+          <option value="">Todos</option>
+          ${members.map((member) => `<option value="${escapeHtml(member.id)}" ${member.id === filters.memberId ? "selected" : ""}>${escapeHtml(member.name)}</option>`).join("")}
+        </select>
+      </label>
+      <label class="kanban-filter-field">
+        <span>Fecha limite</span>
+        <input type="date" data-kf-due value="${escapeHtml(filters.dueDate || "")}" aria-label="Filtrar por fecha limite">
+      </label>
+      <button class="ghost-button ${filters.memberId || filters.dueDate ? "" : "hidden"}" type="button" data-kf-clear>Limpiar</button>
+    </div>
+  `;
+
+  container.querySelector("[data-kf-member]").addEventListener("change", (event) => {
+    state.kanbanFilters = { ...state.kanbanFilters, memberId: event.target.value };
+    renderKanban();
+  });
+  container.querySelector("[data-kf-due]").addEventListener("change", (event) => {
+    state.kanbanFilters = { ...state.kanbanFilters, dueDate: event.target.value };
+    renderKanban();
+  });
+  container.querySelector("[data-kf-clear]").addEventListener("click", () => {
+    state.kanbanFilters = { memberId: "", dueDate: "" };
+    renderKanban();
+  });
+}
+
+function applyKanbanFilters(records) {
+  const { memberId, dueDate } = state.kanbanFilters ?? {};
+  return records.filter((record) =>
+    (!memberId || record.memberId === memberId) &&
+    (!dueDate || record.dueDate === dueDate)
+  );
 }
 
 function taskCard(task) {

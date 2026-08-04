@@ -8,6 +8,8 @@ function bindEvents() {
 
   $("#new-item").addEventListener("click", () => openEditor(state.activeView === "dashboard" ? "tasks" : state.listView));
   $("#quick-task").addEventListener("click", () => openEditor("tasks"));
+  $("#expand-kanban").addEventListener("click", () => $("#kanban-expand-dialog").showModal());
+  $("#close-kanban-expand").addEventListener("click", () => $("#kanban-expand-dialog").close());
   $("#global-search").addEventListener("input", (event) => {
     state.search = event.target.value.trim().toLowerCase();
     resetAllPages();

@@ -249,6 +249,7 @@ function tableRow(store, record) {
       findSpMigration(record.spMigrationId),
       findName("members", record.memberId) || "Sin responsable",
       { html: statusBadge(statusText) },
+      record.iterations || 0,
       { html: pill(catalogLabel("tasks", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
       record.dueDate || "Sin fecha",
       edit
