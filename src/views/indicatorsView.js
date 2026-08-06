@@ -93,6 +93,7 @@ function renderIndicators() {
   const scopeLabel = selectedSp ? selectedSp.spName : "Todos los SP";
   const riskiestMember = [...memberStats].sort((a, b) => b.riskScore - a.riskScore)[0];
   const spHealthItems = spMigrations.map((sp) => spHealthItem(sp, allTestCases, allBugs));
+  const spOverdueItems = spMigrations.map((sp) => spOverdueItem(sp, allTasks));
   const cards = [
     indicatorMetric("Casos ejecutados", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} con ${fieldLabel("testCases", "executionStatus")}`, metricTone(percentage(executedTests, testCases.length), "high"), `Mide avance real de ejecucion. Formula: TC con ${fieldLabel("testCases", "executionStatus")} informado / total de TC.`),
     indicatorMetric("TC aprobados banco", `${percentage(bankApprovedTests, testCases.length)}%`, `${bankApprovedTests} de ${testCases.length} aprobados`, metricTone(percentage(bankApprovedTests, testCases.length), "high"), `Mide aceptacion del banco. Formula: TC con ${fieldLabel("testCases", "bankApproval")} = ${catalogLabel("testCases", "bankApproval", bankApprovedValue)} / total de TC.`),
@@ -131,6 +132,8 @@ function renderIndicators() {
     <div class="indicator-grid">
       ${cards.map(metricCard).join("")}
     </div>
+
+    ${spOverdueSemaphore(spOverdueItems)}
 
     <div class="detail-grid">
       ${detailBreakdown(fieldLabel("testCases", "executionStatus"), [
@@ -440,6 +443,48 @@ function spHealthItem(sp, allTestCases, allBugs) {
     successful: spSuccessful,
     failed: spFailed
   };
+}
+
+function spOverdueItem(sp, allTasks) {
+  const spTasks = allTasks.filter((task) => task.spMigrationId === sp.id);
+  const overdueCount = spTasks.filter(taskIsOverdue).length;
+  const pct = percentage(overdueCount, spTasks.length);
+  return {
+    label: sp.spName || "Sin nombre",
+    pct,
+    overdueCount,
+    total: spTasks.length,
+    tone: metricTone(pct, "low", { good: 10, warning: 50 })
+  };
+}
+
+function spOverdueSemaphore(items) {
+  return `
+    <section class="panel sp-overdue-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Riesgo por fechas</p>
+          <h2>Tareas vencidas por SP</h2>
+        </div>
+      </div>
+      <div class="legend-row">
+        <p class="legend-line tone-good"><i class="legend-dot"></i><strong>Verde</strong> — la mayoria se entrego a tiempo</p>
+        <p class="legend-line tone-warning"><i class="legend-dot"></i><strong>Amarillo</strong> — varias tareas empiezan a atrasarse</p>
+        <p class="legend-line tone-danger"><i class="legend-dot"></i><strong>Rojo</strong> — faltan muchas tareas por entregar</p>
+      </div>
+      ${items.length ? `<div class="sp-ring-grid">${items.map(spOverdueRing).join("")}</div>` : `<div class="empty-state">No hay SP para mostrar.</div>`}
+    </section>
+  `;
+}
+
+function spOverdueRing(item) {
+  return `
+    <div class="sp-ring-tile" title="Formula: tareas vencidas / total de tareas del SP. ${item.overdueCount} de ${item.total} tareas vencidas.">
+      <div class="ring tone-${escapeHtml(item.tone)}" style="--pct:${item.pct}"><span>${item.pct}%</span></div>
+      <span class="sp-name">${escapeHtml(item.label)}</span>
+      <span class="sp-count">${item.overdueCount} de ${item.total} tareas</span>
+    </div>
+  `;
 }
 
 function detailBreakdown(title, items, total) {

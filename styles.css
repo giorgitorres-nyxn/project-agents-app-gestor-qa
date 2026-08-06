@@ -533,6 +533,7 @@ h2 {
 
 .panel-heading-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
@@ -998,6 +999,125 @@ h2 {
 
 .compact-empty {
   min-height: 112px;
+}
+
+.legend-row {
+  display: grid;
+  gap: 8px;
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.legend-line {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 8px;
+  margin-top: 6px;
+}
+
+.legend-line strong {
+  font-weight: 850;
+}
+
+.legend-line.tone-good strong {
+  color: var(--green);
+}
+
+.legend-line.tone-good .legend-dot {
+  background: var(--green);
+}
+
+.legend-line.tone-warning strong {
+  color: var(--amber);
+}
+
+.legend-line.tone-warning .legend-dot {
+  background: var(--amber);
+}
+
+.legend-line.tone-danger strong {
+  color: var(--red);
+}
+
+.legend-line.tone-danger .legend-dot {
+  background: var(--red);
+}
+
+.sp-ring-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 20px 16px;
+  padding: 18px;
+}
+
+.sp-ring-tile {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.ring {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: conic-gradient(var(--ring-color) calc(var(--pct) * 1%), var(--surface-soft) 0);
+}
+
+.ring::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(17, 24, 39, 0.04);
+}
+
+.ring span {
+  position: relative;
+  font-size: 1.12rem;
+  font-weight: 900;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.ring.tone-good {
+  --ring-color: var(--green);
+}
+
+.ring.tone-warning {
+  --ring-color: var(--amber);
+}
+
+.ring.tone-danger {
+  --ring-color: var(--red);
+}
+
+.sp-ring-tile .sp-name {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+.sp-ring-tile .sp-count {
+  font-size: 0.76rem;
+  color: var(--muted);
 }
 
 .member-row {
@@ -1661,6 +1781,10 @@ dialog::backdrop {
   .detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .sp-ring-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 820px) {
@@ -1751,6 +1875,10 @@ dialog::backdrop {
   .kanban {
     grid-template-columns: repeat(4, 260px);
   }
+
+  .sp-ring-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 520px) {
@@ -1773,6 +1901,19 @@ dialog::backdrop {
 
   .member-kpis {
     grid-template-columns: 1fr;
+  }
+
+  .sp-ring-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ring {
+    width: 70px;
+    height: 70px;
+  }
+
+  .ring span {
+    font-size: 0.98rem;
   }
 
   .dialog-actions {

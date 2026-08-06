@@ -2,6 +2,15 @@
 
 ## 2026-08-06
 
+### Cambio: Semaforo de tareas vencidas por SP en Indicadores
+
+- Nueva seccion de ancho completo en el menu de Indicadores: un anillo de porcentaje por cada SP, mostrando que proporcion de sus tareas esta vencida (fecha limite pasada y estado Pendiente o En progreso).
+- Colores: Verde 10% o menos vencidas, Amarillo entre 11% y 50%, Rojo mas de 50%. Se incluye una leyenda con el significado de cada color.
+- Respeta el filtro de SP existente en Indicadores (muestra solo el SP elegido, o todos si no hay filtro).
+- Nuevas funciones `spOverdueItem`/`spOverdueSemaphore`/`spOverdueRing` en `src/views/indicatorsView.js`; reutiliza `taskIsOverdue` y `metricTone` ya existentes.
+
+---
+
 ### Cambio: Total de tareas por SP en Indicadores
 
 - Nueva tarjeta "Total de tareas" en el menu de Indicadores: cuenta todas las tareas del SP seleccionado en el filtro (sin importar su estado), o de todos los SP si no hay ninguno seleccionado.
