@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-06
+
+### Cambio: Reporte de tareas vencidas
+
+- Una tarea se marca como "vencida" cuando su fecha limite ya paso y su estado sigue en "Pendiente" o "En progreso" (una tarea en "En revision" o "Finalizado" nunca cuenta como vencida).
+- Pestana Tareas: las tareas vencidas se resaltan en la tabla (fila y flag junto a la fecha) y hay un nuevo control "Solo vencidas (N)" para filtrarlas.
+- Tablero Kanban (Flujo de trabajo): las tarjetas vencidas muestran el mismo flag y un borde distintivo.
+- Dashboard: nueva tarjeta de metrica "Tareas vencidas".
+- Regla compartida `isTaskOverdue` agregada a `src/domain/projectConfig.js`; helper `taskIsOverdue` en `src/shared/frontendHelpers.js`.
+
+---
+
 ## 2026-07-30
 
 ### Cambio: Comentario obligatorio, iteraciones y mejoras a Flujo de trabajo

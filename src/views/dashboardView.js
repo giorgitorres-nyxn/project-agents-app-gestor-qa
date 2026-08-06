@@ -3,6 +3,7 @@
 function renderMetrics() {
   const activeBugs = state.data.bugs?.filter((bug) => !["Resuelto", "Cerrado"].includes(bug.status)).length ?? 0;
   const runningTasks = state.data.tasks?.filter((task) => task.status !== "done").length ?? 0;
+  const overdueTasks = state.data.tasks?.filter(taskIsOverdue).length ?? 0;
   const executed = state.data.testCases?.filter((test) => test.status === "Ejecutado").length ?? 0;
   const blocked = state.data.testCases?.filter((test) => test.status === "Bloqueado").length ?? 0;
   const spTotal = state.data.spMigrations?.length ?? 0;
@@ -18,11 +19,12 @@ function renderMetrics() {
     ["SP en migracion", spTotal, `${spCompletionPct}% completados`],
     ["SP en progreso", spInProgress, `${spPending} esperan entrada`],
     ["SP listos QMetry", spReadyQMetry, "matriz y evidencia"],
-    ["Bloqueos", blocked, "casos bloqueados"]
+    ["Bloqueos", blocked, "casos bloqueados"],
+    ["Tareas vencidas", overdueTasks, "requieren atencion", "indicator-danger"]
   ];
 
-  $("#metrics").innerHTML = metrics.map(([label, value, detail]) => `
-    <article class="metric">
+  $("#metrics").innerHTML = metrics.map(([label, value, detail, className = ""]) => `
+    <article class="metric ${className}">
       <span>${escapeHtml(label)}</span>
       <strong>${value}</strong>
       <span>${escapeHtml(detail)}</span>
@@ -119,8 +121,9 @@ function applyKanbanFilters(records) {
 function taskCard(task) {
   const member = findName("members", task.memberId);
   const sp = findSpMigration(task.spMigrationId);
+  const overdue = taskIsOverdue(task);
   return `
-    <article class="card" draggable="true" data-id="${escapeHtml(task.id)}">
+    <article class="card ${overdue ? "overdue" : ""}" draggable="true" data-id="${escapeHtml(task.id)}">
       <div class="card-title">
         <strong>${escapeHtml(task.title)}</strong>
         <span class="priority-pill priority-${escapeHtml(task.priority)}">${escapeHtml(task.priority || "Media")}</span>
@@ -129,7 +132,7 @@ function taskCard(task) {
         <span>${escapeHtml(sp)}</span>
         <span>${escapeHtml(member || "Sin responsable")}</span>
         <span>${escapeHtml(catalogLabel("tasks", "kind", task.kind) || "Tarea")}</span>
-        <span>${escapeHtml(task.dueDate || "Sin fecha")}</span>
+        <span>${overdue ? `<span class="overdue-flag">Vencida</span> ` : ""}${escapeHtml(task.dueDate || "Sin fecha")}</span>
       </div>
     </article>
   `;

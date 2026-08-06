@@ -537,6 +537,44 @@ h2 {
   gap: 10px;
 }
 
+.list-heading-actions {
+  flex: 1 1 560px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.overdue-toggle-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.86rem;
+  font-weight: 850;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.overdue-toggle-control input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--red);
+}
+
+.overdue-flag {
+  color: var(--red);
+  font-weight: 850;
+}
+
+.row-overdue {
+  background: var(--red-soft);
+}
+
+.card.overdue {
+  border-left: 3px solid var(--red);
+}
+
 .kanban-filter-bar {
   padding: 14px 18px 0;
 }

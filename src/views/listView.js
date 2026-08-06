@@ -6,9 +6,13 @@ function renderList() {
   $("#list-title").textContent = config.title;
   $("#table-head").innerHTML = `<tr>${config.columns.map((column) => `<th>${column}</th>`).join("")}</tr>`;
   renderFilters(config);
+  renderOverdueToggle(config);
 
   const storeData = state.data[config.store] ?? [];
-  const records = applyCustomFilters(filterRecords(storeData), config.store);
+  let records = applyCustomFilters(filterRecords(storeData), config.store);
+  if (config.store === "tasks" && state.showOnlyOverdueTasks) {
+    records = records.filter(taskIsOverdue);
+  }
   const pagination = paginationFor(config.store);
   const totalPages = Math.max(1, Math.ceil(records.length / pagination.pageSize));
   if (pagination.page > totalPages) pagination.page = totalPages;
@@ -73,6 +77,27 @@ function resetPage(store) {
 
 function resetAllPages() {
   Object.keys(state.pagination).forEach(resetPage);
+}
+
+function renderOverdueToggle(config) {
+  const container = $("#overdue-toggle");
+  if (!container) return;
+  if (config.store !== "tasks") {
+    container.innerHTML = "";
+    return;
+  }
+  const overdueCount = (state.data.tasks ?? []).filter(taskIsOverdue).length;
+  container.innerHTML = `
+    <label class="overdue-toggle-control">
+      <input type="checkbox" id="overdue-only" ${state.showOnlyOverdueTasks ? "checked" : ""}>
+      Solo vencidas (${overdueCount})
+    </label>
+  `;
+  $("#overdue-only").addEventListener("change", (event) => {
+    state.showOnlyOverdueTasks = event.target.checked;
+    resetPage(config.store);
+    renderList();
+  });
 }
 
 function renderFilters(config) {
@@ -244,6 +269,7 @@ function tableRow(store, record) {
   const edit = { html: `<div class="row-actions"><button class="ghost-button" type="button" data-edit="${escapeHtml(record.id)}">Editar</button></div>` };
   if (store === "tasks") {
     const statusText = statusLabels[record.status] || record.status;
+    const overdue = taskIsOverdue(record);
     return row([
       record.title,
       findSpMigration(record.spMigrationId),
@@ -251,9 +277,9 @@ function tableRow(store, record) {
       { html: statusBadge(statusText) },
       record.iterations || 0,
       { html: pill(catalogLabel("tasks", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
-      record.dueDate || "Sin fecha",
+      { html: overdue ? `<span class="overdue-flag">Vencida</span> ${escapeHtml(record.dueDate || "")}` : escapeHtml(record.dueDate || "Sin fecha") },
       edit
-    ]);
+    ], overdue ? "row-overdue" : "");
   }
   if (store === "spMigrations") {
     return row([
@@ -314,8 +340,8 @@ function tableRow(store, record) {
   ]);
 }
 
-function row(cells) {
-  return `<tr>${cells.map((cell) => `<td>${cell?.html || escapeHtml(cell || "")}</td>`).join("")}</tr>`;
+function row(cells, rowClass = "") {
+  return `<tr class="${escapeHtml(rowClass)}">${cells.map((cell) => `<td>${cell?.html || escapeHtml(cell || "")}</td>`).join("")}</tr>`;
 }
 
 function pill(text, className) {
