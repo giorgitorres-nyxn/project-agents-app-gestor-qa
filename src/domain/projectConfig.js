@@ -83,6 +83,14 @@
     return taskIterationSourceStatuses.has(oldStatus) && taskIterationTargetStatuses.has(newStatus);
   }
 
+  const overdueTaskStatuses = new Set(["backlog", "active"]);
+
+  function isTaskOverdue(task, todayIso) {
+    if (!task?.dueDate || !todayIso) return false;
+    if (!overdueTaskStatuses.has(task.status)) return false;
+    return task.dueDate < todayIso;
+  }
+
   function spTransitionError(oldStatus, newStatus) {
     if (oldStatus === newStatus || !oldStatus) return null;
     if (!defaultSpMigrationStatusValues.has(oldStatus) || !defaultSpMigrationStatusValues.has(newStatus)) return null;
@@ -103,6 +111,7 @@
     defaultSpMigrationStatusValues,
     spTransitionError,
     validateSpTransition,
-    isTaskIterationTransition
+    isTaskIterationTransition,
+    isTaskOverdue
   };
 });

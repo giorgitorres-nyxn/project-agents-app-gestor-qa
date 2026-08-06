@@ -4,7 +4,8 @@ const {
   stores,
   catalogDefinitions,
   spTransitionError,
-  isTaskIterationTransition
+  isTaskIterationTransition,
+  isTaskOverdue
 } = window.GestorQAProject;
 
 const sqlConsoleSection = "sqlConsole";
@@ -220,6 +221,7 @@ let state = {
   indicatorsSpMigrationId: "",
   editing: null,
   kanbanFilters: { memberId: "", dueDate: "" },
+  showOnlyOverdueTasks: false,
   importingStore: null,
   sqlConsole: {
     query: sqlConsoleExamples[0].query,
