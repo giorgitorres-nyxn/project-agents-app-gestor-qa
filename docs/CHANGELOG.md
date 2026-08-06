@@ -2,6 +2,13 @@
 
 ## 2026-08-06
 
+### Cambio: Total de tareas por SP en Indicadores
+
+- Nueva tarjeta "Total de tareas" en el menu de Indicadores: cuenta todas las tareas del SP seleccionado en el filtro (sin importar su estado), o de todos los SP si no hay ninguno seleccionado.
+- Reutiliza el filtro de SP y el arreglo de tareas ya filtrado que existian en `src/views/indicatorsView.js`; no se agrego logica de filtrado nueva.
+
+---
+
 ### Cambio: Reporte de tareas vencidas
 
 - Una tarea se marca como "vencida" cuando su fecha limite ya paso y su estado sigue en "Pendiente" o "En progreso" (una tarea en "En revision" o "Finalizado" nunca cuenta como vencida).

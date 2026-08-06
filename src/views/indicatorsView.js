@@ -107,7 +107,8 @@ function renderIndicators() {
     indicatorMetric("QMetry listo", qmetryReady, selectedSpId ? "para el SP elegido" : "evidencia o etapa QMetry", metricTone(percentage(qmetryReady, spMigrations.length), "high"), "Mide evidencia lista. Formula: SP con evidencia QMetry marcada o estado Evidencia QMetry."),
     indicatorMetric("REST/gRPC listos", `${percentage(Math.min(restReady, grpcReady), spMigrations.length)}%`, `${restReady} REST, ${grpcReady} gRPC`, metricTone(percentage(Math.min(restReady, grpcReady), spMigrations.length), "high"), "Mide disponibilidad de endpoints. Formula: SP con REST y gRPC listos / total de SP."),
     indicatorMetric("Riesgo QA", riskiestMember ? riskiestMember.riskScore : 0, riskiestMember ? riskiestMember.name : "sin asignaciones", metricTone(riskiestMember?.riskScore || 0, "low", { good: 25, warning: 50 }), "Mide carga operativa por QA. Formula: SP activos*12 + errores activos*8 + tareas en revision*4 + tareas activas*3 + carga/5."),
-    indicatorMetric("Carga promedio", `${averageCapacity}%`, `${allMembers.length} miembro(s) QA`, metricTone(averageCapacity, "balanced"), "Promedio de carga declarada del equipo. Formula: suma de carga de miembros QA / numero de miembros.")
+    indicatorMetric("Carga promedio", `${averageCapacity}%`, `${allMembers.length} miembro(s) QA`, metricTone(averageCapacity, "balanced"), "Promedio de carga declarada del equipo. Formula: suma de carga de miembros QA / numero de miembros."),
+    indicatorMetric("Total de tareas", tasks.length, selectedSp ? `para ${selectedSp.spName}` : "en todos los SP", "neutral", "Cuenta todas las tareas creadas para el alcance seleccionado, sin importar su estado. Formula: tareas con SP = filtro elegido (o todas si no hay filtro).")
   ];
 
   container.innerHTML = `
