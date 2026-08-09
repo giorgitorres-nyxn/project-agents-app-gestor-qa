@@ -4,7 +4,7 @@ function renderList() {
   const config = viewConfig[state.listView];
   $("#list-kicker").textContent = config.kicker;
   $("#list-title").textContent = config.title;
-  $("#table-head").innerHTML = `<tr>${config.columns.map((column) => `<th>${column}</th>`).join("")}</tr>`;
+  renderTableHead(config);
   renderFilters(config);
   renderOverdueToggle(config);
 
@@ -13,6 +13,7 @@ function renderList() {
   if (config.store === "tasks" && state.showOnlyOverdueTasks) {
     records = records.filter(taskIsOverdue);
   }
+  records = applySort(records, config.store);
   const pagination = paginationFor(config.store);
   const totalPages = Math.max(1, Math.ceil(records.length / pagination.pageSize));
   if (pagination.page > totalPages) pagination.page = totalPages;
@@ -77,6 +78,53 @@ function resetPage(store) {
 
 function resetAllPages() {
   Object.keys(state.pagination).forEach(resetPage);
+}
+
+function renderTableHead(config) {
+  const sortable = sortableStores.has(config.store);
+  const currentSort = state.sort[config.store];
+  $("#table-head").innerHTML = `<tr>${config.columns.map((column) => {
+    const label = typeof column === "string" ? column : column.label;
+    const key = typeof column === "string" ? null : column.key;
+    if (!sortable || !key) return `<th>${escapeHtml(label)}</th>`;
+    const isActive = currentSort?.key === key;
+    const arrow = isActive ? `<span class="sort-arrow">${currentSort.direction === "asc" ? "↑" : "↓"}</span>` : "";
+    return `<th class="sortable-column ${isActive ? "is-sorted" : ""}" data-sort-key="${escapeHtml(key)}" role="button" tabindex="0">${escapeHtml(label)}${arrow}</th>`;
+  }).join("")}</tr>`;
+
+  if (!sortable) return;
+  $("#table-head").querySelectorAll("[data-sort-key]").forEach((th) => {
+    th.addEventListener("click", () => toggleSort(config.store, th.dataset.sortKey));
+    th.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleSort(config.store, th.dataset.sortKey);
+      }
+    });
+  });
+}
+
+function toggleSort(store, key) {
+  const current = state.sort[store];
+  state.sort[store] = current?.key === key
+    ? { key, direction: current.direction === "asc" ? "desc" : "asc" }
+    : { key, direction: "asc" };
+  resetPage(store);
+  renderList();
+}
+
+function applySort(records, store) {
+  const sort = state.sort[store];
+  if (!sort?.key) return records;
+  const direction = sort.direction === "desc" ? -1 : 1;
+  return [...records].sort((a, b) => direction * compareSortValues(filterValueFor(store, a, sort.key), filterValueFor(store, b, sort.key)));
+}
+
+function compareSortValues(a, b) {
+  const numA = Number(a);
+  const numB = Number(b);
+  if (a !== "" && b !== "" && !Number.isNaN(numA) && !Number.isNaN(numB)) return numA - numB;
+  return normalizeFilterText(a).localeCompare(normalizeFilterText(b), "es");
 }
 
 function renderOverdueToggle(config) {
