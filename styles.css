@@ -1483,6 +1483,31 @@ th {
   text-transform: uppercase;
 }
 
+.sortable-column {
+  cursor: pointer;
+  user-select: none;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.sortable-column:hover {
+  color: var(--ink-soft);
+  background: var(--surface-muted);
+}
+
+.sortable-column:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.22);
+  outline-offset: 2px;
+}
+
+.sortable-column.is-sorted {
+  color: var(--accent-strong);
+}
+
+.sort-arrow {
+  margin-left: 4px;
+  color: var(--accent-strong);
+}
+
 td {
   color: var(--ink-soft);
   font-size: 0.92rem;

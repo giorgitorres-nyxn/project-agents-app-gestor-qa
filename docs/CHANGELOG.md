@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-09
+
+### Cambio: Ordenar columnas en Tareas, Casos de prueba, Migracion SP y Errores
+
+- En esas 4 tablas, se puede hacer clic en el encabezado de cualquier columna para ordenar ascendente/descendente (una flecha indica la columna y direccion activa).
+- El filtrado por cualquier campo ya existia (constructor de filtros de `listView.js`); este cambio agrega la parte de ordenar que faltaba.
+- Reutiliza `filterValueFor` (ya existente) como valor de ordenamiento, para que columnas con nombre de SP/responsable o etiquetas de catalogo se ordenen por el texto visible, no por el id o valor interno.
+- Casos de uso y Miembros QA quedan sin cambios (no se pidio para esas tablas).
+
+---
+
 ## 2026-08-06
 
 ### Cambio: Semaforo de tareas vencidas por SP en Indicadores
