@@ -4,11 +4,16 @@ function renderList() {
   const config = viewConfig[state.listView];
   $("#list-kicker").textContent = config.kicker;
   $("#list-title").textContent = config.title;
-  $("#table-head").innerHTML = `<tr>${config.columns.map((column) => `<th>${column}</th>`).join("")}</tr>`;
+  renderTableHead(config);
   renderFilters(config);
+  renderOverdueToggle(config);
 
   const storeData = state.data[config.store] ?? [];
-  const records = applyCustomFilters(filterRecords(storeData), config.store);
+  let records = applyCustomFilters(filterRecords(storeData), config.store);
+  if (config.store === "tasks" && state.showOnlyOverdueTasks) {
+    records = records.filter(taskIsOverdue);
+  }
+  records = applySort(records, config.store);
   const pagination = paginationFor(config.store);
   const totalPages = Math.max(1, Math.ceil(records.length / pagination.pageSize));
   if (pagination.page > totalPages) pagination.page = totalPages;
@@ -73,6 +78,74 @@ function resetPage(store) {
 
 function resetAllPages() {
   Object.keys(state.pagination).forEach(resetPage);
+}
+
+function renderTableHead(config) {
+  const sortable = sortableStores.has(config.store);
+  const currentSort = state.sort[config.store];
+  $("#table-head").innerHTML = `<tr>${config.columns.map((column) => {
+    const label = typeof column === "string" ? column : column.label;
+    const key = typeof column === "string" ? null : column.key;
+    if (!sortable || !key) return `<th>${escapeHtml(label)}</th>`;
+    const isActive = currentSort?.key === key;
+    const arrow = isActive ? `<span class="sort-arrow">${currentSort.direction === "asc" ? "↑" : "↓"}</span>` : "";
+    return `<th class="sortable-column ${isActive ? "is-sorted" : ""}" data-sort-key="${escapeHtml(key)}" role="button" tabindex="0">${escapeHtml(label)}${arrow}</th>`;
+  }).join("")}</tr>`;
+
+  if (!sortable) return;
+  $("#table-head").querySelectorAll("[data-sort-key]").forEach((th) => {
+    th.addEventListener("click", () => toggleSort(config.store, th.dataset.sortKey));
+    th.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleSort(config.store, th.dataset.sortKey);
+      }
+    });
+  });
+}
+
+function toggleSort(store, key) {
+  const current = state.sort[store];
+  state.sort[store] = current?.key === key
+    ? { key, direction: current.direction === "asc" ? "desc" : "asc" }
+    : { key, direction: "asc" };
+  resetPage(store);
+  renderList();
+}
+
+function applySort(records, store) {
+  const sort = state.sort[store];
+  if (!sort?.key) return records;
+  const direction = sort.direction === "desc" ? -1 : 1;
+  return [...records].sort((a, b) => direction * compareSortValues(filterValueFor(store, a, sort.key), filterValueFor(store, b, sort.key)));
+}
+
+function compareSortValues(a, b) {
+  const numA = Number(a);
+  const numB = Number(b);
+  if (a !== "" && b !== "" && !Number.isNaN(numA) && !Number.isNaN(numB)) return numA - numB;
+  return normalizeFilterText(a).localeCompare(normalizeFilterText(b), "es");
+}
+
+function renderOverdueToggle(config) {
+  const container = $("#overdue-toggle");
+  if (!container) return;
+  if (config.store !== "tasks") {
+    container.innerHTML = "";
+    return;
+  }
+  const overdueCount = (state.data.tasks ?? []).filter(taskIsOverdue).length;
+  container.innerHTML = `
+    <label class="overdue-toggle-control">
+      <input type="checkbox" id="overdue-only" ${state.showOnlyOverdueTasks ? "checked" : ""}>
+      Solo vencidas (${overdueCount})
+    </label>
+  `;
+  $("#overdue-only").addEventListener("change", (event) => {
+    state.showOnlyOverdueTasks = event.target.checked;
+    resetPage(config.store);
+    renderList();
+  });
 }
 
 function renderFilters(config) {
@@ -244,6 +317,7 @@ function tableRow(store, record) {
   const edit = { html: `<div class="row-actions"><button class="ghost-button" type="button" data-edit="${escapeHtml(record.id)}">Editar</button></div>` };
   if (store === "tasks") {
     const statusText = statusLabels[record.status] || record.status;
+    const overdue = taskIsOverdue(record);
     return row([
       record.title,
       findSpMigration(record.spMigrationId),
@@ -251,9 +325,9 @@ function tableRow(store, record) {
       { html: statusBadge(statusText) },
       record.iterations || 0,
       { html: pill(catalogLabel("tasks", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
-      record.dueDate || "Sin fecha",
+      { html: overdue ? `<span class="overdue-flag">Vencida</span> ${escapeHtml(record.dueDate || "")}` : escapeHtml(record.dueDate || "Sin fecha") },
       edit
-    ]);
+    ], overdue ? "row-overdue" : "");
   }
   if (store === "spMigrations") {
     return row([
@@ -314,8 +388,8 @@ function tableRow(store, record) {
   ]);
 }
 
-function row(cells) {
-  return `<tr>${cells.map((cell) => `<td>${cell?.html || escapeHtml(cell || "")}</td>`).join("")}</tr>`;
+function row(cells, rowClass = "") {
+  return `<tr class="${escapeHtml(rowClass)}">${cells.map((cell) => `<td>${cell?.html || escapeHtml(cell || "")}</td>`).join("")}</tr>`;
 }
 
 function pill(text, className) {

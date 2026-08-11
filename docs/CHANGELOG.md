@@ -1,5 +1,44 @@
 # Changelog
 
+## 2026-08-09
+
+### Cambio: Ordenar columnas en Tareas, Casos de prueba, Migracion SP y Errores
+
+- En esas 4 tablas, se puede hacer clic en el encabezado de cualquier columna para ordenar ascendente/descendente (una flecha indica la columna y direccion activa).
+- El filtrado por cualquier campo ya existia (constructor de filtros de `listView.js`); este cambio agrega la parte de ordenar que faltaba.
+- Reutiliza `filterValueFor` (ya existente) como valor de ordenamiento, para que columnas con nombre de SP/responsable o etiquetas de catalogo se ordenen por el texto visible, no por el id o valor interno.
+- Casos de uso y Miembros QA quedan sin cambios (no se pidio para esas tablas).
+
+---
+
+## 2026-08-06
+
+### Cambio: Semaforo de tareas vencidas por SP en Indicadores
+
+- Nueva seccion de ancho completo en el menu de Indicadores: un anillo de porcentaje por cada SP, mostrando que proporcion de sus tareas esta vencida (fecha limite pasada y estado Pendiente o En progreso).
+- Colores: Verde 10% o menos vencidas, Amarillo entre 11% y 50%, Rojo mas de 50%. Se incluye una leyenda con el significado de cada color.
+- Respeta el filtro de SP existente en Indicadores (muestra solo el SP elegido, o todos si no hay filtro).
+- Nuevas funciones `spOverdueItem`/`spOverdueSemaphore`/`spOverdueRing` en `src/views/indicatorsView.js`; reutiliza `taskIsOverdue` y `metricTone` ya existentes.
+
+---
+
+### Cambio: Total de tareas por SP en Indicadores
+
+- Nueva tarjeta "Total de tareas" en el menu de Indicadores: cuenta todas las tareas del SP seleccionado en el filtro (sin importar su estado), o de todos los SP si no hay ninguno seleccionado.
+- Reutiliza el filtro de SP y el arreglo de tareas ya filtrado que existian en `src/views/indicatorsView.js`; no se agrego logica de filtrado nueva.
+
+---
+
+### Cambio: Reporte de tareas vencidas
+
+- Una tarea se marca como "vencida" cuando su fecha limite ya paso y su estado sigue en "Pendiente" o "En progreso" (una tarea en "En revision" o "Finalizado" nunca cuenta como vencida).
+- Pestana Tareas: las tareas vencidas se resaltan en la tabla (fila y flag junto a la fecha) y hay un nuevo control "Solo vencidas (N)" para filtrarlas.
+- Tablero Kanban (Flujo de trabajo): las tarjetas vencidas muestran el mismo flag y un borde distintivo.
+- Dashboard: nueva tarjeta de metrica "Tareas vencidas".
+- Regla compartida `isTaskOverdue` agregada a `src/domain/projectConfig.js`; helper `taskIsOverdue` en `src/shared/frontendHelpers.js`.
+
+---
+
 ## 2026-07-30
 
 ### Cambio: Comentario obligatorio, iteraciones y mejoras a Flujo de trabajo

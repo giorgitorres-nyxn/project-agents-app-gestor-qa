@@ -5,6 +5,15 @@ function filterRecords(records) {
   return records.filter((record) => JSON.stringify(record).toLowerCase().includes(state.search));
 }
 
+function todayIso() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function taskIsOverdue(task) {
+  return isTaskOverdue(task, todayIso());
+}
+
 function defaultValue(field) {
   if (!field) return "";
   if (field.default !== undefined) return field.default;

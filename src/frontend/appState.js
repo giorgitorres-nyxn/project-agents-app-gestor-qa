@@ -4,7 +4,8 @@ const {
   stores,
   catalogDefinitions,
   spTransitionError,
-  isTaskIterationTransition
+  isTaskIterationTransition,
+  isTaskOverdue
 } = window.GestorQAProject;
 
 const sqlConsoleSection = "sqlConsole";
@@ -32,19 +33,49 @@ const viewConfig = {
     title: "Tareas",
     kicker: "Asignacion",
     store: "tasks",
-    columns: ["Titulo", "SP asignado", "Responsable", "Estado", "Iteraciones", "Prioridad", "Vence", ""]
+    columns: [
+      { label: "Titulo", key: "title" },
+      { label: "SP asignado", key: "spMigration" },
+      { label: "Responsable", key: "member" },
+      { label: "Estado", key: "status" },
+      { label: "Iteraciones", key: "iterations" },
+      { label: "Prioridad", key: "priority" },
+      { label: "Vence", key: "dueDate" },
+      { label: "", key: null }
+    ]
   },
   spMigrations: {
     title: "Migracion de SP",
     kicker: "Seguimiento tecnico",
     store: "spMigrations",
-    columns: ["SP", "Dev", "QA", "Estado", "SQL", "REST", "gRPC", "Matriz", "QMetry", ""]
+    columns: [
+      { label: "SP", key: "spName" },
+      { label: "Dev", key: "devName" },
+      { label: "QA", key: "qa" },
+      { label: "Estado", key: "status" },
+      { label: "SQL", key: "sql" },
+      { label: "REST", key: "rest" },
+      { label: "gRPC", key: "grpc" },
+      { label: "Matriz", key: "matrix" },
+      { label: "QMetry", key: "qmetry" },
+      { label: "", key: null }
+    ]
   },
   testCases: {
     title: "Casos de prueba",
     kicker: "Validacion",
     store: "testCases",
-    columns: ["SP del CP", "Codigo", "Nombre", "Estado", "Ejecucion", "Aprobado Banco", "Prioridad", "Observacion", ""]
+    columns: [
+      { label: "SP del CP", key: "spMigration" },
+      { label: "Codigo", key: "code" },
+      { label: "Nombre", key: "name" },
+      { label: "Estado", key: "status" },
+      { label: "Ejecucion", key: "executionStatus" },
+      { label: "Aprobado Banco", key: "bankApproval" },
+      { label: "Prioridad", key: "priority" },
+      { label: "Observacion", key: "observation" },
+      { label: "", key: null }
+    ]
   },
   useCases: {
     title: "Casos de uso",
@@ -56,7 +87,15 @@ const viewConfig = {
     title: "Errores detectados",
     kicker: "Incidencias",
     store: "bugs",
-    columns: ["Titulo", "SP", "Caso de prueba", "Severidad", "Estado", "Responsable", ""]
+    columns: [
+      { label: "Titulo", key: "title" },
+      { label: "SP", key: "spMigration" },
+      { label: "Caso de prueba", key: "testCase" },
+      { label: "Severidad", key: "severity" },
+      { label: "Estado", key: "status" },
+      { label: "Responsable", key: "member" },
+      { label: "", key: null }
+    ]
   },
   members: {
     title: "Miembros QA",
@@ -65,6 +104,8 @@ const viewConfig = {
     columns: ["Nombre", "Rol", "Estado", "Carga", "Correo", ""]
   }
 };
+
+const sortableStores = new Set(["tasks", "spMigrations", "testCases", "bugs"]);
 
 const bulkImportStores = new Set(["spMigrations", "testCases", "useCases", "bugs"]);
 const bulkImportGroupStores = ["spMigrations", "useCases", "testCases", "bugs"];
@@ -220,6 +261,8 @@ let state = {
   indicatorsSpMigrationId: "",
   editing: null,
   kanbanFilters: { memberId: "", dueDate: "" },
+  showOnlyOverdueTasks: false,
+  sort: {},
   importingStore: null,
   sqlConsole: {
     query: sqlConsoleExamples[0].query,
