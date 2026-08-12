@@ -77,8 +77,9 @@ function renderKanbanBoard(root) {
 function renderKanbanFilterBar(root) {
   const container = root.querySelector("[data-kanban-filters]");
   if (!container) return;
-  const filters = state.kanbanFilters ?? { memberId: "", dueDate: "" };
+  const filters = state.kanbanFilters ?? {};
   const members = state.data.members ?? [];
+  const hasActiveFilters = filters.memberId || filters.lote || filters.funcionalidad || filters.microservicio || filters.dateFrom || filters.dateTo;
   container.innerHTML = `
     <div class="kanban-filter-controls">
       <label class="kanban-filter-field">
@@ -89,10 +90,35 @@ function renderKanbanFilterBar(root) {
         </select>
       </label>
       <label class="kanban-filter-field">
-        <span>Fecha limite</span>
-        <input type="date" data-kf-due value="${escapeHtml(filters.dueDate || "")}" aria-label="Filtrar por fecha limite">
+        <span>Desde</span>
+        <input type="date" data-kf-date-from value="${escapeHtml(filters.dateFrom || "")}" aria-label="Filtrar desde fecha">
       </label>
-      <button class="ghost-button ${filters.memberId || filters.dueDate ? "" : "hidden"}" type="button" data-kf-clear>Limpiar</button>
+      <label class="kanban-filter-field">
+        <span>Hasta</span>
+        <input type="date" data-kf-date-to value="${escapeHtml(filters.dateTo || "")}" aria-label="Filtrar hasta fecha">
+      </label>
+      <label class="kanban-filter-field">
+        <span>Lote</span>
+        <select data-kf-lote aria-label="Filtrar por lote">
+          <option value="">Todos</option>
+          ${loteOptions().map((value) => `<option value="${escapeHtml(value)}" ${value === filters.lote ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+        </select>
+      </label>
+      <label class="kanban-filter-field">
+        <span>Funcionalidad</span>
+        <select data-kf-funcionalidad aria-label="Filtrar por funcionalidad">
+          <option value="">Todas</option>
+          ${funcionalidadOptions(filters.lote).map((value) => `<option value="${escapeHtml(value)}" ${value === filters.funcionalidad ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+        </select>
+      </label>
+      <label class="kanban-filter-field">
+        <span>Microservicio</span>
+        <select data-kf-microservicio aria-label="Filtrar por microservicio">
+          <option value="">Todos</option>
+          ${microservicioOptions(filters.lote, filters.funcionalidad).map((value) => `<option value="${escapeHtml(value)}" ${value === filters.microservicio ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+        </select>
+      </label>
+      <button class="ghost-button ${hasActiveFilters ? "" : "hidden"}" type="button" data-kf-clear>Limpiar</button>
     </div>
   `;
 
@@ -100,22 +126,70 @@ function renderKanbanFilterBar(root) {
     state.kanbanFilters = { ...state.kanbanFilters, memberId: event.target.value };
     renderKanban();
   });
-  container.querySelector("[data-kf-due]").addEventListener("change", (event) => {
-    state.kanbanFilters = { ...state.kanbanFilters, dueDate: event.target.value };
+  container.querySelector("[data-kf-date-from]").addEventListener("change", (event) => {
+    state.kanbanFilters = { ...state.kanbanFilters, dateFrom: event.target.value };
+    renderKanban();
+  });
+  container.querySelector("[data-kf-date-to]").addEventListener("change", (event) => {
+    state.kanbanFilters = { ...state.kanbanFilters, dateTo: event.target.value };
+    renderKanban();
+  });
+  container.querySelector("[data-kf-lote]").addEventListener("change", (event) => {
+    const lote = event.target.value;
+    const clearedDates = lote ? { dateFrom: "", dateTo: "" } : {};
+    state.kanbanFilters = { ...state.kanbanFilters, lote, funcionalidad: "", microservicio: "", ...clearedDates };
+    renderKanban();
+  });
+  container.querySelector("[data-kf-funcionalidad]").addEventListener("change", (event) => {
+    const funcionalidad = event.target.value;
+    const clearedDates = funcionalidad ? { dateFrom: "", dateTo: "" } : {};
+    state.kanbanFilters = { ...state.kanbanFilters, funcionalidad, microservicio: "", ...clearedDates };
+    renderKanban();
+  });
+  container.querySelector("[data-kf-microservicio]").addEventListener("change", (event) => {
+    const microservicio = event.target.value;
+    const clearedDates = microservicio ? { dateFrom: "", dateTo: "" } : {};
+    state.kanbanFilters = { ...state.kanbanFilters, microservicio, ...clearedDates };
     renderKanban();
   });
   container.querySelector("[data-kf-clear]").addEventListener("click", () => {
-    state.kanbanFilters = { memberId: "", dueDate: "" };
+    state.kanbanFilters = { memberId: "", lote: "", funcionalidad: "", microservicio: "", ...currentWeekRange() };
     renderKanban();
   });
 }
 
+function loteOptions() {
+  const values = new Set((state.data.spMigrations ?? []).map((sp) => sp.numeroLote).filter(Boolean));
+  return [...values].sort();
+}
+
+function funcionalidadOptions(lote) {
+  const sps = (state.data.spMigrations ?? []).filter((sp) => !lote || sp.numeroLote === lote);
+  const values = new Set(sps.map((sp) => sp.funcionalidad).filter(Boolean));
+  return [...values].sort();
+}
+
+function microservicioOptions(lote, funcionalidad) {
+  const sps = (state.data.spMigrations ?? []).filter((sp) => (!lote || sp.numeroLote === lote) && (!funcionalidad || sp.funcionalidad === funcionalidad));
+  const values = new Set(sps.map((sp) => sp.nombreMicroservicio).filter(Boolean));
+  return [...values].sort();
+}
+
 function applyKanbanFilters(records) {
-  const { memberId, dueDate } = state.kanbanFilters ?? {};
-  return records.filter((record) =>
-    (!memberId || record.memberId === memberId) &&
-    (!dueDate || record.dueDate === dueDate)
-  );
+  const { memberId, dateFrom, dateTo, lote, funcionalidad, microservicio } = state.kanbanFilters ?? {};
+  const spMigrations = state.data.spMigrations ?? [];
+  return records.filter((record) => {
+    if (memberId && record.memberId !== memberId) return false;
+    if (lote || funcionalidad || microservicio) {
+      const sp = spMigrations.find((item) => item.id === record.spMigrationId);
+      if (lote && sp?.numeroLote !== lote) return false;
+      if (funcionalidad && sp?.funcionalidad !== funcionalidad) return false;
+      if (microservicio && sp?.nombreMicroservicio !== microservicio) return false;
+    }
+    if (dateFrom && (!record.dueDate || record.dueDate < dateFrom)) return false;
+    if (dateTo && (!record.dueDate || record.dueDate > dateTo)) return false;
+    return true;
+  });
 }
 
 function taskCard(task) {

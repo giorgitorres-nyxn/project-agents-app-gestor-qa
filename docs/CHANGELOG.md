@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-08-12
+
+### Cambio: Filtros de fecha en rango y Lote/Funcionalidad/Microservicio en Flujo de trabajo
+
+- El filtro de fecha del Kanban pasa de una fecha exacta a un rango (Desde/Hasta), y por defecto arranca en la semana laboral actual (lunes a domingo que contiene hoy).
+- Se agregan 3 filtros nuevos en cascada: Lote, Funcionalidad y Microservicio (Funcionalidad se acota al Lote elegido, Microservicio se acota a ambos).
+- Regla: al elegir Lote, Funcionalidad o Microservicio, el rango de fechas se limpia automaticamente para mostrar todas las tareas sin importar la fecha; el usuario puede volver a acotar por fecha despues.
+- Lote/Funcionalidad/Microservicio de una tarea se derivan del SP (microservicio) al que esta asociada, sin agregar campos nuevos a la tarea.
+
+---
+
+### Cambio: Renombrar Migracion SP a Lotes y Microservicios
+
+- El menu y la pestana "Migracion SP" pasan a llamarse "Lotes y Microservicios".
+- Se agregan 4 campos al crear/editar un registro: Numero de Lote, Funcionalidad, Nombre del Microservicio y Nombre del SP (este ultimo ya existia). Tambien se agregan como columnas nuevas en la tabla.
+- La jerarquia Lote > Funcionalidad > Microservicio > SP no requiere tablas nuevas: surge de que varios registros pueden compartir el mismo Lote, la misma Funcionalidad o el mismo Microservicio (ej. un microservicio puede agrupar varios SP).
+- El dialogo de crear/editar ahora dice "microservicio" en vez de "seguimiento de SP".
+
+---
+
+### Cambio: Tarjetas vencidas mas visibles en el Kanban
+
+- La tarjeta de una tarea vencida ahora se pinta completa con fondo rojo tenue y borde rojo (antes solo tenia un borde izquierdo delgado, poco visible).
+- Se corrige que el borde rojo no se perdiera al pasar el mouse sobre la tarjeta (`.card:hover` competia con `.card.overdue`).
+
+---
+
 ## 2026-08-09
 
 ### Cambio: Ordenar columnas en Tareas, Casos de prueba, Migracion SP y Errores
