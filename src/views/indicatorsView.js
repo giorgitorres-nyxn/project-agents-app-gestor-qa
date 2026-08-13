@@ -9,19 +9,28 @@ function renderIndicators() {
   const allTestCases = state.data.testCases ?? [];
   const allUseCases = state.data.useCases ?? [];
   const allSpMigrations = state.data.spMigrations ?? [];
-  const selectedSpId = allSpMigrations.some((sp) => sp.id === state.indicatorsSpMigrationId)
-    ? state.indicatorsSpMigrationId
-    : "";
-  state.indicatorsSpMigrationId = selectedSpId;
+  const savedFilters = state.indicatorsFilters ?? { lote: "", funcionalidad: "", microservicio: "" };
+  const lote = loteOptions().includes(savedFilters.lote) ? savedFilters.lote : "";
+  const funcionalidad = funcionalidadOptions(lote).includes(savedFilters.funcionalidad) ? savedFilters.funcionalidad : "";
+  const microservicio = microservicioOptions(lote, funcionalidad).includes(savedFilters.microservicio) ? savedFilters.microservicio : "";
+  state.indicatorsFilters = { lote, funcionalidad, microservicio };
 
-  const selectedSp = allSpMigrations.find((sp) => sp.id === selectedSpId);
-  const tasks = selectedSpId ? allTasks.filter((task) => task.spMigrationId === selectedSpId) : allTasks;
-  const testCases = selectedSpId ? allTestCases.filter((test) => testCaseBelongsToSp(test, selectedSpId)) : allTestCases;
-  const useCases = selectedSpId ? allUseCases.filter((useCase) => useCase.spMigrationId === selectedSpId) : allUseCases;
-  const bugs = selectedSpId
-    ? allBugs.filter((bug) => (bug.spMigrationId || findBugSpMigrationId(bug)) === selectedSpId)
+  const scopeActive = Boolean(lote || funcionalidad || microservicio);
+  const scopedSpMigrations = scopeActive
+    ? allSpMigrations.filter((sp) =>
+      (!lote || sp.numeroLote === lote) &&
+      (!funcionalidad || sp.funcionalidad === funcionalidad) &&
+      (!microservicio || sp.nombreMicroservicio === microservicio))
+    : allSpMigrations;
+  const scopedSpIds = new Set(scopedSpMigrations.map((sp) => sp.id));
+
+  const tasks = scopeActive ? allTasks.filter((task) => scopedSpIds.has(task.spMigrationId)) : allTasks;
+  const testCases = scopeActive ? allTestCases.filter((test) => scopedSpIds.has(testCaseSpMigrationId(test))) : allTestCases;
+  const useCases = scopeActive ? allUseCases.filter((useCase) => scopedSpIds.has(useCase.spMigrationId)) : allUseCases;
+  const bugs = scopeActive
+    ? allBugs.filter((bug) => scopedSpIds.has(bug.spMigrationId || findBugSpMigrationId(bug)))
     : allBugs;
-  const spMigrations = selectedSpId ? allSpMigrations.filter((sp) => sp.id === selectedSpId) : allSpMigrations;
+  const spMigrations = scopedSpMigrations;
   const executionValues = catalogValues("testCases", "executionStatus");
   const bankApprovalValues = catalogValues("testCases", "bankApproval");
   const successfulExecutionValue = catalogValueByTerms("testCases", "executionStatus", ["Exitoso", "Passed", "Pass", "OK"], 0);
@@ -90,10 +99,23 @@ function renderIndicators() {
     };
   }).sort((a, b) => (b.activeTasks + b.activeBugs + b.activeSp) - (a.activeTasks + a.activeBugs + a.activeSp));
 
-  const scopeLabel = selectedSp ? selectedSp.spName : "Todos los SP";
+  const scopeLabel = microservicio || funcionalidad || lote || "Todos los lotes";
   const riskiestMember = [...memberStats].sort((a, b) => b.riskScore - a.riskScore)[0];
   const spHealthItems = spMigrations.map((sp) => spHealthItem(sp, allTestCases, allBugs));
-  const spOverdueItems = spMigrations.map((sp) => spOverdueItem(sp, allTasks));
+
+  const savedRiskFilters = state.riskFilters ?? { dateFrom: "", dateTo: "", lote: "", funcionalidad: "", microservicio: "" };
+  const riskLote = loteOptions().includes(savedRiskFilters.lote) ? savedRiskFilters.lote : "";
+  const riskFuncionalidad = funcionalidadOptions(riskLote).includes(savedRiskFilters.funcionalidad) ? savedRiskFilters.funcionalidad : "";
+  const riskMicroservicio = microservicioOptions(riskLote, riskFuncionalidad).includes(savedRiskFilters.microservicio) ? savedRiskFilters.microservicio : "";
+  state.riskFilters = { ...savedRiskFilters, lote: riskLote, funcionalidad: riskFuncionalidad, microservicio: riskMicroservicio };
+  const riskScopeActive = Boolean(riskLote || riskFuncionalidad || riskMicroservicio);
+  const riskSpMigrations = riskScopeActive
+    ? allSpMigrations.filter((sp) =>
+      (!riskLote || sp.numeroLote === riskLote) &&
+      (!riskFuncionalidad || sp.funcionalidad === riskFuncionalidad) &&
+      (!riskMicroservicio || sp.nombreMicroservicio === riskMicroservicio))
+    : allSpMigrations;
+  const spOverdueItems = riskSpMigrations.map((sp) => spOverdueItem(sp, allTasks, state.riskFilters.dateFrom, state.riskFilters.dateTo));
   const cards = [
     indicatorMetric("Casos ejecutados", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} con ${fieldLabel("testCases", "executionStatus")}`, metricTone(percentage(executedTests, testCases.length), "high"), `Mide avance real de ejecucion. Formula: TC con ${fieldLabel("testCases", "executionStatus")} informado / total de TC.`),
     indicatorMetric("TC aprobados banco", `${percentage(bankApprovedTests, testCases.length)}%`, `${bankApprovedTests} de ${testCases.length} aprobados`, metricTone(percentage(bankApprovedTests, testCases.length), "high"), `Mide aceptacion del banco. Formula: TC con ${fieldLabel("testCases", "bankApproval")} = ${catalogLabel("testCases", "bankApproval", bankApprovedValue)} / total de TC.`),
@@ -105,11 +127,11 @@ function renderIndicators() {
     indicatorMetric("Salud SP", health.label, `${health.score}% de salud operativa`, metricTone(health.score, "high"), "Semaforo operativo. Formula: preparacion banco - penalizacion por fallidos, bloqueos y errores activos de severidad Critica/Alta."),
     indicatorMetric("SP finalizados", `${percentage(completedSp, spMigrations.length)}%`, `${completedSp} de ${spMigrations.length} cerrados`, metricTone(percentage(completedSp, spMigrations.length), "high"), "Mide cierre de alcance. Formula: SP con estado Finalizado / total de SP."),
     indicatorMetric("Errores activos", activeBugs.length, `${highPriorityActiveBugs} de alta prioridad`, metricTone(activeBugs.length, "lowCount", { good: 0, warning: 5 }), "Errores abiertos para seguimiento. Formula: errores cuyo estado no es Resuelto ni Cerrado."),
-    indicatorMetric("QMetry listo", qmetryReady, selectedSpId ? "para el SP elegido" : "evidencia o etapa QMetry", metricTone(percentage(qmetryReady, spMigrations.length), "high"), "Mide evidencia lista. Formula: SP con evidencia QMetry marcada o estado Evidencia QMetry."),
+    indicatorMetric("QMetry listo", qmetryReady, scopeActive ? "para el alcance elegido" : "evidencia o etapa QMetry", metricTone(percentage(qmetryReady, spMigrations.length), "high"), "Mide evidencia lista. Formula: SP con evidencia QMetry marcada o estado Evidencia QMetry."),
     indicatorMetric("REST/gRPC listos", `${percentage(Math.min(restReady, grpcReady), spMigrations.length)}%`, `${restReady} REST, ${grpcReady} gRPC`, metricTone(percentage(Math.min(restReady, grpcReady), spMigrations.length), "high"), "Mide disponibilidad de endpoints. Formula: SP con REST y gRPC listos / total de SP."),
     indicatorMetric("Riesgo QA", riskiestMember ? riskiestMember.riskScore : 0, riskiestMember ? riskiestMember.name : "sin asignaciones", metricTone(riskiestMember?.riskScore || 0, "low", { good: 25, warning: 50 }), "Mide carga operativa por QA. Formula: SP activos*12 + errores activos*8 + tareas en revision*4 + tareas activas*3 + carga/5."),
     indicatorMetric("Carga promedio", `${averageCapacity}%`, `${allMembers.length} miembro(s) QA`, metricTone(averageCapacity, "balanced"), "Promedio de carga declarada del equipo. Formula: suma de carga de miembros QA / numero de miembros."),
-    indicatorMetric("Total de tareas", tasks.length, selectedSp ? `para ${selectedSp.spName}` : "en todos los SP", "neutral", "Cuenta todas las tareas creadas para el alcance seleccionado, sin importar su estado. Formula: tareas con SP = filtro elegido (o todas si no hay filtro).")
+    indicatorMetric("Total de tareas", tasks.length, scopeActive ? `para ${scopeLabel}` : "en todos los lotes", "neutral", "Cuenta todas las tareas creadas para el alcance seleccionado, sin importar su estado. Formula: tareas con SP = filtro elegido (o todas si no hay filtro).")
   ];
 
   container.innerHTML = `
@@ -119,13 +141,29 @@ function renderIndicators() {
           <p class="eyebrow">Filtro</p>
           <h2>${escapeHtml(scopeLabel)}</h2>
         </div>
-        <label class="indicator-select" for="indicator-sp-filter">
-          <span>SP</span>
-          <select id="indicator-sp-filter">
-            <option value="">Todos los SP</option>
-            ${allSpMigrations.map((sp) => `<option value="${escapeHtml(sp.id)}" ${sp.id === selectedSpId ? "selected" : ""}>${escapeHtml(sp.spName || "Sin nombre")}</option>`).join("")}
-          </select>
-        </label>
+        <div class="indicator-filter-row">
+          <label class="indicator-select" for="indicator-lote-filter">
+            <span>Lote</span>
+            <select id="indicator-lote-filter">
+              <option value="">Todos los lotes</option>
+              ${loteOptions().map((value) => `<option value="${escapeHtml(value)}" ${value === lote ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="indicator-select" for="indicator-funcionalidad-filter">
+            <span>Funcionalidad</span>
+            <select id="indicator-funcionalidad-filter">
+              <option value="">Todas las funcionalidades</option>
+              ${funcionalidadOptions(lote).map((value) => `<option value="${escapeHtml(value)}" ${value === funcionalidad ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="indicator-select" for="indicator-microservicio-filter">
+            <span>Microservicio</span>
+            <select id="indicator-microservicio-filter">
+              <option value="">Todos los microservicios</option>
+              ${microservicioOptions(lote, funcionalidad).map((value) => `<option value="${escapeHtml(value)}" ${value === microservicio ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+            </select>
+          </label>
+        </div>
       </div>
     </section>
 
@@ -133,7 +171,7 @@ function renderIndicators() {
       ${cards.map(metricCard).join("")}
     </div>
 
-    ${spOverdueSemaphore(spOverdueItems)}
+    ${spOverdueSemaphore(spOverdueItems, state.riskFilters)}
 
     <div class="detail-grid">
       ${detailBreakdown(fieldLabel("testCases", "executionStatus"), [
@@ -274,8 +312,47 @@ function renderIndicators() {
     </div>
   `;
 
-  container.querySelector("#indicator-sp-filter")?.addEventListener("change", (event) => {
-    state.indicatorsSpMigrationId = event.target.value;
+  container.querySelector("#indicator-lote-filter")?.addEventListener("change", (event) => {
+    state.indicatorsFilters = { lote: event.target.value, funcionalidad: "", microservicio: "" };
+    renderIndicators();
+  });
+  container.querySelector("#indicator-funcionalidad-filter")?.addEventListener("change", (event) => {
+    state.indicatorsFilters = { ...state.indicatorsFilters, funcionalidad: event.target.value, microservicio: "" };
+    renderIndicators();
+  });
+  container.querySelector("#indicator-microservicio-filter")?.addEventListener("change", (event) => {
+    state.indicatorsFilters = { ...state.indicatorsFilters, microservicio: event.target.value };
+    renderIndicators();
+  });
+
+  container.querySelector("[data-risk-date-from]")?.addEventListener("change", (event) => {
+    state.riskFilters = { ...state.riskFilters, dateFrom: event.target.value };
+    renderIndicators();
+  });
+  container.querySelector("[data-risk-date-to]")?.addEventListener("change", (event) => {
+    state.riskFilters = { ...state.riskFilters, dateTo: event.target.value };
+    renderIndicators();
+  });
+  container.querySelector("[data-risk-lote]")?.addEventListener("change", (event) => {
+    const riskLote = event.target.value;
+    const clearedDates = riskLote ? { dateFrom: "", dateTo: "" } : {};
+    state.riskFilters = { ...state.riskFilters, lote: riskLote, funcionalidad: "", microservicio: "", ...clearedDates };
+    renderIndicators();
+  });
+  container.querySelector("[data-risk-funcionalidad]")?.addEventListener("change", (event) => {
+    const riskFuncionalidad = event.target.value;
+    const clearedDates = riskFuncionalidad ? { dateFrom: "", dateTo: "" } : {};
+    state.riskFilters = { ...state.riskFilters, funcionalidad: riskFuncionalidad, microservicio: "", ...clearedDates };
+    renderIndicators();
+  });
+  container.querySelector("[data-risk-microservicio]")?.addEventListener("change", (event) => {
+    const riskMicroservicio = event.target.value;
+    const clearedDates = riskMicroservicio ? { dateFrom: "", dateTo: "" } : {};
+    state.riskFilters = { ...state.riskFilters, microservicio: riskMicroservicio, ...clearedDates };
+    renderIndicators();
+  });
+  container.querySelector("[data-risk-clear]")?.addEventListener("click", () => {
+    state.riskFilters = { dateFrom: "", dateTo: "", lote: "", funcionalidad: "", microservicio: "" };
     renderIndicators();
   });
 }
@@ -445,8 +522,13 @@ function spHealthItem(sp, allTestCases, allBugs) {
   };
 }
 
-function spOverdueItem(sp, allTasks) {
-  const spTasks = allTasks.filter((task) => task.spMigrationId === sp.id);
+function spOverdueItem(sp, allTasks, dateFrom = "", dateTo = "") {
+  const spTasks = allTasks.filter((task) => {
+    if (task.spMigrationId !== sp.id) return false;
+    if (dateFrom && (!task.dueDate || task.dueDate < dateFrom)) return false;
+    if (dateTo && (!task.dueDate || task.dueDate > dateTo)) return false;
+    return true;
+  });
   const overdueCount = spTasks.filter(taskIsOverdue).length;
   const pct = percentage(overdueCount, spTasks.length);
   return {
@@ -458,13 +540,48 @@ function spOverdueItem(sp, allTasks) {
   };
 }
 
-function spOverdueSemaphore(items) {
+function spOverdueSemaphore(items, filters) {
+  const hasActiveFilters = filters.dateFrom || filters.dateTo || filters.lote || filters.funcionalidad || filters.microservicio;
   return `
     <section class="panel sp-overdue-panel">
       <div class="panel-heading">
         <div>
           <p class="eyebrow">Riesgo por fechas</p>
           <h2>Tareas vencidas por SP</h2>
+        </div>
+      </div>
+      <div class="kanban-filter-bar">
+        <div class="kanban-filter-controls">
+          <label class="kanban-filter-field">
+            <span>Desde</span>
+            <input type="date" data-risk-date-from value="${escapeHtml(filters.dateFrom || "")}">
+          </label>
+          <label class="kanban-filter-field">
+            <span>Hasta</span>
+            <input type="date" data-risk-date-to value="${escapeHtml(filters.dateTo || "")}">
+          </label>
+          <label class="kanban-filter-field">
+            <span>Lote</span>
+            <select data-risk-lote>
+              <option value="">Todos los lotes</option>
+              ${loteOptions().map((value) => `<option value="${escapeHtml(value)}" ${value === filters.lote ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="kanban-filter-field">
+            <span>Funcionalidad</span>
+            <select data-risk-funcionalidad>
+              <option value="">Todas las funcionalidades</option>
+              ${funcionalidadOptions(filters.lote).map((value) => `<option value="${escapeHtml(value)}" ${value === filters.funcionalidad ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="kanban-filter-field">
+            <span>Microservicio</span>
+            <select data-risk-microservicio>
+              <option value="">Todos los microservicios</option>
+              ${microservicioOptions(filters.lote, filters.funcionalidad).map((value) => `<option value="${escapeHtml(value)}" ${value === filters.microservicio ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+            </select>
+          </label>
+          <button class="ghost-button ${hasActiveFilters ? "" : "hidden"}" type="button" data-risk-clear>Limpiar</button>
         </div>
       </div>
       <div class="legend-row">
@@ -480,7 +597,7 @@ function spOverdueSemaphore(items) {
 function spOverdueRing(item) {
   return `
     <div class="sp-ring-tile" title="Formula: tareas vencidas / total de tareas del SP. ${item.overdueCount} de ${item.total} tareas vencidas.">
-      <div class="ring tone-${escapeHtml(item.tone)}" style="--pct:${item.pct}"><span>${item.pct}%</span></div>
+      <div class="ring tone-${escapeHtml(item.tone)}"><span>${item.pct}%</span></div>
       <span class="sp-name">${escapeHtml(item.label)}</span>
       <span class="sp-count">${item.overdueCount} de ${item.total} tareas</span>
     </div>
