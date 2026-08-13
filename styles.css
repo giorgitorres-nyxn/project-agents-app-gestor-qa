@@ -698,6 +698,73 @@ h2 {
   font-size: 0.82rem;
 }
 
+.card-breadcrumb {
+  margin: 7px 0 10px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.card-breadcrumb strong {
+  color: var(--ink-soft);
+  font-weight: 750;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card-footer + .card-footer {
+  margin-top: 7px;
+}
+
+.card-who {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  font-weight: 750;
+}
+
+.card-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue-soft);
+  color: var(--blue);
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.66rem;
+  font-weight: 900;
+  flex: 0 0 22px;
+  vertical-align: middle;
+}
+
+.card-dates {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
 .priority-Alta,
 .severity-Critica,
 .severity-Alta {
@@ -792,7 +859,7 @@ h2 {
 
 .indicator-scope {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 340px);
+  grid-template-columns: minmax(220px, 1fr) auto;
   gap: 16px;
   align-items: end;
   padding: 18px;
@@ -801,6 +868,12 @@ h2 {
 .indicator-scope h2 {
   margin: 4px 0 0;
   overflow-wrap: anywhere;
+}
+
+.indicator-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .indicator-select {
@@ -813,6 +886,13 @@ h2 {
 
 .indicator-select select {
   width: 100%;
+  min-width: 170px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  background: #ffffff;
+  color: var(--ink);
 }
 
 .indicator-grid {
@@ -1083,24 +1163,14 @@ h2 {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  position: relative;
-  background: conic-gradient(var(--ring-color) calc(var(--pct) * 1%), var(--surface-soft) 0);
-}
-
-.ring::before {
-  content: "";
-  position: absolute;
-  inset: 9px;
-  border-radius: 50%;
+  border: 9px solid var(--ring-color);
   background: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(17, 24, 39, 0.04);
 }
 
 .ring span {
-  position: relative;
   font-size: 1.12rem;
   font-weight: 900;
-  color: var(--ink);
+  color: var(--ring-color);
   font-variant-numeric: tabular-nums;
 }
 

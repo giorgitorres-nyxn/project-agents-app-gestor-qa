@@ -194,22 +194,44 @@ function applyKanbanFilters(records) {
 
 function taskCard(task) {
   const member = findName("members", task.memberId);
-  const sp = findSpMigration(task.spMigrationId);
+  const sp = (state.data.spMigrations ?? []).find((item) => item.id === task.spMigrationId);
   const overdue = taskIsOverdue(task);
+  const breadcrumb = sp
+    ? `<strong>${escapeHtml(sp.numeroLote || "Sin lote")}</strong> › ${escapeHtml(sp.funcionalidad || "Sin funcionalidad")} › ${escapeHtml(sp.nombreMicroservicio || "Sin microservicio")}`
+    : "Sin SP asignado";
+  const who = member
+    ? `<span class="card-avatar">${escapeHtml(initialsFor(member))}</span> ${escapeHtml(member)}`
+    : "Sin responsable";
   return `
     <article class="card ${overdue ? "overdue" : ""}" draggable="true" data-id="${escapeHtml(task.id)}">
       <div class="card-title">
         <strong>${escapeHtml(task.title)}</strong>
         <span class="priority-pill priority-${escapeHtml(task.priority)}">${escapeHtml(task.priority || "Media")}</span>
       </div>
-      <div class="card-meta">
-        <span>${escapeHtml(sp)}</span>
-        <span>${escapeHtml(member || "Sin responsable")}</span>
-        <span>${escapeHtml(catalogLabel("tasks", "kind", task.kind) || "Tarea")}</span>
-        <span>${overdue ? `<span class="overdue-flag">Vencida</span> ` : ""}${escapeHtml(task.dueDate || "Sin fecha")}</span>
+      <div class="card-breadcrumb">${breadcrumb}</div>
+      <div class="card-footer">
+        <span class="card-who">${who}</span>
+        <span class="tag-pill">${escapeHtml(catalogLabel("tasks", "kind", task.kind) || "Tarea")}</span>
+      </div>
+      <div class="card-footer">
+        <span class="card-dates">Creada ${escapeHtml(formatCardDate(task.createdAt))}</span>
+        <span class="card-dates">${overdue ? `<span class="overdue-flag">Vencida</span> ` : ""}${escapeHtml(formatCardDate(task.dueDate))}</span>
       </div>
     </article>
   `;
+}
+
+function initialsFor(name) {
+  return String(name || "").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function formatCardDate(value) {
+  if (!value) return "Sin fecha";
+  const [year, month, day] = String(value).slice(0, 10).split("-");
+  const months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const monthIndex = Number(month) - 1;
+  if (!year || !day || Number.isNaN(monthIndex) || monthIndex < 0 || monthIndex > 11) return value;
+  return `${day} ${months[monthIndex]} ${year}`;
 }
 
 function renderWorkload() {
@@ -223,7 +245,7 @@ function renderWorkload() {
 
   container.innerHTML = members.map((member) => {
     const tasks = (state.data.tasks ?? []).filter((task) => task.memberId === member.id && task.status !== "done");
-    const initials = member.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+    const initials = initialsFor(member.name);
     const capacity = Number(member.capacity || 0);
     return `
       <article class="member-row">
