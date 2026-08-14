@@ -24,6 +24,16 @@ const sqlConsoleExamples = [
     query: "select id, payload from public.\"testCases\" where payload->>'code' = 'TC01' limit 5"
   }
 ];
+function currentWeekRange() {
+  const now = new Date();
+  const day = now.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset);
+  const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+  const toIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return { dateFrom: toIso(monday), dateTo: toIso(sunday) };
+}
+
 let catalogs = defaultCatalogs();
 let statusLabels = taskStatusLabels();
 let spMigrationStatuses = catalogValues("spMigrations", "status");
@@ -45,10 +55,13 @@ const viewConfig = {
     ]
   },
   spMigrations: {
-    title: "Migracion de SP",
+    title: "Lotes y Microservicios",
     kicker: "Seguimiento tecnico",
     store: "spMigrations",
     columns: [
+      { label: "Lote", key: "numeroLote" },
+      { label: "Funcionalidad", key: "funcionalidad" },
+      { label: "Microservicio", key: "nombreMicroservicio" },
       { label: "SP", key: "spName" },
       { label: "Dev", key: "devName" },
       { label: "QA", key: "qa" },
@@ -127,6 +140,9 @@ let fieldConfig = {
     { name: "description", label: "Descripcion", type: "textarea", full: true }
   ],
   spMigrations: [
+    { name: "numeroLote", label: "Numero de Lote", type: "text" },
+    { name: "funcionalidad", label: "Funcionalidad", type: "text" },
+    { name: "nombreMicroservicio", label: "Nombre del Microservicio", type: "text" },
     { name: "spName", label: "Nombre del SP", type: "text", required: true },
     { name: "sqlReceivedDate", label: "Fecha recepción SQL", type: "date" },
     { name: "sqlReceived", label: "SQL recibido", type: "checkbox" },
@@ -258,9 +274,10 @@ let state = {
   configurationSection: "tasks",
   customFilters: Object.fromEntries(stores.map((store) => [store, []])),
   search: "",
-  indicatorsSpMigrationId: "",
+  indicatorsFilters: { lote: "", funcionalidad: "", microservicio: "" },
+  riskFilters: { dateFrom: "", dateTo: "", lote: "", funcionalidad: "", microservicio: "" },
   editing: null,
-  kanbanFilters: { memberId: "", dueDate: "" },
+  kanbanFilters: { memberId: "", lote: "", funcionalidad: "", microservicio: "", ...currentWeekRange() },
   showOnlyOverdueTasks: false,
   sort: {},
   importingStore: null,

@@ -1,5 +1,67 @@
 # Changelog
 
+## 2026-08-13
+
+### Cambio: Rediseno de las tarjetas de tareas en Flujo de trabajo
+
+- Las tarjetas del Kanban ahora muestran: titulo, prioridad, la ruta Lote › Funcionalidad › Microservicio del SP asociado, responsable (con iniciales), tipo de tarea, fecha de creacion y fecha de vencimiento.
+- Nuevo diseno: encabezado con titulo/prioridad, la ruta del lote como una linea con separador, y un pie de dos filas (responsable + tipo, luego las dos fechas).
+- Las fechas se muestran en formato "01 jul 2026" en la tarjeta (nuevo helper `formatCardDate`).
+- Se quito el nombre de SP suelto que se mostraba antes (ya queda representado por la ruta Lote/Funcionalidad/Microservicio).
+
+---
+
+### Cambio: Corregir anillo en blanco en "Tareas vencidas por SP"
+
+- El circulo de porcentaje de cada SP en "Riesgo por fechas" se veia casi en blanco cuando el porcentaje de vencidas era bajo o 0% (el relleno parcial no dibujaba nada visible).
+- Ahora es un anillo completo (borde de color solido segun el semaforo), siempre visible sin importar el porcentaje: verde, amarillo o rojo segun la misma regla de siempre.
+
+---
+
+### Cambio: Filtros propios en la seccion "Riesgo por fechas" de Indicadores
+
+- La seccion "Tareas vencidas por SP" (Riesgo por fechas) ahora tiene su propia barra de filtros, independiente del filtro global de Indicadores: rango de fechas (Desde/Hasta, sin valor por defecto) y Lote/Funcionalidad/Microservicio en cascada.
+- Regla: al elegir Lote, Funcionalidad o Microservicio, el rango de fechas se limpia para mostrar todas las tareas sin importar la fecha; se puede volver a acotar despues.
+- El rango de fechas ahora tambien limita que tareas cuentan para el porcentaje de vencidas de cada SP (antes siempre consideraba todas).
+
+---
+
+### Cambio: Filtro en cascada Lote/Funcionalidad/Microservicio en Indicadores
+
+- El filtro de "SP" del menu de Indicadores se reemplaza por 3 filtros en cascada: Lote, Funcionalidad y Microservicio, cada uno con su opcion de "Todos/Todas".
+- Elegir un Lote acota las opciones de Funcionalidad a las de ese lote; elegir una Funcionalidad acota Microservicio a las de esa funcionalidad.
+- Todas las metricas, graficas e indicadores por SP se recalculan segun el alcance elegido (o sobre todos los datos si no hay filtro).
+- Reutiliza `loteOptions`/`funcionalidadOptions`/`microservicioOptions` ya creadas para el filtro de Flujo de trabajo.
+
+---
+
+## 2026-08-12
+
+### Cambio: Filtros de fecha en rango y Lote/Funcionalidad/Microservicio en Flujo de trabajo
+
+- El filtro de fecha del Kanban pasa de una fecha exacta a un rango (Desde/Hasta), y por defecto arranca en la semana laboral actual (lunes a domingo que contiene hoy).
+- Se agregan 3 filtros nuevos en cascada: Lote, Funcionalidad y Microservicio (Funcionalidad se acota al Lote elegido, Microservicio se acota a ambos).
+- Regla: al elegir Lote, Funcionalidad o Microservicio, el rango de fechas se limpia automaticamente para mostrar todas las tareas sin importar la fecha; el usuario puede volver a acotar por fecha despues.
+- Lote/Funcionalidad/Microservicio de una tarea se derivan del SP (microservicio) al que esta asociada, sin agregar campos nuevos a la tarea.
+
+---
+
+### Cambio: Renombrar Migracion SP a Lotes y Microservicios
+
+- El menu y la pestana "Migracion SP" pasan a llamarse "Lotes y Microservicios".
+- Se agregan 4 campos al crear/editar un registro: Numero de Lote, Funcionalidad, Nombre del Microservicio y Nombre del SP (este ultimo ya existia). Tambien se agregan como columnas nuevas en la tabla.
+- La jerarquia Lote > Funcionalidad > Microservicio > SP no requiere tablas nuevas: surge de que varios registros pueden compartir el mismo Lote, la misma Funcionalidad o el mismo Microservicio (ej. un microservicio puede agrupar varios SP).
+- El dialogo de crear/editar ahora dice "microservicio" en vez de "seguimiento de SP".
+
+---
+
+### Cambio: Tarjetas vencidas mas visibles en el Kanban
+
+- La tarjeta de una tarea vencida ahora se pinta completa con fondo rojo tenue y borde rojo (antes solo tenia un borde izquierdo delgado, poco visible).
+- Se corrige que el borde rojo no se perdiera al pasar el mouse sobre la tarjeta (`.card:hover` competia con `.card.overdue`).
+
+---
+
 ## 2026-08-09
 
 ### Cambio: Ordenar columnas en Tareas, Casos de prueba, Migracion SP y Errores

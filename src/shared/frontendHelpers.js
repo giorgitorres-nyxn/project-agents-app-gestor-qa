@@ -85,7 +85,7 @@ function findTestCaseSp(testCase) {
 function singular(store) {
   return {
     tasks: "tarea",
-    spMigrations: "seguimiento de SP",
+    spMigrations: "microservicio",
     testCases: "caso de prueba",
     useCases: "caso de uso",
     bugs: "error",

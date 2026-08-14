@@ -331,6 +331,9 @@ function tableRow(store, record) {
   }
   if (store === "spMigrations") {
     return row([
+      record.numeroLote || "Sin lote",
+      record.funcionalidad || "Sin funcionalidad",
+      record.nombreMicroservicio || "Sin microservicio",
       record.spName,
       record.devName || "Sin dev",
       findName("members", record.qaId) || "Sin QA",
