@@ -35,12 +35,6 @@ function findName(store, itemId) {
   return storeData.find((item) => item.id === itemId)?.name;
 }
 
-function findUseCase(itemId) {
-  const useCases = state.data.useCases ?? [];
-  const item = useCases.find((record) => record.id === itemId);
-  return item ? `${item.code} - ${item.name}` : "Sin caso de uso";
-}
-
 function findTestCase(itemId) {
   const testCases = state.data.testCases ?? [];
   const item = testCases.find((record) => record.id === itemId);
@@ -72,14 +66,32 @@ function testCaseBelongsToSp(testCase, spMigrationId) {
 
 function testCaseSpMigrationId(testCase) {
   if (!testCase) return "";
-  if (testCase.spMigrationId) return testCase.spMigrationId;
-  const useCases = state.data.useCases ?? [];
-  const useCase = useCases.find((record) => record.id === testCase.useCaseId);
-  return useCase?.spMigrationId || "";
+  return testCase.spMigrationId || "";
 }
 
 function findTestCaseSp(testCase) {
   return findSpMigration(testCaseSpMigrationId(testCase));
+}
+
+function legacySpMigrationId(store, record) {
+  if (!record) return "";
+  if (record.spMigrationId) return record.spMigrationId;
+  if (store === "bugs") {
+    const testCase = (state.data.testCases ?? []).find((item) => item.id === record.testCaseId);
+    return testCase ? legacySpMigrationId("testCases", testCase) : "";
+  }
+  return "";
+}
+
+function effectiveMicroservicio(store, record) {
+  if (record?.microservicio) return record.microservicio;
+  const legacyId = legacySpMigrationId(store, record);
+  if (!legacyId) return "";
+  return (state.data.spMigrations ?? []).find((item) => item.id === legacyId)?.nombreMicroservicio || "";
+}
+
+function withEffectiveMicroservicio(store, record) {
+  return { ...record, microservicio: record.microservicio || effectiveMicroservicio(store, record) };
 }
 
 function singular(store) {
@@ -87,7 +99,6 @@ function singular(store) {
     tasks: "tarea",
     spMigrations: "microservicio",
     testCases: "caso de prueba",
-    useCases: "caso de uso",
     bugs: "error",
     members: "miembro QA"
   }[store];
