@@ -3,7 +3,7 @@
 function openEditor(store, recordId = null, overrides = null) {
   const storeData = state.data[store] ?? [];
   const record = recordId ? storeData.find((item) => item.id === recordId) : null;
-  const baseRecord = store === "bugs" ? withBugSpMigration(record || {}) : (record || {});
+  const baseRecord = microservicioFilterableStores.has(store) ? withEffectiveMicroservicio(store, record || {}) : (record || {});
   const formRecord = overrides ? { ...baseRecord, ...overrides } : baseRecord;
   state.editing = { store, id: recordId, originalStatus: record?.status ?? null };
   $("#dialog-kicker").textContent = viewConfig[store]?.kicker || "Registro";
@@ -14,12 +14,12 @@ function openEditor(store, recordId = null, overrides = null) {
 }
 
 function bindBugSpTestCaseSelector() {
-  const spSelect = $("#spMigrationId");
+  const microservicioSelect = $("#microservicio");
   const testCaseSelect = $("#testCaseId");
   const testCaseField = fieldConfig.bugs.find((field) => field.name === "testCaseId");
-  if (!spSelect || !testCaseSelect || !testCaseField) return;
-  spSelect.addEventListener("change", () => {
-    testCaseSelect.innerHTML = optionsFor(testCaseField, "", { spMigrationId: spSelect.value });
+  if (!microservicioSelect || !testCaseSelect || !testCaseField) return;
+  microservicioSelect.addEventListener("change", () => {
+    testCaseSelect.innerHTML = optionsFor(testCaseField, "", { microservicio: microservicioSelect.value });
   });
 }
 

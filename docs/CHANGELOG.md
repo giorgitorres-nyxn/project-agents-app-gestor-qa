@@ -1,5 +1,54 @@
 # Changelog
 
+## 2026-08-18
+
+### Cambio: Eliminar todo lo referente a Casos de Uso (CU) de la interfaz
+
+- Se quita el menu, la vista y el formulario de "Casos de uso".
+- Casos de prueba pierde el selector y el filtro de "Caso de uso" (el campo `useCaseId`).
+- Indicadores pierde la grafica "Casos de uso por estado".
+- Configuracion pierde la seccion de catalogos "Casos de uso".
+- Carga masiva deja de aceptar el grupo `useCases` y el campo `useCaseId` en Casos de prueba (boton, ejemplo y mensaje de ayuda actualizados).
+- La derivacion de microservicio heredado para Casos de prueba viejos ya no pasa por Caso de uso: los pocos registros que solo tenian esa cadena (sin SP ni Microservicio propio) mostraran "Sin microservicio" hasta que se editen a mano. La cadena Error -> Caso de prueba -> SP no se toca.
+- Cambio solo de interfaz: la tabla `useCases` en Supabase, la ruta del API y `projectConfig.js` quedan intactos.
+
+---
+
+### Cambio: Renombrar "Lotes y Microservicios" a "Lotes y funcionalidades" y quitar seguimiento de SQL/REST/gRPC
+
+- El menu y la pestana pasan de "Lotes y Microservicios" a "Lotes y funcionalidades".
+- Se eliminan del formulario y de la tabla los 6 campos de seguimiento de artefactos por SP: Fecha recepcion SQL, SQL recibido, Fecha recepcion REST, REST endpoint recibido, Fecha recepcion gRPC y gRPC method recibido.
+- En Indicadores se elimina la tarjeta "REST/gRPC listos"; el desglose "Artefactos SP" y la grafica "Artefactos por SP" quedan solo con Matriz de equivalencia lista y Evidencia QMetry.
+- El ejemplo de carga masiva de este store ya no incluye esos 6 campos.
+
+---
+
+### Cambio: Tareas, Casos de prueba y Errores se asignan a Microservicio en vez de SP
+
+- Al crear o editar una tarea, un caso de prueba o un error, el campo "SP asignado" se reemplaza por "Microservicio": una lista de los microservicios existentes en Lotes y Microservicios, con opcion "Ninguno".
+- Los registros existentes que ya tenian un SP asignado no se modifican en Supabase: el microservicio se deriva automaticamente del SP legado (o, en el caso de casos de prueba/errores, del caso de uso o caso de prueba relacionado) y se precarga al editar. Al guardar, el registro queda con el campo Microservicio directamente.
+- En Errores, el selector de "Caso de prueba" ahora se acota por el Microservicio elegido (antes se acotaba por SP).
+- En las tablas de Tareas, Casos de prueba y Errores, la columna y el filtro de texto libre que mostraban el SP ahora muestran el Microservicio ("Sin microservicio" si no tiene).
+- Casos de uso no cambia: sigue asociado a un SP real.
+
+---
+
+### Cambio: Filtros por Lote/Funcionalidad/Microservicio y rango de fechas en Tareas, Casos de prueba y Errores
+
+- Las 3 pestanas agregan una barra de filtros (Desde/Hasta + Lote/Funcionalidad/Microservicio en cascada), con la misma regla que el resto de la app: elegir Lote, Funcionalidad o Microservicio limpia el rango de fechas.
+- El rango de fechas filtra por la fecha de creacion del registro (unico dato de fecha disponible en las 3 pestanas).
+- En Tareas, este filtro nuevo se agrega junto al check existente de "Solo vencidas", sin reemplazarlo.
+
+---
+
+### Cambio: "Salud SP" y "Tareas vencidas por SP" ahora agrupan por Microservicio en Indicadores
+
+- Como las tareas, casos de prueba y errores ya no se asocian a una fila exacta de SP sino a un Microservicio, las secciones "Salud SP" y "Tareas vencidas por SP" pasan a agrupar y mostrarse por Microservicio ("Salud por Microservicio" y "Tareas vencidas por Microservicio"), evitando duplicar o repartir datos cuando un microservicio agrupa varias filas de SP.
+- El filtro global de Lote/Funcionalidad/Microservicio de Indicadores tambien pasa a acotar tareas/casos de prueba/errores por Microservicio.
+- La carga masiva (JSON) de casos de prueba y errores usa ahora el campo "microservicio" en vez de "spMigrationId" en sus ejemplos.
+
+---
+
 ## 2026-08-13
 
 ### Cambio: Rediseno de las tarjetas de tareas en Flujo de trabajo

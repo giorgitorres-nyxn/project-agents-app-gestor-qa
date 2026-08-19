@@ -181,10 +181,11 @@ function applyKanbanFilters(records) {
   return records.filter((record) => {
     if (memberId && record.memberId !== memberId) return false;
     if (lote || funcionalidad || microservicio) {
-      const sp = spMigrations.find((item) => item.id === record.spMigrationId);
+      const recordMicro = effectiveMicroservicio("tasks", record);
+      if (microservicio && recordMicro !== microservicio) return false;
+      const sp = recordMicro ? spMigrations.find((item) => item.nombreMicroservicio === recordMicro) : null;
       if (lote && sp?.numeroLote !== lote) return false;
       if (funcionalidad && sp?.funcionalidad !== funcionalidad) return false;
-      if (microservicio && sp?.nombreMicroservicio !== microservicio) return false;
     }
     if (dateFrom && (!record.dueDate || record.dueDate < dateFrom)) return false;
     if (dateTo && (!record.dueDate || record.dueDate > dateTo)) return false;
@@ -194,11 +195,12 @@ function applyKanbanFilters(records) {
 
 function taskCard(task) {
   const member = findName("members", task.memberId);
-  const sp = (state.data.spMigrations ?? []).find((item) => item.id === task.spMigrationId);
+  const microservicio = effectiveMicroservicio("tasks", task);
+  const sp = microservicio ? (state.data.spMigrations ?? []).find((item) => item.nombreMicroservicio === microservicio) : null;
   const overdue = taskIsOverdue(task);
   const breadcrumb = sp
-    ? `<strong>${escapeHtml(sp.numeroLote || "Sin lote")}</strong> › ${escapeHtml(sp.funcionalidad || "Sin funcionalidad")} › ${escapeHtml(sp.nombreMicroservicio || "Sin microservicio")}`
-    : "Sin SP asignado";
+    ? `<strong>${escapeHtml(sp.numeroLote || "Sin lote")}</strong> › ${escapeHtml(sp.funcionalidad || "Sin funcionalidad")} › ${escapeHtml(microservicio)}`
+    : "Sin microservicio asignado";
   const who = member
     ? `<span class="card-avatar">${escapeHtml(initialsFor(member))}</span> ${escapeHtml(member)}`
     : "Sin responsable";

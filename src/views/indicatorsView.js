@@ -7,7 +7,6 @@ function renderIndicators() {
   const allTasks = state.data.tasks ?? [];
   const allBugs = state.data.bugs ?? [];
   const allTestCases = state.data.testCases ?? [];
-  const allUseCases = state.data.useCases ?? [];
   const allSpMigrations = state.data.spMigrations ?? [];
   const savedFilters = state.indicatorsFilters ?? { lote: "", funcionalidad: "", microservicio: "" };
   const lote = loteOptions().includes(savedFilters.lote) ? savedFilters.lote : "";
@@ -22,13 +21,12 @@ function renderIndicators() {
       (!funcionalidad || sp.funcionalidad === funcionalidad) &&
       (!microservicio || sp.nombreMicroservicio === microservicio))
     : allSpMigrations;
-  const scopedSpIds = new Set(scopedSpMigrations.map((sp) => sp.id));
+  const scopedMicroservicios = new Set(scopedSpMigrations.map((sp) => sp.nombreMicroservicio).filter(Boolean));
 
-  const tasks = scopeActive ? allTasks.filter((task) => scopedSpIds.has(task.spMigrationId)) : allTasks;
-  const testCases = scopeActive ? allTestCases.filter((test) => scopedSpIds.has(testCaseSpMigrationId(test))) : allTestCases;
-  const useCases = scopeActive ? allUseCases.filter((useCase) => scopedSpIds.has(useCase.spMigrationId)) : allUseCases;
+  const tasks = scopeActive ? allTasks.filter((task) => scopedMicroservicios.has(effectiveMicroservicio("tasks", task))) : allTasks;
+  const testCases = scopeActive ? allTestCases.filter((test) => scopedMicroservicios.has(effectiveMicroservicio("testCases", test))) : allTestCases;
   const bugs = scopeActive
-    ? allBugs.filter((bug) => scopedSpIds.has(bug.spMigrationId || findBugSpMigrationId(bug)))
+    ? allBugs.filter((bug) => scopedMicroservicios.has(effectiveMicroservicio("bugs", bug)))
     : allBugs;
   const spMigrations = scopedSpMigrations;
   const executionValues = catalogValues("testCases", "executionStatus");
@@ -49,9 +47,6 @@ function renderIndicators() {
   const blockedTests = testCases.filter((test) => isBlockedTest(test)).length;
   const highPriorityActiveBugs = activeBugs.filter((bug) => isHighPriorityBug(bug)).length;
   const completedSp = spMigrations.filter((sp) => isCompletedSp(sp)).length;
-  const sqlReady = spMigrations.filter((sp) => sp.sqlReceived).length;
-  const restReady = spMigrations.filter((sp) => sp.restReceived).length;
-  const grpcReady = spMigrations.filter((sp) => sp.grpcReceived).length;
   const qmetryReady = spMigrations.filter((sp) => isQmetryReady(sp)).length;
   const matrixReady = spMigrations.filter((sp) => isMatrixReady(sp)).length;
   const averageCapacity = allMembers.length
@@ -101,7 +96,8 @@ function renderIndicators() {
 
   const scopeLabel = microservicio || funcionalidad || lote || "Todos los lotes";
   const riskiestMember = [...memberStats].sort((a, b) => b.riskScore - a.riskScore)[0];
-  const spHealthItems = spMigrations.map((sp) => spHealthItem(sp, allTestCases, allBugs));
+  const scopedMicroservicioNames = [...new Set(spMigrations.map((sp) => sp.nombreMicroservicio).filter(Boolean))];
+  const microservicioHealthItems = scopedMicroservicioNames.map((name) => microservicioHealthItem(name, allTestCases, allBugs));
 
   const savedRiskFilters = state.riskFilters ?? { dateFrom: "", dateTo: "", lote: "", funcionalidad: "", microservicio: "" };
   const riskLote = loteOptions().includes(savedRiskFilters.lote) ? savedRiskFilters.lote : "";
@@ -115,7 +111,8 @@ function renderIndicators() {
       (!riskFuncionalidad || sp.funcionalidad === riskFuncionalidad) &&
       (!riskMicroservicio || sp.nombreMicroservicio === riskMicroservicio))
     : allSpMigrations;
-  const spOverdueItems = riskSpMigrations.map((sp) => spOverdueItem(sp, allTasks, state.riskFilters.dateFrom, state.riskFilters.dateTo));
+  const riskMicroservicioNames = [...new Set(riskSpMigrations.map((sp) => sp.nombreMicroservicio).filter(Boolean))];
+  const microservicioOverdueItems = riskMicroservicioNames.map((name) => microservicioOverdueItem(name, allTasks, state.riskFilters.dateFrom, state.riskFilters.dateTo));
   const cards = [
     indicatorMetric("Casos ejecutados", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} con ${fieldLabel("testCases", "executionStatus")}`, metricTone(percentage(executedTests, testCases.length), "high"), `Mide avance real de ejecucion. Formula: TC con ${fieldLabel("testCases", "executionStatus")} informado / total de TC.`),
     indicatorMetric("TC aprobados banco", `${percentage(bankApprovedTests, testCases.length)}%`, `${bankApprovedTests} de ${testCases.length} aprobados`, metricTone(percentage(bankApprovedTests, testCases.length), "high"), `Mide aceptacion del banco. Formula: TC con ${fieldLabel("testCases", "bankApproval")} = ${catalogLabel("testCases", "bankApproval", bankApprovedValue)} / total de TC.`),
@@ -124,11 +121,10 @@ function renderIndicators() {
     indicatorMetric("Densidad defectos", defectDensity, "errores por 100 TC ejecutados", metricTone(defectDensity, "low", { good: 10, warning: 25 }), "Mide concentracion de errores. Formula: errores registrados / TC ejecutados * 100."),
     indicatorMetric("Tasa bloqueo", `${blockRate}%`, `${blockedTests} de ${testCases.length} casos bloqueados`, metricTone(blockRate, "low"), `Mide bloqueo de pruebas. Formula: TC con ${fieldLabel("testCases", "status")} = Bloqueado / total de TC.`),
     indicatorMetric("Preparacion banco", `${bankReadiness}%`, `${matrixReady} matriz, ${qmetryReady} QMetry`, metricTone(bankReadiness, "high"), "Score ponderado. Formula: ejecucion 25% + aprobacion banco 35% + matriz 20% + QMetry 20% - penalizacion por errores altos y bloqueos."),
-    indicatorMetric("Salud SP", health.label, `${health.score}% de salud operativa`, metricTone(health.score, "high"), "Semaforo operativo. Formula: preparacion banco - penalizacion por fallidos, bloqueos y errores activos de severidad Critica/Alta."),
+    indicatorMetric("Salud por Microservicio", health.label, `${health.score}% de salud operativa`, metricTone(health.score, "high"), "Semaforo operativo. Formula: preparacion banco - penalizacion por fallidos, bloqueos y errores activos de severidad Critica/Alta."),
     indicatorMetric("SP finalizados", `${percentage(completedSp, spMigrations.length)}%`, `${completedSp} de ${spMigrations.length} cerrados`, metricTone(percentage(completedSp, spMigrations.length), "high"), "Mide cierre de alcance. Formula: SP con estado Finalizado / total de SP."),
     indicatorMetric("Errores activos", activeBugs.length, `${highPriorityActiveBugs} de alta prioridad`, metricTone(activeBugs.length, "lowCount", { good: 0, warning: 5 }), "Errores abiertos para seguimiento. Formula: errores cuyo estado no es Resuelto ni Cerrado."),
     indicatorMetric("QMetry listo", qmetryReady, scopeActive ? "para el alcance elegido" : "evidencia o etapa QMetry", metricTone(percentage(qmetryReady, spMigrations.length), "high"), "Mide evidencia lista. Formula: SP con evidencia QMetry marcada o estado Evidencia QMetry."),
-    indicatorMetric("REST/gRPC listos", `${percentage(Math.min(restReady, grpcReady), spMigrations.length)}%`, `${restReady} REST, ${grpcReady} gRPC`, metricTone(percentage(Math.min(restReady, grpcReady), spMigrations.length), "high"), "Mide disponibilidad de endpoints. Formula: SP con REST y gRPC listos / total de SP."),
     indicatorMetric("Riesgo QA", riskiestMember ? riskiestMember.riskScore : 0, riskiestMember ? riskiestMember.name : "sin asignaciones", metricTone(riskiestMember?.riskScore || 0, "low", { good: 25, warning: 50 }), "Mide carga operativa por QA. Formula: SP activos*12 + errores activos*8 + tareas en revision*4 + tareas activas*3 + carga/5."),
     indicatorMetric("Carga promedio", `${averageCapacity}%`, `${allMembers.length} miembro(s) QA`, metricTone(averageCapacity, "balanced"), "Promedio de carga declarada del equipo. Formula: suma de carga de miembros QA / numero de miembros."),
     indicatorMetric("Total de tareas", tasks.length, scopeActive ? `para ${scopeLabel}` : "en todos los lotes", "neutral", "Cuenta todas las tareas creadas para el alcance seleccionado, sin importar su estado. Formula: tareas con SP = filtro elegido (o todas si no hay filtro).")
@@ -171,7 +167,7 @@ function renderIndicators() {
       ${cards.map(metricCard).join("")}
     </div>
 
-    ${spOverdueSemaphore(spOverdueItems, state.riskFilters)}
+    ${spOverdueSemaphore(microservicioOverdueItems, state.riskFilters)}
 
     <div class="detail-grid">
       ${detailBreakdown(fieldLabel("testCases", "executionStatus"), [
@@ -221,9 +217,6 @@ function renderIndicators() {
         { label: catalogLabel("testCases", "executionStatus", failedExecutionValue), value: failedTests, tone: "danger", tooltip: `Formula: TC con ${fieldLabel("testCases", "executionStatus")} = ${catalogLabel("testCases", "executionStatus", failedExecutionValue)} / TC ejecutados.` }
       ], executedTests)}
       ${detailBreakdown("Artefactos SP", [
-        { label: fieldLabel("spMigrations", "sqlReceived"), value: sqlReady, tone: "neutral", tooltip: "Formula: SP con SQL recibido / total de SP." },
-        { label: fieldLabel("spMigrations", "restReceived"), value: restReady, tone: "neutral", tooltip: "Formula: SP con REST recibido / total de SP." },
-        { label: fieldLabel("spMigrations", "grpcReceived"), value: grpcReady, tone: "neutral", tooltip: "Formula: SP con gRPC recibido / total de SP." },
         { label: fieldLabel("spMigrations", "equivalenceMatrixReady"), value: matrixReady, tone: "good", tooltip: "Formula: SP con matriz lista o estado equivalente / total de SP." },
         { label: fieldLabel("spMigrations", "qmetryEvidenceReady"), value: qmetryReady, tone: "good", tooltip: "Formula: SP con evidencia QMetry o estado equivalente / total de SP." }
       ], spMigrations.length)}
@@ -277,17 +270,10 @@ function renderIndicators() {
             value: testCases.filter((test) => effectiveCatalogValue("testCases", test, "priority") === priority).length
           })))}
           ${barChart("Artefactos por SP", [
-            { label: fieldLabel("spMigrations", "sqlReceived"), value: sqlReady },
-            { label: fieldLabel("spMigrations", "restReceived"), value: restReady },
-            { label: fieldLabel("spMigrations", "grpcReceived"), value: grpcReady },
             { label: fieldLabel("spMigrations", "equivalenceMatrixReady"), value: matrixReady },
             { label: fieldLabel("spMigrations", "qmetryEvidenceReady"), value: qmetryReady }
           ])}
-          ${barChart("Casos de uso por estado", catalogValues("useCases", "status").map((status) => ({
-            label: catalogLabel("useCases", "status", status),
-            value: useCases.filter((useCase) => useCase.status === status).length
-          })))}
-          ${barChart("Salud por SP", spHealthItems.map((item) => ({
+          ${barChart("Salud por Microservicio", microservicioHealthItems.map((item) => ({
             label: `${item.label} (${item.status})`,
             value: item.score,
             suffix: "%",
@@ -484,9 +470,9 @@ function operationalRiskScore({ activeTasks, reviewTasks, activeBugs, activeSp, 
   return Math.round((activeSp * 12) + (activeBugs * 8) + (reviewTasks * 4) + (activeTasks * 3) + (clampPercent(capacity) / 5));
 }
 
-function spHealthItem(sp, allTestCases, allBugs) {
-  const spTests = allTestCases.filter((test) => testCaseBelongsToSp(test, sp.id));
-  const spBugs = allBugs.filter((bug) => (bug.spMigrationId || findBugSpMigrationId(bug)) === sp.id);
+function microservicioHealthItem(name, allTestCases, allBugs) {
+  const spTests = allTestCases.filter((test) => effectiveMicroservicio("testCases", test) === name);
+  const spBugs = allBugs.filter((bug) => effectiveMicroservicio("bugs", bug) === name);
   const spActiveBugs = spBugs.filter((bug) => !isBugClosed(bug));
   const spExecuted = spTests.filter((test) => hasExecutionResult(test)).length;
   const successfulExecutionValue = catalogValueByTerms("testCases", "executionStatus", ["Exitoso", "Passed", "Pass", "OK"], 0);
@@ -497,8 +483,9 @@ function spHealthItem(sp, allTestCases, allBugs) {
   const spApproved = spTests.filter((test) => effectiveCatalogValue("testCases", test, "bankApproval") === bankApprovedValue).length;
   const spBlocked = spTests.filter((test) => isBlockedTest(test)).length;
   const spHighPriorityBugs = spActiveBugs.filter((bug) => isHighPriorityBug(bug)).length;
-  const matrixPct = isMatrixReady(sp) ? 100 : 0;
-  const qmetryPct = isQmetryReady(sp) ? 100 : 0;
+  const spRows = (state.data.spMigrations ?? []).filter((sp) => sp.nombreMicroservicio === name);
+  const matrixPct = percentage(spRows.filter(isMatrixReady).length, spRows.length);
+  const qmetryPct = percentage(spRows.filter(isQmetryReady).length, spRows.length);
   const readiness = readinessScore({
     executedPct: percentage(spExecuted, spTests.length),
     bankApprovedPct: percentage(spApproved, spTests.length),
@@ -514,7 +501,7 @@ function spHealthItem(sp, allTestCases, allBugs) {
     highPriorityActiveBugs: spHighPriorityBugs
   });
   return {
-    label: sp.spName || "Sin nombre",
+    label: name || "Sin nombre",
     status: health.label,
     score: health.score,
     successful: spSuccessful,
@@ -522,9 +509,9 @@ function spHealthItem(sp, allTestCases, allBugs) {
   };
 }
 
-function spOverdueItem(sp, allTasks, dateFrom = "", dateTo = "") {
+function microservicioOverdueItem(name, allTasks, dateFrom = "", dateTo = "") {
   const spTasks = allTasks.filter((task) => {
-    if (task.spMigrationId !== sp.id) return false;
+    if (effectiveMicroservicio("tasks", task) !== name) return false;
     if (dateFrom && (!task.dueDate || task.dueDate < dateFrom)) return false;
     if (dateTo && (!task.dueDate || task.dueDate > dateTo)) return false;
     return true;
@@ -532,7 +519,7 @@ function spOverdueItem(sp, allTasks, dateFrom = "", dateTo = "") {
   const overdueCount = spTasks.filter(taskIsOverdue).length;
   const pct = percentage(overdueCount, spTasks.length);
   return {
-    label: sp.spName || "Sin nombre",
+    label: name || "Sin nombre",
     pct,
     overdueCount,
     total: spTasks.length,
@@ -547,7 +534,7 @@ function spOverdueSemaphore(items, filters) {
       <div class="panel-heading">
         <div>
           <p class="eyebrow">Riesgo por fechas</p>
-          <h2>Tareas vencidas por SP</h2>
+          <h2>Tareas vencidas por Microservicio</h2>
         </div>
       </div>
       <div class="kanban-filter-bar">
@@ -596,7 +583,7 @@ function spOverdueSemaphore(items, filters) {
 
 function spOverdueRing(item) {
   return `
-    <div class="sp-ring-tile" title="Formula: tareas vencidas / total de tareas del SP. ${item.overdueCount} de ${item.total} tareas vencidas.">
+    <div class="sp-ring-tile" title="Formula: tareas vencidas / total de tareas del microservicio. ${item.overdueCount} de ${item.total} tareas vencidas.">
       <div class="ring tone-${escapeHtml(item.tone)}"><span>${item.pct}%</span></div>
       <span class="sp-name">${escapeHtml(item.label)}</span>
       <span class="sp-count">${item.overdueCount} de ${item.total} tareas</span>

@@ -7,12 +7,14 @@ function renderList() {
   renderTableHead(config);
   renderFilters(config);
   renderOverdueToggle(config);
+  renderMicroFilterBar(config);
 
   const storeData = state.data[config.store] ?? [];
   let records = applyCustomFilters(filterRecords(storeData), config.store);
   if (config.store === "tasks" && state.showOnlyOverdueTasks) {
     records = records.filter(taskIsOverdue);
   }
+  records = applyMicroFilter(records, config.store);
   records = applySort(records, config.store);
   const pagination = paginationFor(config.store);
   const totalPages = Math.max(1, Math.ceil(records.length / pagination.pageSize));
@@ -148,6 +150,97 @@ function renderOverdueToggle(config) {
   });
 }
 
+function renderMicroFilterBar(config) {
+  const container = $("#list-micro-filters");
+  if (!container) return;
+  if (!microservicioFilterableStores.has(config.store)) {
+    container.innerHTML = "";
+    return;
+  }
+  const filters = state.listMicroFilters[config.store] ?? emptyMicroFilter();
+  const hasActiveFilters = filters.dateFrom || filters.dateTo || filters.lote || filters.funcionalidad || filters.microservicio;
+  container.innerHTML = `
+    <div class="kanban-filter-controls">
+      <label class="kanban-filter-field">
+        <span>Desde</span>
+        <input type="date" data-mf-date-from value="${escapeHtml(filters.dateFrom || "")}">
+      </label>
+      <label class="kanban-filter-field">
+        <span>Hasta</span>
+        <input type="date" data-mf-date-to value="${escapeHtml(filters.dateTo || "")}">
+      </label>
+      <label class="kanban-filter-field">
+        <span>Lote</span>
+        <select data-mf-lote>
+          <option value="">Todos los lotes</option>
+          ${loteOptions().map((value) => `<option value="${escapeHtml(value)}" ${value === filters.lote ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+        </select>
+      </label>
+      <label class="kanban-filter-field">
+        <span>Funcionalidad</span>
+        <select data-mf-funcionalidad>
+          <option value="">Todas las funcionalidades</option>
+          ${funcionalidadOptions(filters.lote).map((value) => `<option value="${escapeHtml(value)}" ${value === filters.funcionalidad ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+        </select>
+      </label>
+      <label class="kanban-filter-field">
+        <span>Microservicio</span>
+        <select data-mf-microservicio>
+          <option value="">Todos los microservicios</option>
+          ${microservicioOptions(filters.lote, filters.funcionalidad).map((value) => `<option value="${escapeHtml(value)}" ${value === filters.microservicio ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+        </select>
+      </label>
+      <button class="ghost-button ${hasActiveFilters ? "" : "hidden"}" type="button" data-mf-clear>Limpiar</button>
+    </div>
+  `;
+
+  const updateFilter = (patch) => {
+    state.listMicroFilters[config.store] = { ...state.listMicroFilters[config.store], ...patch };
+    resetPage(config.store);
+    renderList();
+  };
+
+  container.querySelector("[data-mf-date-from]").addEventListener("change", (event) => updateFilter({ dateFrom: event.target.value }));
+  container.querySelector("[data-mf-date-to]").addEventListener("change", (event) => updateFilter({ dateTo: event.target.value }));
+  container.querySelector("[data-mf-lote]").addEventListener("change", (event) => {
+    const lote = event.target.value;
+    updateFilter({ lote, funcionalidad: "", microservicio: "", ...(lote ? { dateFrom: "", dateTo: "" } : {}) });
+  });
+  container.querySelector("[data-mf-funcionalidad]").addEventListener("change", (event) => {
+    const funcionalidad = event.target.value;
+    updateFilter({ funcionalidad, microservicio: "", ...(funcionalidad ? { dateFrom: "", dateTo: "" } : {}) });
+  });
+  container.querySelector("[data-mf-microservicio]").addEventListener("change", (event) => {
+    const microservicio = event.target.value;
+    updateFilter({ microservicio, ...(microservicio ? { dateFrom: "", dateTo: "" } : {}) });
+  });
+  container.querySelector("[data-mf-clear]").addEventListener("click", () => {
+    state.listMicroFilters[config.store] = emptyMicroFilter();
+    resetPage(config.store);
+    renderList();
+  });
+}
+
+function applyMicroFilter(records, store) {
+  if (!microservicioFilterableStores.has(store)) return records;
+  const filters = state.listMicroFilters[store] ?? emptyMicroFilter();
+  const { dateFrom, dateTo, lote, funcionalidad, microservicio } = filters;
+  const spMigrations = state.data.spMigrations ?? [];
+  return records.filter((record) => {
+    if (lote || funcionalidad || microservicio) {
+      const recordMicro = effectiveMicroservicio(store, record);
+      if (microservicio && recordMicro !== microservicio) return false;
+      const sp = recordMicro ? spMigrations.find((item) => item.nombreMicroservicio === recordMicro) : null;
+      if (lote && sp?.numeroLote !== lote) return false;
+      if (funcionalidad && sp?.funcionalidad !== funcionalidad) return false;
+    }
+    const createdDate = String(record.createdAt || "").slice(0, 10);
+    if (dateFrom && (!createdDate || createdDate < dateFrom)) return false;
+    if (dateTo && (!createdDate || createdDate > dateTo)) return false;
+    return true;
+  });
+}
+
 function renderFilters(config) {
   const fields = listFilterFields[config.store] ?? [];
   const activeFilters = state.customFilters[config.store] ?? [];
@@ -264,14 +357,9 @@ function filterValuesFor(store, record, fieldKey) {
 }
 
 function filterValueFor(store, record, fieldKey) {
-  if (fieldKey === "spMigration") {
-    if (store === "bugs") return findBugSpMigration(record);
-    if (store === "testCases") return findTestCaseSp(record);
-    return findSpMigration(record.spMigrationId);
-  }
+  if (fieldKey === "microservicio") return effectiveMicroservicio(store, record) || "Sin microservicio";
   if (fieldKey === "member") return findName("members", record.memberId) || "Sin responsable";
   if (fieldKey === "qa") return findName("members", record.qaId) || "Sin QA";
-  if (fieldKey === "useCase") return findUseCase(record.useCaseId);
   if (fieldKey === "testCase") return findTestCase(record.testCaseId);
   if (fieldKey === "status" && store === "tasks") return statusLabels[record.status] || record.status;
   if (fieldKey === "status" && hasCatalogField(store, "status")) return catalogLabel(store, "status", record.status);
@@ -282,9 +370,6 @@ function filterValueFor(store, record, fieldKey) {
   if (fieldKey === "executionStatus" && hasCatalogField(store, "executionStatus")) return catalogLabel(store, "executionStatus", effectiveFieldValue(store, record, "executionStatus"));
   if (fieldKey === "bankApproval" && hasCatalogField(store, "bankApproval")) return catalogLabel(store, "bankApproval", effectiveFieldValue(store, record, "bankApproval"));
   if (fieldKey === "capacity") return `${record.capacity || 0}%`;
-  if (fieldKey === "sql") return artifactFilterText(record.sqlReceived);
-  if (fieldKey === "rest") return artifactFilterText(record.restReceived);
-  if (fieldKey === "grpc") return artifactFilterText(record.grpcReceived);
   if (fieldKey === "matrix") return artifactFilterText(record.equivalenceMatrixReady);
   if (fieldKey === "qmetry") return artifactFilterText(record.qmetryEvidenceReady);
   return record[fieldKey] ?? "";
@@ -320,7 +405,7 @@ function tableRow(store, record) {
     const overdue = taskIsOverdue(record);
     return row([
       record.title,
-      findSpMigration(record.spMigrationId),
+      effectiveMicroservicio(store, record) || "Sin microservicio",
       findName("members", record.memberId) || "Sin responsable",
       { html: statusBadge(statusText) },
       record.iterations || 0,
@@ -338,9 +423,6 @@ function tableRow(store, record) {
       record.devName || "Sin dev",
       findName("members", record.qaId) || "Sin QA",
       { html: statusBadge(catalogLabel("spMigrations", "status", record.status)) },
-      { html: artifactBadge(record.sqlReceived, record.sqlReceivedDate) },
-      { html: artifactBadge(record.restReceived, record.restReceivedDate) },
-      { html: artifactBadge(record.grpcReceived, record.grpcReceivedDate) },
       { html: artifactBadge(record.equivalenceMatrixReady, "Matriz") },
       { html: artifactBadge(record.qmetryEvidenceReady, "QMetry") },
       edit
@@ -348,7 +430,7 @@ function tableRow(store, record) {
   }
   if (store === "testCases") {
     return row([
-      findTestCaseSp(record),
+      effectiveMicroservicio(store, record) || "Sin microservicio",
       record.code,
       record.name,
       { html: inlineSelect(store, record, "status") },
@@ -359,21 +441,10 @@ function tableRow(store, record) {
       edit
     ]);
   }
-  if (store === "useCases") {
-    return row([
-      findSpMigration(record.spMigrationId),
-      record.code,
-      record.name,
-      { html: statusBadge(catalogLabel("useCases", "status", record.status)) },
-      { html: pill(catalogLabel("useCases", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
-      record.observation || "Sin observacion",
-      edit
-    ]);
-  }
   if (store === "bugs") {
     return row([
       record.title,
-      findBugSpMigration(record),
+      effectiveMicroservicio(store, record) || "Sin microservicio",
       findTestCase(record.testCaseId),
       { html: pill(catalogLabel("bugs", "severity", record.severity), `severity-${cssToken(record.severity)}`) },
       { html: statusBadge(catalogLabel("bugs", "status", record.status)) },

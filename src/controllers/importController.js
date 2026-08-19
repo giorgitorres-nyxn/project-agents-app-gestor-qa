@@ -90,7 +90,7 @@ function parseBulkImportPayload(store, text) {
   });
   if (Object.keys(groups).length) return groups;
 
-  throw new Error(`Usa un arreglo JSON o un objeto con alguna propiedad: "spMigrations", "useCases", "testCases" o "bugs".`);
+  throw new Error(`Usa un arreglo JSON o un objeto con alguna propiedad: "spMigrations", "testCases" o "bugs".`);
 }
 
 async function importRecordGroups(groups) {
@@ -162,8 +162,6 @@ function normalizeImportRecord(store, rawRecord, context = { aliases: {} }) {
     const value = hasValue ? rawRecord[field.name] : defaultValue(field);
     record[field.name] = normalizeFieldValue(field, value);
   });
-  record.spMigrationId = resolveImportReference("spMigrations", record.spMigrationId, context);
-  if (store === "testCases") record.useCaseId = resolveImportReference("useCases", record.useCaseId, context);
   if (store === "bugs") {
     record.testCaseId = resolveImportReference("testCases", record.testCaseId, context);
     record.memberId = resolveImportReference("members", record.memberId, context);
@@ -222,9 +220,6 @@ function validateImportRelations(store, record) {
   if (record.spMigrationId && !state.data.spMigrations?.some((item) => item.id === record.spMigrationId)) {
     throw new Error("el spMigrationId no existe");
   }
-  if (store === "testCases" && record.useCaseId && !state.data.useCases?.some((item) => item.id === record.useCaseId)) {
-    throw new Error("el useCaseId no existe");
-  }
   if (store === "bugs") {
     if (record.testCaseId && !state.data.testCases?.some((item) => item.id === record.testCaseId)) {
       throw new Error("el testCaseId no existe");
@@ -236,8 +231,7 @@ function validateImportRelations(store, record) {
 }
 
 function bulkImportExampleFor(store) {
-  const sp = state.data.spMigrations?.[0]?.id || "";
-  const useCase = state.data.useCases?.[0]?.id || "";
+  const microservicio = state.data.spMigrations?.[0]?.nombreMicroservicio || "";
   const testCase = state.data.testCases?.[0]?.id || "";
   const member = state.data.members?.[0]?.id || "";
 
@@ -247,43 +241,21 @@ function bulkImportExampleFor(store) {
         {
           id: "sp-consulta-saldo",
           spName: "sp_consulta_saldo",
-          sqlReceivedDate: "",
-          sqlReceived: true,
           devName: "Equipo migracion",
           qaId: "",
           status: "En QA",
-          restReceivedDate: "",
-          restReceived: true,
-          grpcReceivedDate: "",
-          grpcReceived: true,
           equivalenceMatrixReady: false,
           qmetryEvidenceReady: false,
           notes: "Los IDs legibles se convierten automaticamente a UUID durante la importacion."
         }
       ]
     },
-    useCases: {
-      useCases: [
-        {
-          spMigrationId: sp,
-          code: "CU-010",
-          name: "Consultar saldo del cliente",
-          actor: "Analista QA",
-          status: "Activo",
-          priority: "Alta",
-          observation: "Validar reglas principales y escenarios alternos.",
-          goal: "Permitir la consulta de saldo disponible por cliente.",
-          flow: "Ingresar cliente, ejecutar consulta, validar respuesta y trazabilidad."
-        }
-      ]
-    },
     testCases: {
       testCases: [
         {
-          spMigrationId: sp,
+          microservicio,
           code: "CP-010",
           name: "Validar consulta exitosa de saldo",
-          useCaseId: useCase,
           status: "Borrador",
           executionStatus: "Exitoso",
           bankApproval: "No Aprobado",
@@ -298,7 +270,7 @@ function bulkImportExampleFor(store) {
       bugs: [
         {
           title: "La consulta retorna saldo desactualizado",
-          spMigrationId: sp,
+          microservicio,
           testCaseId: testCase,
           memberId: member,
           severity: "Alta",
