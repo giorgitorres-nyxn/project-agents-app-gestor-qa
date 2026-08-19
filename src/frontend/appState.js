@@ -9,7 +9,7 @@ const {
 } = window.GestorQAProject;
 
 const sqlConsoleSection = "sqlConsole";
-const configurationSections = ["tasks", "spMigrations", "testCases", "useCases", "bugs", "members", sqlConsoleSection];
+const configurationSections = ["tasks", "spMigrations", "testCases", "bugs", "members", sqlConsoleSection];
 const sqlConsoleExamples = [
   {
     label: "SPs",
@@ -45,7 +45,7 @@ const viewConfig = {
     store: "tasks",
     columns: [
       { label: "Titulo", key: "title" },
-      { label: "SP asignado", key: "spMigration" },
+      { label: "Microservicio", key: "microservicio" },
       { label: "Responsable", key: "member" },
       { label: "Estado", key: "status" },
       { label: "Iteraciones", key: "iterations" },
@@ -55,7 +55,7 @@ const viewConfig = {
     ]
   },
   spMigrations: {
-    title: "Lotes y Microservicios",
+    title: "Lotes y funcionalidades",
     kicker: "Seguimiento tecnico",
     store: "spMigrations",
     columns: [
@@ -66,9 +66,6 @@ const viewConfig = {
       { label: "Dev", key: "devName" },
       { label: "QA", key: "qa" },
       { label: "Estado", key: "status" },
-      { label: "SQL", key: "sql" },
-      { label: "REST", key: "rest" },
-      { label: "gRPC", key: "grpc" },
       { label: "Matriz", key: "matrix" },
       { label: "QMetry", key: "qmetry" },
       { label: "", key: null }
@@ -79,7 +76,7 @@ const viewConfig = {
     kicker: "Validacion",
     store: "testCases",
     columns: [
-      { label: "SP del CP", key: "spMigration" },
+      { label: "Microservicio", key: "microservicio" },
       { label: "Codigo", key: "code" },
       { label: "Nombre", key: "name" },
       { label: "Estado", key: "status" },
@@ -90,19 +87,13 @@ const viewConfig = {
       { label: "", key: null }
     ]
   },
-  useCases: {
-    title: "Casos de uso",
-    kicker: "Producto",
-    store: "useCases",
-    columns: ["SP", "Codigo", "Nombre", "Estado", "Prioridad", "Observacion", ""]
-  },
   bugs: {
     title: "Errores detectados",
     kicker: "Incidencias",
     store: "bugs",
     columns: [
       { label: "Titulo", key: "title" },
-      { label: "SP", key: "spMigration" },
+      { label: "Microservicio", key: "microservicio" },
       { label: "Caso de prueba", key: "testCase" },
       { label: "Severidad", key: "severity" },
       { label: "Estado", key: "status" },
@@ -119,9 +110,14 @@ const viewConfig = {
 };
 
 const sortableStores = new Set(["tasks", "spMigrations", "testCases", "bugs"]);
+const microservicioFilterableStores = new Set(["tasks", "testCases", "bugs"]);
 
-const bulkImportStores = new Set(["spMigrations", "testCases", "useCases", "bugs"]);
-const bulkImportGroupStores = ["spMigrations", "useCases", "testCases", "bugs"];
+function emptyMicroFilter() {
+  return { dateFrom: "", dateTo: "", lote: "", funcionalidad: "", microservicio: "" };
+}
+
+const bulkImportStores = new Set(["spMigrations", "testCases", "bugs"]);
+const bulkImportGroupStores = ["spMigrations", "testCases", "bugs"];
 const defaultPageSize = 25;
 const pageSizeOptions = [10, 25, 50, 100];
 const inlineEditableFields = {
@@ -131,7 +127,7 @@ const inlineEditableFields = {
 let fieldConfig = {
   tasks: [
     { name: "title", label: "Titulo", type: "text", required: true, full: true },
-    { name: "spMigrationId", label: "SP asignado", type: "spMigration" },
+    { name: "microservicio", label: "Microservicio", type: "microservicio" },
     { name: "memberId", label: "Responsable", type: "member" },
     { name: "status", label: "Estado", type: "select", catalogStore: "tasks", catalogField: "status", options: catalogOptions("tasks", "status") },
     { name: "priority", label: "Prioridad", type: "select", catalogStore: "tasks", catalogField: "priority", options: catalogOptions("tasks", "priority") },
@@ -144,24 +140,17 @@ let fieldConfig = {
     { name: "funcionalidad", label: "Funcionalidad", type: "text" },
     { name: "nombreMicroservicio", label: "Nombre del Microservicio", type: "text" },
     { name: "spName", label: "Nombre del SP", type: "text", required: true },
-    { name: "sqlReceivedDate", label: "Fecha recepción SQL", type: "date" },
-    { name: "sqlReceived", label: "SQL recibido", type: "checkbox" },
     { name: "devName", label: "Dev asignado", type: "text", required: true },
     { name: "qaId", label: "QA asignado", type: "member" },
     { name: "status", label: "Estado", type: "select", catalogStore: "spMigrations", catalogField: "status", options: catalogOptions("spMigrations", "status") },
-    { name: "restReceivedDate", label: "Fecha recepción REST", type: "date" },
-    { name: "restReceived", label: "REST endpoint recibido", type: "checkbox" },
-    { name: "grpcReceivedDate", label: "Fecha recepción gRPC", type: "date" },
-    { name: "grpcReceived", label: "gRPC method recibido", type: "checkbox" },
     { name: "equivalenceMatrixReady", label: "Matriz de equivalencia lista", type: "checkbox" },
     { name: "qmetryEvidenceReady", label: "Evidencia cargada a QMetry", type: "checkbox" },
     { name: "notes", label: "Notas QA", type: "textarea", full: true }
   ],
   testCases: [
-    { name: "spMigrationId", label: "SP asociado", type: "spMigration" },
+    { name: "microservicio", label: "Microservicio", type: "microservicio" },
     { name: "code", label: "Codigo", type: "text", required: true },
     { name: "name", label: "Nombre", type: "text", required: true },
-    { name: "useCaseId", label: "Caso de uso", type: "useCase" },
     { name: "status", label: "Estado", type: "select", catalogStore: "testCases", catalogField: "status", options: catalogOptions("testCases", "status") },
     { name: "executionStatus", label: "Ejecucion", type: "select", catalogStore: "testCases", catalogField: "executionStatus", options: catalogOptions("testCases", "executionStatus"), default: "", emptyLabel: "Sin ejecutar" },
     { name: "bankApproval", label: "Aprobado Banco", type: "select", catalogStore: "testCases", catalogField: "bankApproval", options: catalogOptions("testCases", "bankApproval"), default: "No Aprobado" },
@@ -170,21 +159,10 @@ let fieldConfig = {
     { name: "steps", label: "Pasos", type: "textarea", full: true },
     { name: "expected", label: "Resultado esperado", type: "textarea", full: true }
   ],
-  useCases: [
-    { name: "spMigrationId", label: "SP asociado", type: "spMigration" },
-    { name: "code", label: "Codigo", type: "text", required: true },
-    { name: "name", label: "Nombre", type: "text", required: true },
-    { name: "actor", label: "Actor", type: "text" },
-    { name: "status", label: "Estado", type: "select", catalogStore: "useCases", catalogField: "status", options: catalogOptions("useCases", "status") },
-    { name: "priority", label: "Prioridad", type: "select", catalogStore: "useCases", catalogField: "priority", options: catalogOptions("useCases", "priority") },
-    { name: "observation", label: "Observacion", type: "textarea", full: true },
-    { name: "goal", label: "Objetivo", type: "textarea", full: true },
-    { name: "flow", label: "Flujo principal", type: "textarea", full: true }
-  ],
   bugs: [
     { name: "title", label: "Titulo", type: "text", required: true, full: true },
-    { name: "spMigrationId", label: "SP asociado", type: "spMigration" },
-    { name: "testCaseId", label: "Caso de prueba", type: "testCase", filterBySp: true },
+    { name: "microservicio", label: "Microservicio", type: "microservicio" },
+    { name: "testCaseId", label: "Caso de prueba", type: "testCase", filterByMicroservicio: true },
     { name: "memberId", label: "Responsable", type: "member" },
     { name: "severity", label: "Severidad", type: "select", catalogStore: "bugs", catalogField: "severity", options: catalogOptions("bugs", "severity") },
     { name: "status", label: "Estado", type: "select", catalogStore: "bugs", catalogField: "status", options: catalogOptions("bugs", "status") },
@@ -204,7 +182,7 @@ let fieldConfig = {
 const listFilterFields = {
   tasks: [
     { key: "title", label: "Titulo" },
-    { key: "spMigration", label: "SP asignado" },
+    { key: "microservicio", label: "Microservicio" },
     { key: "member", label: "Responsable" },
     { key: "status", label: "Estado" },
     { key: "priority", label: "Prioridad" },
@@ -217,18 +195,14 @@ const listFilterFields = {
     { key: "devName", label: "Dev" },
     { key: "qa", label: "QA" },
     { key: "status", label: "Estado" },
-    { key: "sql", label: "SQL" },
-    { key: "rest", label: "REST" },
-    { key: "grpc", label: "gRPC" },
     { key: "matrix", label: "Matriz" },
     { key: "qmetry", label: "QMetry" },
     { key: "notes", label: "Notas" }
   ],
   testCases: [
-    { key: "spMigration", label: "SP del CP" },
+    { key: "microservicio", label: "Microservicio" },
     { key: "code", label: "Codigo" },
     { key: "name", label: "Nombre" },
-    { key: "useCase", label: "Caso de uso" },
     { key: "status", label: "Estado" },
     { key: "executionStatus", label: "Ejecucion" },
     { key: "bankApproval", label: "Aprobado Banco" },
@@ -237,20 +211,9 @@ const listFilterFields = {
     { key: "steps", label: "Pasos" },
     { key: "expected", label: "Resultado esperado" }
   ],
-  useCases: [
-    { key: "spMigration", label: "SP" },
-    { key: "code", label: "Codigo" },
-    { key: "name", label: "Nombre" },
-    { key: "actor", label: "Actor" },
-    { key: "status", label: "Estado" },
-    { key: "priority", label: "Prioridad" },
-    { key: "observation", label: "Observacion" },
-    { key: "goal", label: "Objetivo" },
-    { key: "flow", label: "Flujo principal" }
-  ],
   bugs: [
     { key: "title", label: "Titulo" },
-    { key: "spMigration", label: "SP" },
+    { key: "microservicio", label: "Microservicio" },
     { key: "testCase", label: "Caso de prueba" },
     { key: "severity", label: "Severidad" },
     { key: "status", label: "Estado" },
@@ -276,6 +239,11 @@ let state = {
   search: "",
   indicatorsFilters: { lote: "", funcionalidad: "", microservicio: "" },
   riskFilters: { dateFrom: "", dateTo: "", lote: "", funcionalidad: "", microservicio: "" },
+  listMicroFilters: {
+    tasks: emptyMicroFilter(),
+    testCases: emptyMicroFilter(),
+    bugs: emptyMicroFilter()
+  },
   editing: null,
   kanbanFilters: { memberId: "", lote: "", funcionalidad: "", microservicio: "", ...currentWeekRange() },
   showOnlyOverdueTasks: false,
