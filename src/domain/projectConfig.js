@@ -64,18 +64,6 @@
     }
   };
 
-  const spMigrationTransitions = {
-    "SQL recibido": ["REST/gRPC recibido", "Finalizado"],
-    "REST/gRPC recibido": ["En QA", "Finalizado"],
-    "En QA": ["Matriz lista", "En revision por banco", "Finalizado"],
-    "Matriz lista": ["Evidencia QMetry", "En revision por banco", "Finalizado"],
-    "Evidencia QMetry": ["En revision por banco", "Finalizado"],
-    "En revision por banco": ["Finalizado"],
-    Finalizado: []
-  };
-
-  const defaultSpMigrationStatusValues = new Set(catalogDefinitions.spMigrations.fields.status.defaults);
-
   const taskIterationSourceStatuses = new Set(["review", "done"]);
   const taskIterationTargetStatuses = new Set(["active", "backlog"]);
 
@@ -91,26 +79,9 @@
     return task.dueDate < todayIso;
   }
 
-  function spTransitionError(oldStatus, newStatus) {
-    if (oldStatus === newStatus || !oldStatus) return null;
-    if (!defaultSpMigrationStatusValues.has(oldStatus) || !defaultSpMigrationStatusValues.has(newStatus)) return null;
-    const allowed = spMigrationTransitions[oldStatus] || [];
-    if (allowed.includes(newStatus)) return null;
-    return `Transicion invalida: no se puede ir de "${oldStatus}" a "${newStatus}"`;
-  }
-
-  function validateSpTransition(oldStatus, newStatus) {
-    const error = spTransitionError(oldStatus, newStatus);
-    if (error) throw new Error(error);
-  }
-
   return {
     stores,
     catalogDefinitions,
-    spMigrationTransitions,
-    defaultSpMigrationStatusValues,
-    spTransitionError,
-    validateSpTransition,
     isTaskIterationTransition,
     isTaskOverdue
   };
