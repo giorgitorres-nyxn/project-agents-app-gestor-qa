@@ -114,17 +114,6 @@ class JsonRepository:
 class QAService:
     """Capa de casos de uso: valida entidades y coordina repositorios."""
 
-    SP_VALID_TRANSITIONS = {
-        "SQL recibido": ["REST/gRPC recibido", "Finalizado"],
-        "REST/gRPC recibido": ["En QA", "Finalizado"],
-        "En QA": ["Matriz lista", "En revision por banco", "Finalizado"],
-        "Matriz lista": ["Evidencia QMetry", "En revision por banco", "Finalizado"],
-        "Evidencia QMetry": ["En revision por banco", "Finalizado"],
-        "En revision por banco": ["Finalizado"],
-        "Finalizado": []
-    }
-    DEFAULT_SP_STATUSES = set(SP_VALID_TRANSITIONS)
-
     def __init__(self, database: DatabaseManager) -> None:
         self.repositories = {store: JsonRepository(database, store) for store in VALID_STORES}
 
@@ -139,12 +128,6 @@ class QAService:
     def update(self, store: str, record_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         self._validate_store(store)
         payload["id"] = record_id
-
-        if store == "spMigrations":
-            existing = self.repositories[store].get(record_id)
-            if existing and existing.get("status") != payload.get("status"):
-                self._validate_sp_transition(existing.get("status"), payload.get("status"))
-
         return self.repositories[store].save(payload)
 
     def delete(self, store: str, record_id: str) -> None:
@@ -268,15 +251,6 @@ class QAService:
     def _validate_store(store: str) -> None:
         if store not in VALID_STORES:
             raise ValueError(f"Entidad no valida: {store}")
-
-    def _validate_sp_transition(self, old_status: str | None, new_status: str | None) -> None:
-        if old_status == new_status or not old_status:
-            return
-        if old_status not in self.DEFAULT_SP_STATUSES or new_status not in self.DEFAULT_SP_STATUSES:
-            return
-        allowed = self.SP_VALID_TRANSITIONS.get(old_status, [])
-        if new_status not in allowed:
-            raise ValueError(f"Transición inválida: no se puede ir de \"{old_status}\" a \"{new_status}\"")
 
 
 class QARequestHandler(SimpleHTTPRequestHandler):
