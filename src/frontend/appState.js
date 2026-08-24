@@ -3,7 +3,6 @@
 const {
   stores,
   catalogDefinitions,
-  spTransitionError,
   isTaskIterationTransition,
   isTaskOverdue
 } = window.GestorQAProject;

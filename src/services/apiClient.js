@@ -1,9 +1,5 @@
 // API client and persistence helpers for the Vercel serverless backend.
 
-function validateSPStatusTransition(oldStatus, newStatus) {
-  return spTransitionError(oldStatus, newStatus);
-}
-
 async function api(path, options = {}) {
   const response = await fetch(path, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
@@ -42,15 +38,6 @@ async function saveRecord(store, record) {
   const editing = Boolean(record.id);
   const url = editing ? `/api/${store}?id=${encodeURIComponent(record.id)}` : `/api/${store}`;
   const method = editing ? "PUT" : "POST";
-
-  if (editing && store === "spMigrations") {
-    const storeData = state.data[store] ?? [];
-    const existing = storeData.find((item) => item.id === record.id);
-    if (existing && existing.status !== record.status) {
-      const error = validateSPStatusTransition(existing.status, record.status);
-      if (error) throw new Error(error);
-    }
-  }
 
   return api(url, { method, body: JSON.stringify(record) });
 }

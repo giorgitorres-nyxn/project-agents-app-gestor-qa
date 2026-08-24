@@ -1,4 +1,4 @@
-const { stores, validateSpTransition } = require("../src/domain/projectConfig");
+const { stores } = require("../src/domain/projectConfig");
 const {
   clearCookieHeader,
   cookieHeader,
@@ -95,9 +95,6 @@ async function handleUpdate(req, res, parts) {
   const existing = await getRecord(store, recordId);
 
   const payload = { ...(existing || {}), ...(req.body || {}), id: recordId };
-  if (store === "spMigrations" && existing && existing.status !== payload.status) {
-    validateSpTransition(existing.status, payload.status);
-  }
 
   const record = await saveRecord(store, payload, recordId);
   return sendJson(res, 200, record);

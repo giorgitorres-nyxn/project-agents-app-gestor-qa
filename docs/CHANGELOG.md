@@ -2,6 +2,14 @@
 
 ## 2026-08-18
 
+### Corregir: Quitar la validacion obligatoria de secuencia de Estado en Lotes y funcionalidades
+
+- Al cambiar el Estado de un registro de Lotes y funcionalidades, el sistema exigia una secuencia fija (SQL recibido -> REST/gRPC recibido -> En QA -> Matriz lista -> Evidencia QMetry -> En revision por banco -> Finalizado) y bloqueaba con un error cualquier salto o retroceso fuera de ese orden.
+- Esa secuencia dependia de los campos de SQL/REST/gRPC recibido que ya se habian eliminado del formulario; la validacion quedo exigiendo un orden sin ningun campo que lo respalde.
+- Se quita esa validacion por completo: el Estado ahora se puede cambiar libremente a cualquier valor del catalogo, sin restriccion de orden. Se corrigio en los 3 lugares donde estaba duplicada: el formulario (frontend), el backend de Vercel/Supabase y el servidor local de desarrollo.
+
+---
+
 ### Cambio: Eliminar todo lo referente a Casos de Uso (CU) de la interfaz
 
 - Se quita el menu, la vista y el formulario de "Casos de uso".
