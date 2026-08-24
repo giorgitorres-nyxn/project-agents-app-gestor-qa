@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-24
+
+### Cambio: Filtros ampliados en lotes y funcionalidades
+
+- La vista de lotes/SP ahora permite filtrar por funcionalidad asociada y caso de prueba relacionado.
+- La vista de lotes/SP agrega filtros por fechas de recepcion SQL, REST y gRPC.
+- La vista de funcionalidades/casos de uso ahora permite filtrar por casos de prueba relacionados.
+- Los filtros relacionales usan textos legibles con codigo y nombre, igual que en la vista de casos de prueba.
+
+---
+
 ## 2026-07-02
 
 ### Correccion: Estados legados en selects

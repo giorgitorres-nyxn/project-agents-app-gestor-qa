@@ -33,7 +33,7 @@ El proyecto se trabaja exclusivamente sobre Vercel y Supabase.
   - **Validación de flujo de estado** (no permite saltar etapas)
   - **Métricas de progreso** en el dashboard (% completado, en progreso, listos)
 - Asignacion de responsables y seguimiento de carga de trabajo.
-- Busqueda global y filtros por estado.
+- Busqueda global y filtros personalizados por campos, relaciones y estado.
 - Exportacion de datos a JSON.
 
 ## Contexto funcional actual

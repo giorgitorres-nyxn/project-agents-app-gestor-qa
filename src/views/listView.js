@@ -180,7 +180,7 @@ function matchesCustomFilter(store, record, filter) {
 }
 
 function filterValuesFor(store, record, fieldKey) {
-  const values = [filterValueFor(store, record, fieldKey)];
+  const values = flattenFilterValues(filterValueFor(store, record, fieldKey));
   if (hasCatalogField(store, fieldKey)) {
     const effectiveValue = effectiveFieldValue(store, record, fieldKey);
     values.push(record[fieldKey]);
@@ -188,6 +188,11 @@ function filterValuesFor(store, record, fieldKey) {
     values.push(catalogLabel(store, fieldKey, effectiveValue));
   }
   return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
+}
+
+function flattenFilterValues(value) {
+  if (Array.isArray(value)) return value.flatMap(flattenFilterValues);
+  return [value];
 }
 
 function filterValueFor(store, record, fieldKey) {
@@ -198,8 +203,15 @@ function filterValueFor(store, record, fieldKey) {
   }
   if (fieldKey === "member") return findName("members", record.memberId) || "Sin responsable";
   if (fieldKey === "qa") return findName("members", record.qaId) || "Sin QA";
-  if (fieldKey === "useCase") return findUseCase(record.useCaseId);
-  if (fieldKey === "testCase") return findTestCase(record.testCaseId);
+  if (fieldKey === "useCase") {
+    if (store === "spMigrations") return relatedUseCasesForSp(record.id);
+    return findUseCase(record.useCaseId);
+  }
+  if (fieldKey === "testCase") {
+    if (store === "spMigrations") return relatedTestCasesForSp(record.id);
+    if (store === "useCases") return relatedTestCasesForUseCase(record.id);
+    return findTestCase(record.testCaseId);
+  }
   if (fieldKey === "status" && store === "tasks") return statusLabels[record.status] || record.status;
   if (fieldKey === "status" && hasCatalogField(store, "status")) return catalogLabel(store, "status", record.status);
   if (fieldKey === "priority" && hasCatalogField(store, "priority")) return catalogLabel(store, "priority", record.priority);
@@ -215,6 +227,28 @@ function filterValueFor(store, record, fieldKey) {
   if (fieldKey === "matrix") return artifactFilterText(record.equivalenceMatrixReady);
   if (fieldKey === "qmetry") return artifactFilterText(record.qmetryEvidenceReady);
   return record[fieldKey] ?? "";
+}
+
+function relatedUseCasesForSp(spMigrationId) {
+  return (state.data.useCases ?? [])
+    .filter((useCase) => useCase.spMigrationId === spMigrationId)
+    .map(formatCodeAndName);
+}
+
+function relatedTestCasesForSp(spMigrationId) {
+  return (state.data.testCases ?? [])
+    .filter((testCase) => testCaseBelongsToSp(testCase, spMigrationId))
+    .map(formatCodeAndName);
+}
+
+function relatedTestCasesForUseCase(useCaseId) {
+  return (state.data.testCases ?? [])
+    .filter((testCase) => testCase.useCaseId === useCaseId)
+    .map(formatCodeAndName);
+}
+
+function formatCodeAndName(record) {
+  return [record.code, record.name].filter(Boolean).join(" - ");
 }
 
 function hasCatalogField(store, fieldKey) {
