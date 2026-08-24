@@ -2,6 +2,14 @@
 
 ## 2026-08-24
 
+### Cambio: Totales de alcance en Indicadores
+
+- Se agrega una tarjeta `Alcance filtrado` con totales unicos de Lotes, Funcionalidades y Microservicios.
+- La tarjeta respeta el filtro superior de Indicadores, por ejemplo muestra cuantos microservicios quedan dentro de un lote o una funcionalidad.
+- Se agrega la tarjeta `Total errores`, tambien acotada por lote, funcionalidad o microservicio, para consultar errores totales del alcance seleccionado.
+
+---
+
 ### Cambio: Filtros ampliados en Lotes y funcionalidades
 
 - La vista `Lotes y funcionalidades` ahora incluye la barra de filtros por rango de fechas, lote, funcionalidad y microservicio.

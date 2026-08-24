@@ -471,6 +471,32 @@ h2 {
   font-size: 0.9rem;
 }
 
+.metric-triplet {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+
+.metric-triplet span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.metric-triplet strong {
+  margin-top: 0;
+  font-size: 1.45rem;
+}
+
+.metric-triplet small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
 .work-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

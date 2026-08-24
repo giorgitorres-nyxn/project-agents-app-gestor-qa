@@ -96,7 +96,9 @@ function renderIndicators() {
 
   const scopeLabel = microservicio || funcionalidad || lote || "Todos los lotes";
   const riskiestMember = [...memberStats].sort((a, b) => b.riskScore - a.riskScore)[0];
-  const scopedMicroservicioNames = [...new Set(spMigrations.map((sp) => sp.nombreMicroservicio).filter(Boolean))];
+  const scopedLoteNames = uniqueValues(spMigrations, "numeroLote");
+  const scopedFuncionalidadNames = uniqueValues(spMigrations, "funcionalidad");
+  const scopedMicroservicioNames = uniqueValues(spMigrations, "nombreMicroservicio");
   const microservicioHealthItems = scopedMicroservicioNames.map((name) => microservicioHealthItem(name, allTestCases, allBugs));
 
   const savedRiskFilters = state.riskFilters ?? { dateFrom: "", dateTo: "", lote: "", funcionalidad: "", microservicio: "" };
@@ -114,6 +116,12 @@ function renderIndicators() {
   const riskMicroservicioNames = [...new Set(riskSpMigrations.map((sp) => sp.nombreMicroservicio).filter(Boolean))];
   const microservicioOverdueItems = riskMicroservicioNames.map((name) => microservicioOverdueItem(name, allTasks, state.riskFilters.dateFrom, state.riskFilters.dateTo));
   const cards = [
+    indicatorScopeMetric({
+      lotes: scopedLoteNames.length,
+      funcionalidades: scopedFuncionalidadNames.length,
+      microservicios: scopedMicroservicioNames.length,
+      scopeLabel
+    }),
     indicatorMetric("Casos ejecutados", `${percentage(executedTests, testCases.length)}%`, `${executedTests} de ${testCases.length} con ${fieldLabel("testCases", "executionStatus")}`, metricTone(percentage(executedTests, testCases.length), "high"), `Mide avance real de ejecucion. Formula: TC con ${fieldLabel("testCases", "executionStatus")} informado / total de TC.`),
     indicatorMetric("TC aprobados banco", `${percentage(bankApprovedTests, testCases.length)}%`, `${bankApprovedTests} de ${testCases.length} aprobados`, metricTone(percentage(bankApprovedTests, testCases.length), "high"), `Mide aceptacion del banco. Formula: TC con ${fieldLabel("testCases", "bankApproval")} = ${catalogLabel("testCases", "bankApproval", bankApprovedValue)} / total de TC.`),
     indicatorMetric("Calidad entrega", `${successRateExecuted}%`, `${failedRateExecuted}% fallidos sobre ejecutados`, metricTone(successRateExecuted, "high"), `Mide calidad solo sobre lo ejecutado. Formula: TC con ${fieldLabel("testCases", "executionStatus")} = ${catalogLabel("testCases", "executionStatus", successfulExecutionValue)} / TC ejecutados.`),
@@ -123,6 +131,7 @@ function renderIndicators() {
     indicatorMetric("Preparacion banco", `${bankReadiness}%`, `${matrixReady} matriz, ${qmetryReady} QMetry`, metricTone(bankReadiness, "high"), "Score ponderado. Formula: ejecucion 25% + aprobacion banco 35% + matriz 20% + QMetry 20% - penalizacion por errores altos y bloqueos."),
     indicatorMetric("Salud por Microservicio", health.label, `${health.score}% de salud operativa`, metricTone(health.score, "high"), "Semaforo operativo. Formula: preparacion banco - penalizacion por fallidos, bloqueos y errores activos de severidad Critica/Alta."),
     indicatorMetric("SP finalizados", `${percentage(completedSp, spMigrations.length)}%`, `${completedSp} de ${spMigrations.length} cerrados`, metricTone(percentage(completedSp, spMigrations.length), "high"), "Mide cierre de alcance. Formula: SP con estado Finalizado / total de SP."),
+    indicatorMetric("Total errores", bugs.length, scopeActive ? `para ${scopeLabel}` : "en todos los lotes", metricTone(bugs.length, "lowCount", { good: 0, warning: 10 }), "Cuenta todos los errores registrados para el alcance seleccionado. Formula: errores cuyo microservicio pertenece al lote, funcionalidad o microservicio filtrado."),
     indicatorMetric("Errores activos", activeBugs.length, `${highPriorityActiveBugs} de alta prioridad`, metricTone(activeBugs.length, "lowCount", { good: 0, warning: 5 }), "Errores abiertos para seguimiento. Formula: errores cuyo estado no es Resuelto ni Cerrado."),
     indicatorMetric("QMetry listo", qmetryReady, scopeActive ? "para el alcance elegido" : "evidencia o etapa QMetry", metricTone(percentage(qmetryReady, spMigrations.length), "high"), "Mide evidencia lista. Formula: SP con evidencia QMetry marcada o estado Evidencia QMetry."),
     indicatorMetric("Riesgo QA", riskiestMember ? riskiestMember.riskScore : 0, riskiestMember ? riskiestMember.name : "sin asignaciones", metricTone(riskiestMember?.riskScore || 0, "low", { good: 25, warning: 50 }), "Mide carga operativa por QA. Formula: SP activos*12 + errores activos*8 + tareas en revision*4 + tareas activas*3 + carga/5."),
@@ -416,7 +425,24 @@ function indicatorMetric(label, value, detail, tone, tooltip) {
   return { label, value, detail, tone, tooltip };
 }
 
+function indicatorScopeMetric({ lotes, funcionalidades, microservicios, scopeLabel }) {
+  return {
+    type: "scope",
+    label: "Alcance filtrado",
+    value: microservicios,
+    detail: `para ${scopeLabel}`,
+    tone: "neutral",
+    tooltip: "Cuenta valores unicos dentro del filtro superior. Formula: lotes, funcionalidades y microservicios distintos en Lotes y funcionalidades.",
+    items: [
+      { label: "Lotes", value: lotes },
+      { label: "Funcionalidades", value: funcionalidades },
+      { label: "Microservicios", value: microservicios }
+    ]
+  };
+}
+
 function metricCard(metric) {
+  if (metric.type === "scope") return scopeMetricCard(metric);
   return `
     <article class="metric indicator-card indicator-${escapeHtml(metric.tone || "neutral")}" title="${escapeHtml(metric.tooltip || "")}" aria-label="${escapeHtml(`${metric.label}. ${metric.detail}. ${metric.tooltip || ""}`)}">
       <span>${escapeHtml(metric.label)}</span>
@@ -424,6 +450,27 @@ function metricCard(metric) {
       <span>${escapeHtml(metric.detail)}</span>
     </article>
   `;
+}
+
+function scopeMetricCard(metric) {
+  return `
+    <article class="metric indicator-card indicator-${escapeHtml(metric.tone || "neutral")}" title="${escapeHtml(metric.tooltip || "")}" aria-label="${escapeHtml(`${metric.label}. ${metric.detail}. ${metric.tooltip || ""}`)}">
+      <span>${escapeHtml(metric.label)}</span>
+      <div class="metric-triplet">
+        ${metric.items.map((item) => `
+          <span>
+            <strong>${escapeHtml(item.value)}</strong>
+            <small>${escapeHtml(item.label)}</small>
+          </span>
+        `).join("")}
+      </div>
+      <span>${escapeHtml(metric.detail)}</span>
+    </article>
+  `;
+}
+
+function uniqueValues(records, fieldName) {
+  return [...new Set((records ?? []).map((record) => String(record?.[fieldName] ?? "").trim()).filter(Boolean))];
 }
 
 function metricTone(value, direction, thresholds = {}) {
