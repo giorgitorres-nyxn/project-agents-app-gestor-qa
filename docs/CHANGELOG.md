@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-24
+
+### Cambio: Filtros ampliados en Lotes y funcionalidades
+
+- La vista `Lotes y funcionalidades` ahora incluye la barra de filtros por rango de fechas, lote, funcionalidad y microservicio.
+- El constructor de filtros de la misma vista agrega los campos Lote, Funcionalidad, Microservicio y Caso de prueba.
+- El filtro por Caso de prueba relaciona los casos con el microservicio del lote, conservando compatibilidad con registros legados asociados por SP.
+
+---
+
 ## 2026-08-18
 
 ### Cambio: Eliminar todo lo referente a Casos de Uso (CU) de la interfaz

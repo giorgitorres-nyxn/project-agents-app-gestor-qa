@@ -230,7 +230,11 @@ function applyMicroFilter(records, store) {
     if (lote || funcionalidad || microservicio) {
       const recordMicro = effectiveMicroservicio(store, record);
       if (microservicio && recordMicro !== microservicio) return false;
-      const sp = recordMicro ? spMigrations.find((item) => item.nombreMicroservicio === recordMicro) : null;
+      const sp = store === "spMigrations"
+        ? record
+        : recordMicro
+          ? spMigrations.find((item) => item.nombreMicroservicio === recordMicro)
+          : null;
       if (lote && sp?.numeroLote !== lote) return false;
       if (funcionalidad && sp?.funcionalidad !== funcionalidad) return false;
     }
@@ -346,7 +350,7 @@ function matchesCustomFilter(store, record, filter) {
 }
 
 function filterValuesFor(store, record, fieldKey) {
-  const values = [filterValueFor(store, record, fieldKey)];
+  const values = flattenFilterValues(filterValueFor(store, record, fieldKey));
   if (hasCatalogField(store, fieldKey)) {
     const effectiveValue = effectiveFieldValue(store, record, fieldKey);
     values.push(record[fieldKey]);
@@ -356,11 +360,19 @@ function filterValuesFor(store, record, fieldKey) {
   return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
 }
 
+function flattenFilterValues(value) {
+  if (Array.isArray(value)) return value.flatMap(flattenFilterValues);
+  return [value];
+}
+
 function filterValueFor(store, record, fieldKey) {
   if (fieldKey === "microservicio") return effectiveMicroservicio(store, record) || "Sin microservicio";
   if (fieldKey === "member") return findName("members", record.memberId) || "Sin responsable";
   if (fieldKey === "qa") return findName("members", record.qaId) || "Sin QA";
-  if (fieldKey === "testCase") return findTestCase(record.testCaseId);
+  if (fieldKey === "testCase") {
+    if (store === "spMigrations") return relatedTestCasesForMicroservicio(record);
+    return findTestCase(record.testCaseId);
+  }
   if (fieldKey === "status" && store === "tasks") return statusLabels[record.status] || record.status;
   if (fieldKey === "status" && hasCatalogField(store, "status")) return catalogLabel(store, "status", record.status);
   if (fieldKey === "priority" && hasCatalogField(store, "priority")) return catalogLabel(store, "priority", record.priority);
@@ -372,7 +384,24 @@ function filterValueFor(store, record, fieldKey) {
   if (fieldKey === "capacity") return `${record.capacity || 0}%`;
   if (fieldKey === "matrix") return artifactFilterText(record.equivalenceMatrixReady);
   if (fieldKey === "qmetry") return artifactFilterText(record.qmetryEvidenceReady);
+  if (fieldKey === "numeroLote") return record.numeroLote || "";
+  if (fieldKey === "funcionalidad") return record.funcionalidad || "";
   return record[fieldKey] ?? "";
+}
+
+function relatedTestCasesForMicroservicio(spRecord) {
+  return (state.data.testCases ?? [])
+    .filter((testCase) => {
+      const microservicio = effectiveMicroservicio("testCases", testCase);
+      return microservicio
+        ? microservicio === spRecord.nombreMicroservicio
+        : testCaseBelongsToSp(testCase, spRecord.id);
+    })
+    .map(formatCodeAndName);
+}
+
+function formatCodeAndName(record) {
+  return [record.code, record.name].filter(Boolean).join(" - ");
 }
 
 function hasCatalogField(store, fieldKey) {

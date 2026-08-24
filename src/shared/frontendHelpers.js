@@ -85,6 +85,7 @@ function legacySpMigrationId(store, record) {
 
 function effectiveMicroservicio(store, record) {
   if (record?.microservicio) return record.microservicio;
+  if (store === "spMigrations") return record?.nombreMicroservicio || "";
   const legacyId = legacySpMigrationId(store, record);
   if (!legacyId) return "";
   return (state.data.spMigrations ?? []).find((item) => item.id === legacyId)?.nombreMicroservicio || "";

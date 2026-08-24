@@ -110,7 +110,7 @@ const viewConfig = {
 };
 
 const sortableStores = new Set(["tasks", "spMigrations", "testCases", "bugs"]);
-const microservicioFilterableStores = new Set(["tasks", "testCases", "bugs"]);
+const microservicioFilterableStores = new Set(["tasks", "spMigrations", "testCases", "bugs"]);
 
 function emptyMicroFilter() {
   return { dateFrom: "", dateTo: "", lote: "", funcionalidad: "", microservicio: "" };
@@ -191,10 +191,14 @@ const listFilterFields = {
     { key: "description", label: "Descripcion" }
   ],
   spMigrations: [
+    { key: "numeroLote", label: "Lote" },
+    { key: "funcionalidad", label: "Funcionalidad" },
+    { key: "microservicio", label: "Microservicio" },
     { key: "spName", label: "SP" },
     { key: "devName", label: "Dev" },
     { key: "qa", label: "QA" },
     { key: "status", label: "Estado" },
+    { key: "testCase", label: "Caso de prueba" },
     { key: "matrix", label: "Matriz" },
     { key: "qmetry", label: "QMetry" },
     { key: "notes", label: "Notas" }
@@ -241,6 +245,7 @@ let state = {
   riskFilters: { dateFrom: "", dateTo: "", lote: "", funcionalidad: "", microservicio: "" },
   listMicroFilters: {
     tasks: emptyMicroFilter(),
+    spMigrations: emptyMicroFilter(),
     testCases: emptyMicroFilter(),
     bugs: emptyMicroFilter()
   },
