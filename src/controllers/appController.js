@@ -27,10 +27,14 @@ function bindEvents() {
 }
 
 function setView(view) {
-  state.activeView = view;
-  if (!["dashboard", "indicators", "configuration"].includes(view)) {
-    state.listView = view;
-  }
-  document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === view));
-  render();
+  const stop = startLoading("Cargando menu", { immediate: true });
+  window.setTimeout(() => {
+    state.activeView = view;
+    if (!["dashboard", "indicators", "configuration"].includes(view)) {
+      state.listView = view;
+    }
+    document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === view));
+    render();
+    window.setTimeout(stop, 240);
+  }, 0);
 }

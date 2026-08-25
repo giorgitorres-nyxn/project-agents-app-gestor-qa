@@ -29,6 +29,9 @@ async function handleFormSubmit(event) {
     $("#item-dialog").close();
     return;
   }
+  const submitButton = $("#save-item");
+  submitButton.disabled = true;
+  submitButton.textContent = "Guardando";
   const { store, id: editingId } = state.editing;
   const storeData = state.data[store] ?? [];
   const existing = editingId ? storeData.find((item) => item.id === editingId) : {};
@@ -65,14 +68,27 @@ async function handleFormSubmit(event) {
     render();
   } catch (error) {
     alert(`Error: ${error.message}`);
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Guardar";
   }
 }
 
 async function handleDelete() {
   const { store, id: editingId } = state.editing;
   if (!editingId) return;
-  await deleteRecord(store, editingId);
-  await refreshData();
-  $("#item-dialog").close();
-  render();
+  const deleteButton = $("#delete-item");
+  deleteButton.disabled = true;
+  deleteButton.textContent = "Eliminando";
+  try {
+    await deleteRecord(store, editingId);
+    await refreshData();
+    $("#item-dialog").close();
+    render();
+  } catch (error) {
+    alert(`Error: ${error.message}`);
+  } finally {
+    deleteButton.disabled = false;
+    deleteButton.textContent = "Eliminar";
+  }
 }

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-25
+
+### Cambio: Indicadores visuales de carga
+
+- Se agrega un loader global con barra superior y marca `QA` animada para consultas al backend, inicio de sesion, guardado, eliminacion, importacion y consola SQL.
+- Los cambios de menu muestran una transicion breve de carga para comunicar que la vista se esta preparando.
+- Los formularios deshabilitan el boton de guardado o eliminacion mientras la operacion esta en proceso para evitar envios duplicados.
+
+---
+
 ## 2026-08-24
 
 ### Cambio: Totales de alcance en Indicadores

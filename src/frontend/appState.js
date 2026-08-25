@@ -252,6 +252,12 @@ let state = {
   kanbanFilters: { memberId: "", lote: "", funcionalidad: "", microservicio: "", ...currentWeekRange() },
   showOnlyOverdueTasks: false,
   sort: {},
+  loading: {
+    activeCount: 0,
+    message: "",
+    visible: false,
+    timer: null
+  },
   importingStore: null,
   sqlConsole: {
     query: sqlConsoleExamples[0].query,
@@ -361,4 +367,57 @@ function catalogLabel(store, field, value) {
 
 function taskStatusLabels() {
   return Object.fromEntries(catalogOptions("tasks", "status").map((item) => [item.value, item.label]));
+}
+
+function startLoading(message = "Procesando informacion", options = {}) {
+  state.loading.activeCount += 1;
+  state.loading.message = message;
+  if (options.immediate) {
+    window.clearTimeout(state.loading.timer);
+    state.loading.timer = null;
+    state.loading.visible = true;
+  } else if (!state.loading.timer) {
+    state.loading.timer = window.setTimeout(() => {
+      state.loading.visible = state.loading.activeCount > 0;
+      updateLoadingView();
+    }, 120);
+  }
+  updateLoadingView();
+  return () => stopLoading();
+}
+
+function stopLoading() {
+  state.loading.activeCount = Math.max(0, state.loading.activeCount - 1);
+  if (state.loading.activeCount > 0) {
+    updateLoadingView();
+    return;
+  }
+  window.clearTimeout(state.loading.timer);
+  state.loading.timer = null;
+  state.loading.visible = false;
+  state.loading.message = "";
+  updateLoadingView();
+}
+
+async function withLoading(message, action) {
+  const stop = startLoading(message);
+  try {
+    return await action();
+  } finally {
+    stop();
+  }
+}
+
+function updateLoadingView() {
+  const overlay = $("#app-loading");
+  if (!overlay) return;
+  const isVisible = state.loading.visible && state.loading.activeCount > 0;
+  overlay.classList.toggle("is-visible", isVisible);
+  overlay.setAttribute("aria-hidden", isVisible ? "false" : "true");
+  overlay.style.opacity = isVisible ? "1" : "0";
+  overlay.style.pointerEvents = isVisible ? "auto" : "none";
+  overlay.style.transform = isVisible ? "translateY(0)" : "translateY(-10px)";
+  document.body.classList.toggle("is-busy", state.loading.activeCount > 0);
+  const message = $("#app-loading-message");
+  if (message) message.textContent = state.loading.message || "Procesando informacion";
 }

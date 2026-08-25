@@ -5,9 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Gestor QA</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="styles.css?v=20260818-4">
+    <link rel="stylesheet" href="styles.css?v=20260825-1">
   </head>
   <body>
+    <div class="app-loading" id="app-loading" aria-hidden="true" role="status" aria-live="polite">
+      <div class="loading-progress" aria-hidden="true"></div>
+      <div class="loading-card">
+        <div class="loading-mark" aria-hidden="true">QA</div>
+        <div>
+          <strong id="app-loading-message">Procesando informacion</strong>
+          <span>Un momento mientras se actualizan los datos</span>
+        </div>
+      </div>
+    </div>
+
     <section class="login-view" id="login-view" aria-labelledby="login-title">
       <form class="login-card" id="login-form" action="/" method="get">
         <div class="brand login-brand">
@@ -218,21 +229,21 @@
     </dialog>
 
     <input id="import-file" type="file" accept="application/json" hidden>
-    <script src="src/domain/projectConfig.js?v=20260818-4"></script>
-    <script src="src/frontend/appState.js?v=20260818-4"></script>
-    <script src="src/services/apiClient.js?v=20260818-4"></script>
-    <script src="src/shared/frontendHelpers.js?v=20260818-4"></script>
-    <script src="src/views/appView.js?v=20260818-4"></script>
-    <script src="src/views/configurationView.js?v=20260818-4"></script>
-    <script src="src/views/dashboardView.js?v=20260818-4"></script>
-    <script src="src/views/indicatorsView.js?v=20260818-4"></script>
-    <script src="src/views/listView.js?v=20260818-4"></script>
-    <script src="src/views/formView.js?v=20260818-4"></script>
-    <script src="src/controllers/authController.js?v=20260818-4"></script>
-    <script src="src/controllers/appController.js?v=20260818-4"></script>
-    <script src="src/controllers/configurationController.js?v=20260818-4"></script>
-    <script src="src/controllers/editorController.js?v=20260818-4"></script>
-    <script src="src/controllers/importController.js?v=20260818-4"></script>
-    <script src="app.js?v=20260818-4"></script>
+    <script src="src/domain/projectConfig.js?v=20260825-1"></script>
+    <script src="src/frontend/appState.js?v=20260825-1"></script>
+    <script src="src/services/apiClient.js?v=20260825-1"></script>
+    <script src="src/shared/frontendHelpers.js?v=20260825-1"></script>
+    <script src="src/views/appView.js?v=20260825-1"></script>
+    <script src="src/views/configurationView.js?v=20260825-1"></script>
+    <script src="src/views/dashboardView.js?v=20260825-1"></script>
+    <script src="src/views/indicatorsView.js?v=20260825-1"></script>
+    <script src="src/views/listView.js?v=20260825-1"></script>
+    <script src="src/views/formView.js?v=20260825-1"></script>
+    <script src="src/controllers/authController.js?v=20260825-1"></script>
+    <script src="src/controllers/appController.js?v=20260825-1"></script>
+    <script src="src/controllers/configurationController.js?v=20260825-1"></script>
+    <script src="src/controllers/editorController.js?v=20260825-1"></script>
+    <script src="src/controllers/importController.js?v=20260825-1"></script>
+    <script src="app.js?v=20260825-1"></script>
   </body>
 </html>

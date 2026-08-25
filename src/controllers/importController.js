@@ -22,7 +22,7 @@ async function handleImportFileChange(event) {
   const [file] = event.target.files || [];
   if (!file) return;
   try {
-    $("#import-json").value = await file.text();
+    $("#import-json").value = await withLoading("Leyendo archivo", () => file.text());
     setImportSummary(`Archivo cargado: ${file.name}`);
   } catch (error) {
     setImportSummary(`No se pudo leer el archivo: ${error.message}`, true);
