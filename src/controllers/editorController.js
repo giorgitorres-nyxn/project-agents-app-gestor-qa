@@ -39,7 +39,11 @@ async function handleFormSubmit(event) {
     if (field.type === "checkbox") {
       record[field.name] = rawValue === "true";
     } else if (field.type === "number") {
-      record[field.name] = Number(rawValue || 0);
+      if (field.emptyAsNull && (rawValue === null || rawValue === "")) {
+        record[field.name] = null;
+      } else {
+        record[field.name] = Number(rawValue || 0);
+      }
     } else {
       record[field.name] = rawValue;
     }

@@ -57,11 +57,29 @@ function renderKanban() {
       event.preventDefault();
       const task = state.data.tasks.find((item) => item.id === event.dataTransfer.getData("text/plain"));
       if (!task) return;
-      await saveRecord("tasks", { ...task, status: column.dataset.status });
+      const nextTask = taskWithStatusChangeData(task, column.dataset.status);
+      if (!nextTask) return;
+      await saveRecord("tasks", nextTask);
       await refreshData();
       render();
     });
   });
+}
+
+function taskWithStatusChangeData(task, nextStatus) {
+  const nextTask = { ...task, status: nextStatus };
+  if (!isTaskClosingStatusChange(task.status, nextStatus) || taskReturnMetric(nextTask) !== null) {
+    return nextTask;
+  }
+
+  const answer = window.prompt("Devoluciones registradas para cerrar la tarea", "0");
+  if (answer === null) return null;
+  const devoluciones = Number(answer);
+  if (!Number.isInteger(devoluciones) || devoluciones < 0) {
+    alert("Registra devoluciones como un numero entero igual o mayor a 0.");
+    return null;
+  }
+  return { ...nextTask, devoluciones };
 }
 
 function taskCard(task) {

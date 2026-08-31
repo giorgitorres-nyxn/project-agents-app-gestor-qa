@@ -2,6 +2,14 @@
 
 function renderIndicators() {
   const container = $("#indicators-content");
+  if (state.indicatorsTab === "kpis") {
+    renderKpiIndicators(container);
+    return;
+  }
+  renderOperationalIndicators(container);
+}
+
+function renderOperationalIndicators(container) {
   const members = filterRecords(state.data.members ?? []);
   const allMembers = state.data.members ?? [];
   const allTasks = state.data.tasks ?? [];
@@ -111,6 +119,7 @@ function renderIndicators() {
   ];
 
   container.innerHTML = `
+    ${indicatorTabs()}
     <section class="panel indicator-toolbar">
       <div class="indicator-scope">
         <div>
@@ -270,10 +279,307 @@ function renderIndicators() {
     </div>
   `;
 
+  bindIndicatorTabs(container);
   container.querySelector("#indicator-sp-filter")?.addEventListener("change", (event) => {
     state.indicatorsSpMigrationId = event.target.value;
     renderIndicators();
   });
+}
+
+function indicatorTabs() {
+  const activeTab = state.indicatorsTab || "operational";
+  return `
+    <div class="indicator-tabs" role="tablist" aria-label="Indicadores">
+      <button type="button" role="tab" data-indicator-tab="operational" aria-selected="${activeTab === "operational"}" class="${activeTab === "operational" ? "active" : ""}">Operativos</button>
+      <button type="button" role="tab" data-indicator-tab="kpis" aria-selected="${activeTab === "kpis"}" class="${activeTab === "kpis" ? "active" : ""}">KPIs</button>
+    </div>
+  `;
+}
+
+function bindIndicatorTabs(container) {
+  container.querySelectorAll("[data-indicator-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.indicatorsTab = button.dataset.indicatorTab;
+      renderIndicators();
+    });
+  });
+}
+
+function renderKpiIndicators(container) {
+  const tasks = state.data.tasks ?? [];
+  const periods = availableKpiPeriods(tasks);
+  if (!state.kpiPeriod || !periods.includes(state.kpiPeriod)) {
+    state.kpiPeriod = currentKpiPeriod();
+  }
+  if (!periods.includes(state.kpiPeriod)) periods.unshift(state.kpiPeriod);
+
+  const periodTasks = tasks.filter((task) => task.memberId && taskIsInKpiPeriod(task, state.kpiPeriod));
+  const memberIds = [...new Set(periodTasks.map((task) => task.memberId))];
+  const members = (state.data.members ?? [])
+    .filter((member) => memberIds.includes(member.id))
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es"));
+  const rows = members.map((member) => kpiMemberRow(member, periodTasks.filter((task) => task.memberId === member.id)));
+
+  container.innerHTML = `
+    ${indicatorTabs()}
+    <section class="panel indicator-toolbar">
+      <div class="indicator-scope kpi-scope">
+        <div>
+          <p class="eyebrow">Reporte mensual</p>
+          <h2>Desempeno QA - ${escapeHtml(kpiPeriodLabel(state.kpiPeriod))}</h2>
+          <p class="kpi-source">Fuente de calculo: tabla tasks; la planeacion se toma de Fecha limite.</p>
+        </div>
+        <label class="indicator-select" for="kpi-period-filter">
+          <span>Periodo</span>
+          <select id="kpi-period-filter">
+            ${periods.map((period) => `<option value="${escapeHtml(period)}" ${period === state.kpiPeriod ? "selected" : ""}>${escapeHtml(kpiPeriodLabel(period))}</option>`).join("")}
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Modelo 3 factores</p>
+          <h2>KPIs por miembro</h2>
+        </div>
+      </div>
+      <div class="table-wrap kpi-table-wrap">
+        <table class="kpi-table">
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Eficiencia</th>
+              <th>Calidad</th>
+              <th>Eficacia</th>
+              <th>Auditoria</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.length ? rows.map(renderKpiTableRow).join("") : `<tr><td colspan="5"><div class="empty-state">No hay tareas para miembros QA en este periodo.</div></td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+
+  bindIndicatorTabs(container);
+  container.querySelector("#kpi-period-filter")?.addEventListener("change", (event) => {
+    state.kpiPeriod = event.target.value;
+    renderIndicators();
+  });
+}
+
+function kpiMemberRow(member, periodTasks) {
+  const plannedTasks = periodTasks.filter((task) => taskDueDateIsInPeriod(task, state.kpiPeriod));
+  const doneOnTime = plannedTasks.filter((task) => isTaskDone(task) && taskDoneOnOrBeforeDueDate(task));
+  const correctionTasks = periodTasks.filter(isCorrectionTask);
+  const weightedCorrections = correctionTasks.reduce((total, task) => total + correctionWeight(task), 0);
+  const returnValues = periodTasks.map((task) => ({ task, value: taskReturnMetric(task) }));
+  const populatedReturns = returnValues.filter((entry) => entry.value !== null);
+  const zeroReturnTasks = returnValues.filter((entry) => entry.value === 0);
+
+  return {
+    member,
+    periodTasks,
+    plannedTasks,
+    correctionTasks,
+    efficiency: plannedTasks.length
+      ? {
+        value: `${percentage(doneOnTime.length, plannedTasks.length)}%`,
+        detail: `${doneOnTime.length}/${plannedTasks.length} a tiempo`,
+        tone: metricTone(percentage(doneOnTime.length, plannedTasks.length), "high")
+      }
+      : {
+        value: "Sin tareas planeadas",
+        detail: "0 tareas con fecha limite",
+        tone: "neutral"
+      },
+    quality: plannedTasks.length
+      ? qualityKpi(correctionTasks, weightedCorrections, plannedTasks.length)
+      : {
+        value: "Sin tareas planeadas",
+        detail: "No hay denominador",
+        tone: "neutral"
+      },
+    efficacy: periodTasks.length && populatedReturns.length
+      ? {
+        value: `${percentage(zeroReturnTasks.length, periodTasks.length)}%`,
+        detail: `${zeroReturnTasks.length}/${periodTasks.length} sin devoluciones`,
+        tone: metricTone(percentage(zeroReturnTasks.length, periodTasks.length), "high"),
+        missing: periodTasks.length - populatedReturns.length
+      }
+      : {
+        value: "No calculable",
+        detail: "falta registrar devoluciones/iteraciones",
+        tone: "neutral",
+        missing: periodTasks.length
+      }
+  };
+}
+
+function qualityKpi(correctionTasks, weightedCorrections, plannedCount) {
+  if (!correctionTasks.length) {
+    return {
+      value: "100%",
+      detail: "sin correcciones registradas",
+      tone: "good"
+    };
+  }
+  const score = clampPercent(Math.round((1 - (weightedCorrections / (3 * plannedCount))) * 100));
+  return {
+    value: `${score}%`,
+    detail: `${weightedCorrections} puntos de correccion`,
+    tone: metricTone(score, "high")
+  };
+}
+
+function renderKpiTableRow(rowData) {
+  const initials = String(rowData.member.name || "?")
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  return `
+    <tr>
+      <td>
+        <div class="kpi-person">
+          <div class="avatar">${escapeHtml(initials)}</div>
+          <div>
+            <strong>${escapeHtml(rowData.member.name || "Sin nombre")}</strong>
+            <span>${rowData.periodTasks.length} tarea(s), ${rowData.plannedTasks.length} planeada(s)</span>
+          </div>
+        </div>
+      </td>
+      <td>${kpiCell(rowData.efficiency)}</td>
+      <td>${kpiCell(rowData.quality)}</td>
+      <td>${kpiCell(rowData.efficacy)}</td>
+      <td>${kpiAuditDetails(rowData)}</td>
+    </tr>
+  `;
+}
+
+function kpiCell(metric) {
+  return `
+    <div class="kpi-cell kpi-${escapeHtml(metric.tone || "neutral")}">
+      <strong>${escapeHtml(metric.value)}</strong>
+      <span>${escapeHtml(metric.detail)}</span>
+      ${metric.missing ? `<small>${escapeHtml(metric.missing)} sin dato registrado</small>` : ""}
+    </div>
+  `;
+}
+
+function kpiAuditDetails(rowData) {
+  return `
+    <details class="kpi-audit">
+      <summary>Ver tareas</summary>
+      <div class="kpi-audit-grid">
+        ${kpiAuditSection("Eficiencia", rowData.plannedTasks.map((task) => ({
+          title: task.title || task.id,
+          meta: `${catalogLabel("tasks", "status", effectiveCatalogValue("tasks", task, "status")) || "Sin estado"} - vence ${task.dueDate || "sin fecha"} - actualizada ${dateKey(task.updatedAt) || "sin fecha"}`,
+          result: isTaskDone(task) && taskDoneOnOrBeforeDueDate(task) ? "Cuenta a tiempo" : "No cuenta a tiempo"
+        })))}
+        ${kpiAuditSection("Calidad", rowData.correctionTasks.map((task) => ({
+          title: task.title || task.id,
+          meta: `${catalogLabel("tasks", "kind", task.kind) || "Correccion"} - ${catalogLabel("tasks", "priority", task.priority) || "Media"}`,
+          result: `Peso ${correctionWeight(task)}`
+        })))}
+        ${kpiAuditSection("Eficacia", rowData.periodTasks.map((task) => {
+          const value = taskReturnMetric(task);
+          return {
+            title: task.title || task.id,
+            meta: `devoluciones=${metricText(task.devoluciones)} - iterations=${metricText(task.iterations)}`,
+            result: value === null ? "Sin dato" : value === 0 ? "Cuenta sin devolucion" : `${value} devolucion(es)`
+          };
+        }))}
+      </div>
+    </details>
+  `;
+}
+
+function kpiAuditSection(title, items) {
+  return `
+    <section>
+      <h3>${escapeHtml(title)}</h3>
+      <ul>
+        ${items.length ? items.map((item) => `
+          <li>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.meta)}</span>
+            <em>${escapeHtml(item.result)}</em>
+          </li>
+        `).join("") : `<li><span>Sin tareas usadas en este factor.</span></li>`}
+      </ul>
+    </section>
+  `;
+}
+
+function metricText(value) {
+  return value === undefined || value === null || value === "" ? "sin dato" : String(value);
+}
+
+function isCorrectionTask(task) {
+  return isCatalogMatch("tasks", "kind", effectiveCatalogValue("tasks", task, "kind"), ["Correccion", "Correction"]);
+}
+
+function correctionWeight(task) {
+  const priority = effectiveCatalogValue("tasks", task, "priority");
+  const text = normalizeFilterText(`${priority} ${catalogLabel("tasks", "priority", priority)}`);
+  if (text.includes("alta") || text.includes("high")) return 3;
+  if (text.includes("baja") || text.includes("low")) return 1;
+  return 2;
+}
+
+function taskDoneOnOrBeforeDueDate(task) {
+  const updated = dateKey(task.updatedAt);
+  const due = dateKey(task.dueDate);
+  return Boolean(updated && due && updated <= due);
+}
+
+function taskDueDateIsInPeriod(task, period) {
+  return periodFromDate(task.dueDate) === period;
+}
+
+function taskIsInKpiPeriod(task, period) {
+  return [task.dueDate, task.updatedAt, task.createdAt].some((value) => periodFromDate(value) === period);
+}
+
+function availableKpiPeriods(tasks) {
+  const periods = new Set([currentKpiPeriod()]);
+  tasks.forEach((task) => {
+    [task.dueDate, task.createdAt, task.updatedAt].forEach((value) => {
+      const period = periodFromDate(value);
+      if (period) periods.add(period);
+    });
+  });
+  return [...periods].sort().reverse();
+}
+
+function currentKpiPeriod() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function periodFromDate(value) {
+  const key = dateKey(value);
+  return key ? key.slice(0, 7) : "";
+}
+
+function dateKey(value) {
+  const text = String(value ?? "").trim();
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function kpiPeriodLabel(period) {
+  const [year, month] = String(period || currentKpiPeriod()).split("-").map(Number);
+  const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  return `${months[Math.min(Math.max((month || 1) - 1, 0), 11)]} ${year || new Date().getFullYear()}`;
 }
 
 function hasExecutionResult(testCase) {

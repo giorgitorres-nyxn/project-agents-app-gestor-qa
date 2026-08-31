@@ -17,6 +17,7 @@ function renderForm(store, record) {
   }).join("");
 
   if (store === "bugs") bindBugSpTestCaseSelector();
+  if (store === "tasks") bindTaskReturnRequirement(record);
 }
 
 function optionsFor(field, value, record = {}) {
@@ -50,4 +51,16 @@ function optionsFor(field, value, record = {}) {
   }
   options = optionsWithCurrentValue(options, value);
   return options.map((option) => `<option value="${escapeHtml(option.value)}" ${String(option.value) === String(value) ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("");
+}
+
+function bindTaskReturnRequirement(record = {}) {
+  const statusSelect = $("#status");
+  const devolucionesInput = $("#devoluciones");
+  if (!statusSelect || !devolucionesInput) return;
+  const originalStatus = record.status || "";
+  const syncRequirement = () => {
+    devolucionesInput.required = isTaskClosingStatusChange(originalStatus, statusSelect.value);
+  };
+  statusSelect.addEventListener("change", syncRequirement);
+  syncRequirement();
 }

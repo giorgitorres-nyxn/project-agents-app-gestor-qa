@@ -42,9 +42,10 @@ async function saveRecord(store, record) {
   const editing = Boolean(record.id);
   const url = editing ? `/api/${store}?id=${encodeURIComponent(record.id)}` : `/api/${store}`;
   const method = editing ? "PUT" : "POST";
+  let payload = record;
+  const storeData = state.data[store] ?? [];
 
   if (editing && store === "spMigrations") {
-    const storeData = state.data[store] ?? [];
     const existing = storeData.find((item) => item.id === record.id);
     if (existing && existing.status !== record.status) {
       const error = validateSPStatusTransition(existing.status, record.status);
@@ -52,7 +53,12 @@ async function saveRecord(store, record) {
     }
   }
 
-  return api(url, { method, body: JSON.stringify(record) });
+  if (store === "tasks") {
+    const existing = editing ? storeData.find((item) => item.id === record.id) : null;
+    payload = prepareTaskForSave(existing, record);
+  }
+
+  return api(url, { method, body: JSON.stringify(payload) });
 }
 
 async function deleteRecord(store, recordId) {

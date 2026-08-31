@@ -1,4 +1,4 @@
-const { stores, validateSpTransition } = require("../src/domain/projectConfig");
+const { stores, prepareTaskForSave, validateSpTransition } = require("../src/domain/projectConfig");
 const {
   clearCookieHeader,
   cookieHeader,
@@ -82,7 +82,8 @@ async function handleCreate(req, res, parts) {
   }
   const payload = { ...(req.body || {}) };
   delete payload.id;
-  const record = await saveRecord(parts[0], payload);
+  const safePayload = parts[0] === "tasks" ? prepareTaskForSave(null, payload) : payload;
+  const record = await saveRecord(parts[0], safePayload);
   return sendJson(res, 201, record);
 }
 
@@ -94,9 +95,12 @@ async function handleUpdate(req, res, parts) {
   const { store, recordId } = route;
   const existing = await getRecord(store, recordId);
 
-  const payload = { ...(existing || {}), ...(req.body || {}), id: recordId };
+  let payload = { ...(existing || {}), ...(req.body || {}), id: recordId };
   if (store === "spMigrations" && existing && existing.status !== payload.status) {
     validateSpTransition(existing.status, payload.status);
+  }
+  if (store === "tasks") {
+    payload = prepareTaskForSave(existing, payload);
   }
 
   const record = await saveRecord(store, payload, recordId);

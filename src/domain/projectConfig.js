@@ -89,12 +89,81 @@
     if (error) throw new Error(error);
   }
 
+  function normalizeStatusText(value) {
+    return String(value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
+
+  function statusMatches(value, terms) {
+    const normalized = normalizeStatusText(value);
+    return terms.map(normalizeStatusText).includes(normalized);
+  }
+
+  function isTaskDoneStatus(status) {
+    return statusMatches(status, ["done", "Finalizado", "Completado", "Cerrado"]);
+  }
+
+  function isTaskReviewStatus(status) {
+    return statusMatches(status, ["review", "En revision"]);
+  }
+
+  function isTaskBacklogOrActiveStatus(status) {
+    return statusMatches(status, ["backlog", "active", "Pendiente", "En progreso"]);
+  }
+
+  function taskReturnMetric(record) {
+    const preferred = numericMetric(record?.devoluciones);
+    if (preferred !== null) return preferred;
+    return numericMetric(record?.iterations);
+  }
+
+  function numericMetric(value) {
+    if (value === undefined || value === null || value === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function validateTaskMetricField(record, fieldName) {
+    if (record?.[fieldName] === undefined || record?.[fieldName] === null || record?.[fieldName] === "") return;
+    const value = Number(record[fieldName]);
+    if (!Number.isInteger(value) || value < 0) {
+      throw new Error(`${fieldName} debe ser un numero entero igual o mayor a 0.`);
+    }
+  }
+
+  function isTaskClosingStatusChange(oldStatus, newStatus) {
+    return !isTaskDoneStatus(oldStatus) && isTaskDoneStatus(newStatus);
+  }
+
+  function isTaskReturnStatusChange(oldStatus, newStatus) {
+    return (isTaskReviewStatus(oldStatus) || isTaskDoneStatus(oldStatus)) && isTaskBacklogOrActiveStatus(newStatus);
+  }
+
+  function prepareTaskForSave(existing, incoming) {
+    const payload = { ...(existing || {}), ...(incoming || {}) };
+    validateTaskMetricField(payload, "devoluciones");
+    validateTaskMetricField(payload, "iterations");
+    if (isTaskReturnStatusChange(existing?.status, payload.status)) {
+      payload.iterations = Math.max(0, Number(existing?.iterations || incoming?.iterations || 0)) + 1;
+    }
+    if (isTaskClosingStatusChange(existing?.status, payload.status) && taskReturnMetric(payload) === null) {
+      throw new Error("Para cerrar una tarea debes registrar devoluciones.");
+    }
+    return payload;
+  }
+
   return {
     stores,
     catalogDefinitions,
     spMigrationTransitions,
     defaultSpMigrationStatusValues,
     spTransitionError,
-    validateSpTransition
+    validateSpTransition,
+    isTaskClosingStatusChange,
+    prepareTaskForSave,
+    taskReturnMetric
   };
 });

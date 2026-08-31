@@ -3,7 +3,10 @@
 const {
   stores,
   catalogDefinitions,
-  spTransitionError
+  spTransitionError,
+  isTaskClosingStatusChange,
+  prepareTaskForSave,
+  taskReturnMetric
 } = window.GestorQAProject;
 
 const sqlConsoleSection = "sqlConsole";
@@ -31,7 +34,7 @@ const viewConfig = {
     title: "Tareas",
     kicker: "Asignacion",
     store: "tasks",
-    columns: ["Titulo", "SP asignado", "Responsable", "Estado", "Prioridad", "Vence", ""]
+    columns: ["Titulo", "SP asignado", "Responsable", "Estado", "Prioridad", "Vence", "Devoluciones", ""]
   },
   spMigrations: {
     title: "Migracion de SP",
@@ -82,6 +85,7 @@ let fieldConfig = {
     { name: "priority", label: "Prioridad", type: "select", catalogStore: "tasks", catalogField: "priority", options: catalogOptions("tasks", "priority") },
     { name: "dueDate", label: "Fecha limite", type: "date" },
     { name: "kind", label: "Tipo", type: "select", catalogStore: "tasks", catalogField: "kind", options: catalogOptions("tasks", "kind") },
+    { name: "devoluciones", label: "Devoluciones", type: "number", min: 0, emptyAsNull: true },
     { name: "description", label: "Descripcion", type: "textarea", full: true }
   ],
   spMigrations: [
@@ -152,6 +156,8 @@ const listFilterFields = {
     { key: "priority", label: "Prioridad" },
     { key: "dueDate", label: "Vence" },
     { key: "kind", label: "Tipo" },
+    { key: "devoluciones", label: "Devoluciones" },
+    { key: "iterations", label: "Iteraciones" },
     { key: "description", label: "Descripcion" }
   ],
   spMigrations: [
@@ -223,6 +229,8 @@ let state = {
   customFilters: Object.fromEntries(stores.map((store) => [store, []])),
   search: "",
   indicatorsSpMigrationId: "",
+  indicatorsTab: "operational",
+  kpiPeriod: "",
   editing: null,
   importingStore: null,
   sqlConsole: {

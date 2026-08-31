@@ -285,6 +285,7 @@ function tableRow(store, record) {
       { html: statusBadge(statusText) },
       { html: pill(catalogLabel("tasks", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
       record.dueDate || "Sin fecha",
+      taskReturnMetric(record) ?? "Sin registrar",
       edit
     ]);
   }
@@ -348,7 +349,7 @@ function tableRow(store, record) {
 }
 
 function row(cells) {
-  return `<tr>${cells.map((cell) => `<td>${cell?.html || escapeHtml(cell || "")}</td>`).join("")}</tr>`;
+  return `<tr>${cells.map((cell) => `<td>${cell?.html ?? escapeHtml(cell ?? "")}</td>`).join("")}</tr>`;
 }
 
 function pill(text, className) {
