@@ -240,6 +240,8 @@ let state = {
   configurationSection: "tasks",
   customFilters: Object.fromEntries(stores.map((store) => [store, []])),
   search: "",
+  indicatorsTab: "operational",
+  kpiPeriod: "",
   indicatorsFilters: { lote: "", funcionalidad: "", microservicio: "" },
   riskFilters: { dateFrom: "", dateTo: "", lote: "", funcionalidad: "", microservicio: "" },
   listMicroFilters: {

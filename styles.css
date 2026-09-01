@@ -1040,6 +1040,44 @@ h2 {
   color: var(--ink);
 }
 
+.indicator-select input {
+  width: 100%;
+  min-width: 170px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.indicator-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow-soft);
+}
+
+.indicator-tabs button {
+  min-height: 34px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0 12px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.indicator-tabs button.active {
+  background: var(--accent);
+  color: #ffffff;
+}
+
 .indicator-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1048,6 +1086,38 @@ h2 {
 
 .indicator-card {
   min-height: 108px;
+}
+
+.kpi-section {
+  overflow: hidden;
+}
+
+.kpi-formula {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  background: var(--surface-soft);
+}
+
+.kpi-formula strong {
+  color: var(--ink);
+}
+
+.kpi-table-wrap {
+  padding: 0;
+}
+
+.kpi-table th,
+.kpi-table td {
+  white-space: nowrap;
+}
+
+.kpi-table th:first-child,
+.kpi-table td:first-child {
+  min-width: 240px;
+  white-space: normal;
 }
 
 .detail-grid {

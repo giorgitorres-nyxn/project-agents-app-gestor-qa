@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-01
+
+### Cambio: Submenu KPIs en Indicadores
+
+- Se agrega la pestana `KPIs` dentro de `Indicadores`, con selector mes/ano y reporte automatico por periodo.
+- El reporte muestra Eficiencia, Calidad y Eficacia por miembro QA usando exclusivamente tareas con `dueDate` dentro del periodo.
+- La seccion `Totales` cuenta tareas, microservicios y casos de prueba creados en el mes seleccionado.
+
+---
+
 ## 2026-08-25
 
 ### Cambio: Indicadores visuales de carga

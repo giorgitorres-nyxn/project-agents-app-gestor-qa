@@ -1,7 +1,15 @@
-// Operational indicators view and scoring helpers.
+// Operational indicators, KPI reporting and scoring helpers.
 
 function renderIndicators() {
   const container = $("#indicators-content");
+  if (state.indicatorsTab === "kpis") {
+    renderKpiIndicators(container);
+    return;
+  }
+  renderOperationalIndicators(container);
+}
+
+function renderOperationalIndicators(container) {
   const members = filterRecords(state.data.members ?? []);
   const allMembers = state.data.members ?? [];
   const allTasks = state.data.tasks ?? [];
@@ -140,6 +148,7 @@ function renderIndicators() {
   ];
 
   container.innerHTML = `
+    ${indicatorTabs()}
     <section class="panel indicator-toolbar">
       <div class="indicator-scope">
         <div>
@@ -307,6 +316,7 @@ function renderIndicators() {
     </div>
   `;
 
+  bindIndicatorTabs(container);
   container.querySelector("#indicator-lote-filter")?.addEventListener("change", (event) => {
     state.indicatorsFilters = { lote: event.target.value, funcionalidad: "", microservicio: "" };
     renderIndicators();
@@ -350,6 +360,217 @@ function renderIndicators() {
     state.riskFilters = { dateFrom: "", dateTo: "", lote: "", funcionalidad: "", microservicio: "" };
     renderIndicators();
   });
+}
+
+function indicatorTabs() {
+  const activeTab = state.indicatorsTab || "operational";
+  return `
+    <div class="indicator-tabs" role="tablist" aria-label="Indicadores">
+      <button type="button" role="tab" data-indicator-tab="operational" aria-selected="${activeTab === "operational"}" class="${activeTab === "operational" ? "active" : ""}">Operativos</button>
+      <button type="button" role="tab" data-indicator-tab="kpis" aria-selected="${activeTab === "kpis"}" class="${activeTab === "kpis" ? "active" : ""}">KPIs</button>
+    </div>
+  `;
+}
+
+function bindIndicatorTabs(container) {
+  container.querySelectorAll("[data-indicator-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.indicatorsTab = button.dataset.indicatorTab;
+      renderIndicators();
+    });
+  });
+}
+
+function renderKpiIndicators(container) {
+  const period = validKpiPeriod(state.kpiPeriod) ? state.kpiPeriod : currentKpiPeriod();
+  state.kpiPeriod = period;
+  const periodTasks = (state.data.tasks ?? []).filter((task) => taskDueDateIsInPeriod(task, period));
+  const rows = kpiMemberRows(periodTasks);
+  const totals = kpiPeriodTotals(period);
+  const periodLabel = kpiPeriodLabel(period);
+
+  container.innerHTML = `
+    ${indicatorTabs()}
+    <section class="panel indicator-toolbar">
+      <div class="indicator-scope">
+        <div>
+          <p class="eyebrow">Reporte automatico</p>
+          <h2>KPIs QA - ${escapeHtml(periodLabel)}</h2>
+        </div>
+        <label class="indicator-select" for="kpi-period-filter">
+          <span>Mes / Ano</span>
+          <input id="kpi-period-filter" type="month" value="${escapeHtml(period)}" aria-label="Mes y ano del reporte KPI">
+        </label>
+      </div>
+    </section>
+
+    ${kpiSection({
+      number: 1,
+      title: "Eficiencia",
+      formula: "Eficiencia (%) = (tareas con status=\"done\" y updatedAt.fecha <= dueDate.fecha) / tareas del periodo x 100.",
+      headers: ["Persona", "Tareas planeadas", "Terminadas a tiempo", "Eficiencia"],
+      rows: rows.map((row) => [row.name, row.plannedTasks, row.doneOnTime, formatKpiPercent(row.efficiency)])
+    })}
+
+    ${kpiSection({
+      number: 2,
+      title: "Calidad",
+      formula: "Calidad (%) = (1 - (puntos / (3 x tareas del periodo))) x 100; puntos suma Alta=3, Media=2, Baja=1 en tareas kind=\"Correccion\".",
+      headers: ["Persona", "Correcciones", "Puntos", "Tareas planeadas", "Calidad"],
+      rows: rows.map((row) => [row.name, row.corrections, row.points, row.plannedTasks, formatKpiPercent(row.quality)])
+    })}
+
+    ${kpiSection({
+      number: 3,
+      title: "Eficacia",
+      formula: "Eficacia (%) = (1 - (cantidad de tareas kind=\"Correccion\" / tareas del periodo)) x 100.",
+      headers: ["Persona", "Correcciones", "Tareas planeadas", "Eficacia"],
+      rows: rows.map((row) => [row.name, row.corrections, row.plannedTasks, formatKpiPercent(row.efficacy)])
+    })}
+
+    <section class="panel kpi-section">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Seccion 4</p>
+          <h2>Totales (${escapeHtml(periodLabel)})</h2>
+        </div>
+      </div>
+      <div class="table-wrap kpi-table-wrap">
+        <table class="kpi-table">
+          <thead>
+            <tr><th>Dato</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Tareas creadas</td><td>${escapeHtml(totals.tasksCreated)}</td></tr>
+            <tr><td>Microservicios creados</td><td>${escapeHtml(totals.microservicesCreated)}</td></tr>
+            <tr><td>Casos de prueba creados</td><td>${escapeHtml(totals.testCasesCreated)}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+
+  bindIndicatorTabs(container);
+  container.querySelector("#kpi-period-filter")?.addEventListener("change", (event) => {
+    state.kpiPeriod = validKpiPeriod(event.target.value) ? event.target.value : currentKpiPeriod();
+    renderIndicators();
+  });
+}
+
+function kpiSection({ number, title, formula, headers, rows }) {
+  return `
+    <section class="panel kpi-section">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Seccion ${number}</p>
+          <h2>${escapeHtml(title)}</h2>
+        </div>
+      </div>
+      <div class="kpi-formula"><strong>Formula:</strong> ${escapeHtml(formula)}</div>
+      <div class="table-wrap kpi-table-wrap">
+        <table class="kpi-table">
+          <thead>
+            <tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            ${rows.length ? rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${headers.length}"><div class="empty-state">No hay tareas con responsable en este periodo.</div></td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+function kpiMemberRows(periodTasks) {
+  const membersById = new Map((state.data.members ?? []).map((member) => [member.id, member]));
+  const tasksByMember = new Map();
+  periodTasks.forEach((task) => {
+    if (!task.memberId || !membersById.has(task.memberId)) return;
+    tasksByMember.set(task.memberId, [...(tasksByMember.get(task.memberId) ?? []), task]);
+  });
+  return [...tasksByMember.entries()]
+    .map(([memberId, tasks]) => kpiMemberRow(membersById.get(memberId), tasks))
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
+function kpiMemberRow(member, tasks) {
+  const plannedTasks = tasks.length;
+  const corrections = tasks.filter(isKpiCorrectionTask);
+  const points = corrections.reduce((total, task) => total + correctionPriorityWeight(task.priority), 0);
+  const doneOnTime = tasks.filter(taskDoneOnOrBeforeDueDate).length;
+  return {
+    name: member.name || "Sin nombre",
+    plannedTasks,
+    doneOnTime,
+    corrections: corrections.length,
+    points,
+    efficiency: (doneOnTime / plannedTasks) * 100,
+    quality: corrections.length ? (1 - (points / (3 * plannedTasks))) * 100 : 100,
+    efficacy: (1 - (corrections.length / plannedTasks)) * 100
+  };
+}
+
+function kpiPeriodTotals(period) {
+  return {
+    tasksCreated: countCreatedInPeriod(state.data.tasks, period),
+    microservicesCreated: countCreatedInPeriod(state.data.spMigrations, period),
+    testCasesCreated: countCreatedInPeriod(state.data.testCases, period)
+  };
+}
+
+function countCreatedInPeriod(records = [], period) {
+  return records.filter((record) => periodFromDate(record.createdAt) === period).length;
+}
+
+function isKpiCorrectionTask(task) {
+  return task.kind === "Correccion";
+}
+
+function correctionPriorityWeight(priority) {
+  return { Alta: 3, Media: 2, Baja: 1 }[priority] ?? 0;
+}
+
+function taskDoneOnOrBeforeDueDate(task) {
+  const updatedDate = dateKey(task.updatedAt);
+  const dueDate = dateKey(task.dueDate);
+  return task.status === "done" && Boolean(updatedDate && dueDate && updatedDate <= dueDate);
+}
+
+function taskDueDateIsInPeriod(task, period) {
+  return periodFromDate(task.dueDate) === period;
+}
+
+function validKpiPeriod(period) {
+  return /^\d{4}-\d{2}$/.test(String(period || ""));
+}
+
+function currentKpiPeriod() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function periodFromDate(value) {
+  const key = dateKey(value);
+  return key ? key.slice(0, 7) : "";
+}
+
+function dateKey(value) {
+  const text = String(value ?? "").trim();
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function kpiPeriodLabel(period) {
+  const [year, month] = String(period || currentKpiPeriod()).split("-").map(Number);
+  const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  return `${months[Math.min(Math.max((month || 1) - 1, 0), 11)]} ${year || new Date().getFullYear()}`;
+}
+
+function formatKpiPercent(value) {
+  return `${Number(value || 0).toFixed(1)}%`;
 }
 
 function hasExecutionResult(testCase) {
