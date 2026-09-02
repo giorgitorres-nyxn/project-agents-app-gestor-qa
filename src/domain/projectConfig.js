@@ -64,11 +64,27 @@
     }
   };
 
-  const taskIterationSourceStatuses = new Set(["review", "done"]);
+  const taskReviewStatusTerms = new Set(["review", "en revision", "revision bb", "en revision bb"]);
+  const taskIterationSourceStatuses = new Set(["done"]);
   const taskIterationTargetStatuses = new Set(["active", "backlog"]);
 
+  function normalizeTaskStatus(status) {
+    return String(status ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .toLowerCase()
+      .trim();
+  }
+
+  function isTaskReviewStatus(status) {
+    return taskReviewStatusTerms.has(normalizeTaskStatus(status));
+  }
+
   function isTaskIterationTransition(oldStatus, newStatus) {
-    return taskIterationSourceStatuses.has(oldStatus) && taskIterationTargetStatuses.has(newStatus);
+    const oldStatusKey = normalizeTaskStatus(oldStatus);
+    const newStatusKey = normalizeTaskStatus(newStatus);
+    return (isTaskReviewStatus(oldStatus) || taskIterationSourceStatuses.has(oldStatusKey)) && taskIterationTargetStatuses.has(newStatusKey);
   }
 
   const overdueTaskStatuses = new Set(["backlog", "active"]);
@@ -83,6 +99,7 @@
     stores,
     catalogDefinitions,
     isTaskIterationTransition,
+    isTaskReviewStatus,
     isTaskOverdue
   };
 });

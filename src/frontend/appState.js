@@ -4,6 +4,7 @@ const {
   stores,
   catalogDefinitions,
   isTaskIterationTransition,
+  isTaskReviewStatus,
   isTaskOverdue
 } = window.GestorQAProject;
 
@@ -48,6 +49,7 @@ const viewConfig = {
       { label: "Responsable", key: "member" },
       { label: "Estado", key: "status" },
       { label: "Iteraciones", key: "iterations" },
+      { label: "Entrada revision", key: "reviewEnteredAt" },
       { label: "Prioridad", key: "priority" },
       { label: "Vence", key: "dueDate" },
       { label: "", key: null }
@@ -185,6 +187,7 @@ const listFilterFields = {
     { key: "member", label: "Responsable" },
     { key: "status", label: "Estado" },
     { key: "priority", label: "Prioridad" },
+    { key: "reviewEnteredAt", label: "Entrada revision" },
     { key: "dueDate", label: "Vence" },
     { key: "kind", label: "Tipo" },
     { key: "description", label: "Descripcion" }

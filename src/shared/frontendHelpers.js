@@ -14,6 +14,17 @@ function taskIsOverdue(task) {
   return isTaskOverdue(task, todayIso());
 }
 
+function taskReviewEntryAt(task) {
+  const explicitDate = String(task?.reviewEnteredAt ?? "").trim();
+  if (explicitDate) return explicitDate;
+  const history = Array.isArray(task?.statusHistory) ? task.statusHistory : [];
+  const reviewEntry = history.slice().reverse().find((entry) => isTaskReviewStatus(entry?.to));
+  if (reviewEntry?.at) return reviewEntry.at;
+  const completedDate = String(task?.completedAt ?? "").trim();
+  if (completedDate) return completedDate;
+  return isTaskReviewStatus(task?.status) ? (task?.updatedAt || "") : "";
+}
+
 function defaultValue(field) {
   if (!field) return "";
   if (field.default !== undefined) return field.default;

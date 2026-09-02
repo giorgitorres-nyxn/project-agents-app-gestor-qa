@@ -407,9 +407,9 @@ function renderKpiIndicators(container) {
     ${kpiSection({
       number: 1,
       title: "Eficiencia",
-      formula: "Eficiencia (%) = (tareas con status=\"done\" y updatedAt.fecha <= dueDate.fecha) / tareas del periodo x 100.",
-      headers: ["Persona", "Tareas planeadas", "Terminadas a tiempo", "Eficiencia"],
-      rows: rows.map((row) => [row.name, row.plannedTasks, row.doneOnTime, formatKpiPercent(row.efficiency)])
+      formula: `Eficiencia (%) = (tareas que entraron a "En revision" a tiempo / tareas planeadas de ${periodLabel}) x 100.`,
+      headers: ["Persona", "Tareas planeadas", "En revision a tiempo", "Eficiencia"],
+      rows: rows.map((row) => [row.name, row.plannedTasks, row.reviewOnTime, formatKpiPercent(row.efficiency)])
     })}
 
     ${kpiSection({
@@ -497,14 +497,14 @@ function kpiMemberRow(member, tasks) {
   const plannedTasks = tasks.length;
   const corrections = tasks.filter(isKpiCorrectionTask);
   const points = corrections.reduce((total, task) => total + correctionPriorityWeight(task.priority), 0);
-  const doneOnTime = tasks.filter(taskDoneOnOrBeforeDueDate).length;
+  const reviewOnTime = tasks.filter(taskEnteredReviewOnOrBeforeDueDate).length;
   return {
     name: member.name || "Sin nombre",
     plannedTasks,
-    doneOnTime,
+    reviewOnTime,
     corrections: corrections.length,
     points,
-    efficiency: (doneOnTime / plannedTasks) * 100,
+    efficiency: (reviewOnTime / plannedTasks) * 100,
     quality: corrections.length ? (1 - (points / (3 * plannedTasks))) * 100 : 100,
     efficacy: (1 - (corrections.length / plannedTasks)) * 100
   };
@@ -530,10 +530,10 @@ function correctionPriorityWeight(priority) {
   return { Alta: 3, Media: 2, Baja: 1 }[priority] ?? 0;
 }
 
-function taskDoneOnOrBeforeDueDate(task) {
-  const updatedDate = dateKey(task.updatedAt);
+function taskEnteredReviewOnOrBeforeDueDate(task) {
+  const reviewDate = dateKey(taskReviewEntryAt(task));
   const dueDate = dateKey(task.dueDate);
-  return task.status === "done" && Boolean(updatedDate && dueDate && updatedDate <= dueDate);
+  return Boolean(reviewDate && dueDate && reviewDate <= dueDate);
 }
 
 function taskDueDateIsInPeriod(task, period) {
@@ -606,7 +606,7 @@ function isTaskDone(task) {
 }
 
 function isTaskInReview(task) {
-  return isCatalogMatch("tasks", "status", effectiveCatalogValue("tasks", task, "status"), ["review", "En revision"]);
+  return isTaskReviewStatus(effectiveCatalogValue("tasks", task, "status"));
 }
 
 function isBugClosed(bug) {
