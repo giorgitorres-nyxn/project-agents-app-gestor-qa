@@ -6,8 +6,9 @@
 
 - Se agrega la pestana `KPIs` dentro de `Indicadores`, con selector mes/ano y reporte automatico por periodo.
 - Eficiencia usa tareas que entraron a `En revision` a tiempo contra las tareas planeadas del periodo, registrando `reviewEnteredAt` al mover una tarea a revision.
+- La seccion `Totales` muestra `Tareas del periodo` con el mismo filtro mensual por `dueDate` que usan los KPIs.
 - El reporte muestra Eficiencia, Calidad y Eficacia por miembro QA usando exclusivamente tareas con `dueDate` dentro del periodo.
-- La seccion `Totales` cuenta tareas, microservicios y casos de prueba creados en el mes seleccionado.
+- La seccion `Totales` conserva microservicios y casos de prueba creados en el mes seleccionado.
 
 ---
 

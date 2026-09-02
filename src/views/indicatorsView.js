@@ -386,7 +386,7 @@ function renderKpiIndicators(container) {
   state.kpiPeriod = period;
   const periodTasks = (state.data.tasks ?? []).filter((task) => taskDueDateIsInPeriod(task, period));
   const rows = kpiMemberRows(periodTasks);
-  const totals = kpiPeriodTotals(period);
+  const totals = kpiPeriodTotals(period, periodTasks);
   const periodLabel = kpiPeriodLabel(period);
 
   container.innerHTML = `
@@ -441,7 +441,7 @@ function renderKpiIndicators(container) {
             <tr><th>Dato</th><th>Total</th></tr>
           </thead>
           <tbody>
-            <tr><td>Tareas creadas</td><td>${escapeHtml(totals.tasksCreated)}</td></tr>
+            <tr><td>Tareas del periodo</td><td>${escapeHtml(totals.tasksInPeriod)}</td></tr>
             <tr><td>Microservicios creados</td><td>${escapeHtml(totals.microservicesCreated)}</td></tr>
             <tr><td>Casos de prueba creados</td><td>${escapeHtml(totals.testCasesCreated)}</td></tr>
           </tbody>
@@ -510,9 +510,9 @@ function kpiMemberRow(member, tasks) {
   };
 }
 
-function kpiPeriodTotals(period) {
+function kpiPeriodTotals(period, periodTasks = []) {
   return {
-    tasksCreated: countCreatedInPeriod(state.data.tasks, period),
+    tasksInPeriod: periodTasks.length,
     microservicesCreated: countCreatedInPeriod(state.data.spMigrations, period),
     testCasesCreated: countCreatedInPeriod(state.data.testCases, period)
   };
