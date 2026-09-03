@@ -52,13 +52,23 @@ async function handleFormSubmit(event) {
 
   if (store === "tasks" && editingId && record.status !== existing.status) {
     const comment = (formData.get("statusChangeComment") || "").trim();
+    const changedAt = new Date().toISOString();
     record.statusHistory = [
       ...(existing.statusHistory || []),
-      { at: new Date().toISOString(), from: existing.status, to: record.status, comment }
+      { at: changedAt, from: existing.status, to: record.status, comment }
     ];
+    if (isTaskReviewStatus(record.status) && !isTaskReviewStatus(existing.status)) {
+      record.reviewEnteredAt = changedAt;
+      record.completedAt = changedAt;
+    }
     if (isTaskIterationTransition(existing.status, record.status)) {
       record.iterations = (existing.iterations || 0) + 1;
     }
+  }
+  if (store === "tasks" && !editingId && isTaskReviewStatus(record.status)) {
+    const changedAt = new Date().toISOString();
+    record.reviewEnteredAt = record.reviewEnteredAt || changedAt;
+    record.completedAt = record.completedAt || record.reviewEnteredAt;
   }
 
   try {

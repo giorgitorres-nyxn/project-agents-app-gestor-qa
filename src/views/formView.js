@@ -26,10 +26,15 @@ function renderForm(store, record) {
 function taskStatusChangeFieldsHtml(record) {
   if (!record.id) return "";
   const historyHtml = taskStatusHistoryHtml(record.statusHistory);
+  const reviewEnteredAt = taskReviewEntryAt(record);
   return `
     <div class="field full">
       <label>Iteraciones</label>
       <div class="static-value" id="task-iterations-value">${record.iterations || 0}</div>
+    </div>
+    <div class="field full">
+      <label>Entrada a revision</label>
+      <div class="static-value">${escapeHtml(formatHistoryDate(reviewEnteredAt) || "Sin entrada registrada")}</div>
     </div>
     <div class="field full" id="status-comment-field">
       <label for="statusChangeComment">Comentario del cambio de estado</label>

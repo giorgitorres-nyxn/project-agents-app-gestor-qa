@@ -386,7 +386,7 @@ function renderKpiIndicators(container) {
   state.kpiPeriod = period;
   const periodTasks = (state.data.tasks ?? []).filter((task) => taskDueDateIsInPeriod(task, period));
   const rows = kpiMemberRows(periodTasks);
-  const totals = kpiPeriodTotals(period);
+  const totals = kpiPeriodTotals(period, periodTasks);
   const periodLabel = kpiPeriodLabel(period);
 
   container.innerHTML = `
@@ -407,25 +407,31 @@ function renderKpiIndicators(container) {
     ${kpiSection({
       number: 1,
       title: "Eficiencia",
-      formula: "Eficiencia (%) = (tareas con status=\"done\" y updatedAt.fecha <= dueDate.fecha) / tareas del periodo x 100.",
-      headers: ["Persona", "Tareas planeadas", "Terminadas a tiempo", "Eficiencia"],
-      rows: rows.map((row) => [row.name, row.plannedTasks, row.doneOnTime, formatKpiPercent(row.efficiency)])
+      factor: "efficiency",
+      formula: `Eficiencia (%) = (tareas que entraron a "En revision" a tiempo / tareas planeadas de ${periodLabel}) x 100.`,
+      headers: ["Persona", "Tareas planeadas", "En revision a tiempo", "Eficiencia"],
+      rows,
+      cells: (row) => [row.name, row.plannedTasks, row.reviewOnTime, formatKpiPercent(row.efficiency)]
     })}
 
     ${kpiSection({
       number: 2,
       title: "Calidad",
+      factor: "quality",
       formula: "Calidad (%) = (1 - (puntos / (3 x tareas del periodo))) x 100; puntos suma Alta=3, Media=2, Baja=1 en tareas kind=\"Correccion\".",
       headers: ["Persona", "Correcciones", "Puntos", "Tareas planeadas", "Calidad"],
-      rows: rows.map((row) => [row.name, row.corrections, row.points, row.plannedTasks, formatKpiPercent(row.quality)])
+      rows,
+      cells: (row) => [row.name, row.corrections, row.points, row.plannedTasks, formatKpiPercent(row.quality)]
     })}
 
     ${kpiSection({
       number: 3,
       title: "Eficacia",
+      factor: "efficacy",
       formula: "Eficacia (%) = (1 - (cantidad de tareas kind=\"Correccion\" / tareas del periodo)) x 100.",
       headers: ["Persona", "Correcciones", "Tareas planeadas", "Eficacia"],
-      rows: rows.map((row) => [row.name, row.corrections, row.plannedTasks, formatKpiPercent(row.efficacy)])
+      rows,
+      cells: (row) => [row.name, row.corrections, row.plannedTasks, formatKpiPercent(row.efficacy)]
     })}
 
     <section class="panel kpi-section">
@@ -441,7 +447,7 @@ function renderKpiIndicators(container) {
             <tr><th>Dato</th><th>Total</th></tr>
           </thead>
           <tbody>
-            <tr><td>Tareas creadas</td><td>${escapeHtml(totals.tasksCreated)}</td></tr>
+            <tr><td>Tareas del periodo</td><td>${escapeHtml(totals.tasksInPeriod)}</td></tr>
             <tr><td>Microservicios creados</td><td>${escapeHtml(totals.microservicesCreated)}</td></tr>
             <tr><td>Casos de prueba creados</td><td>${escapeHtml(totals.testCasesCreated)}</td></tr>
           </tbody>
@@ -451,13 +457,14 @@ function renderKpiIndicators(container) {
   `;
 
   bindIndicatorTabs(container);
+  bindKpiAuditRows(container, period, periodLabel);
   container.querySelector("#kpi-period-filter")?.addEventListener("change", (event) => {
     state.kpiPeriod = validKpiPeriod(event.target.value) ? event.target.value : currentKpiPeriod();
     renderIndicators();
   });
 }
 
-function kpiSection({ number, title, formula, headers, rows }) {
+function kpiSection({ number, title, factor, formula, headers, rows, cells }) {
   return `
     <section class="panel kpi-section">
       <div class="panel-heading">
@@ -473,12 +480,177 @@ function kpiSection({ number, title, formula, headers, rows }) {
             <tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>
           </thead>
           <tbody>
-            ${rows.length ? rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${headers.length}"><div class="empty-state">No hay tareas con responsable en este periodo.</div></td></tr>`}
+            ${rows.length ? rows.map((row) => kpiAuditTableRow(row, factor, cells(row))).join("") : `<tr><td colspan="${headers.length}"><div class="empty-state">No hay tareas con responsable en este periodo.</div></td></tr>`}
           </tbody>
         </table>
       </div>
     </section>
   `;
+}
+
+function kpiAuditTableRow(row, factor, cells) {
+  return `
+    <tr class="kpi-audit-row" data-kpi-member-id="${escapeHtml(row.memberId)}" data-kpi-factor="${escapeHtml(factor)}" tabindex="0" role="button" aria-label="Detalle KPI de ${escapeHtml(row.name)}">
+      ${cells.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}
+    </tr>
+  `;
+}
+
+function bindKpiAuditRows(container, period, periodLabel) {
+  container.querySelectorAll("[data-kpi-member-id][data-kpi-factor]").forEach((row) => {
+    const openDetail = () => showKpiDetail(row.dataset.kpiMemberId, row.dataset.kpiFactor, period, periodLabel);
+    row.addEventListener("click", openDetail);
+    row.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openDetail();
+      }
+    });
+  });
+}
+
+function showKpiDetail(memberId, factor, period, periodLabel) {
+  const member = (state.data.members ?? []).find((item) => item.id === memberId);
+  const tasks = (state.data.tasks ?? []).filter((task) => task.memberId === memberId && taskDueDateIsInPeriod(task, period));
+  const row = kpiMemberRow(member || { name: "Sin nombre" }, tasks);
+  const dialog = ensureKpiDetailDialog();
+  dialog.innerHTML = `
+    <div class="dialog-card kpi-detail-card">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">${escapeHtml(kpiFactorTitle(factor))}</p>
+          <h2>${escapeHtml(row.name)} - ${escapeHtml(periodLabel)}</h2>
+        </div>
+        <button class="icon-button" type="button" data-kpi-detail-close aria-label="Cerrar">X</button>
+      </div>
+      <div class="kpi-detail-body">
+        ${kpiDetailContent(factor, row, tasks)}
+      </div>
+      <div class="dialog-actions">
+        <span class="dialog-spacer"></span>
+        <button class="ghost-button" type="button" data-kpi-detail-close>Cerrar</button>
+      </div>
+    </div>
+  `;
+  dialog.querySelectorAll("[data-kpi-detail-close]").forEach((button) => button.addEventListener("click", () => dialog.close()));
+  dialog.onclick = (event) => {
+    if (event.target === dialog) dialog.close();
+  };
+  dialog.showModal();
+}
+
+function ensureKpiDetailDialog() {
+  let dialog = document.querySelector("#kpi-detail-dialog");
+  if (dialog) return dialog;
+  dialog = document.createElement("dialog");
+  dialog.id = "kpi-detail-dialog";
+  dialog.className = "kpi-detail-dialog";
+  document.body.appendChild(dialog);
+  return dialog;
+}
+
+function kpiDetailContent(factor, row, tasks) {
+  if (factor === "quality") {
+    const corrections = tasks.filter(isKpiCorrectionTask);
+    return `
+      ${kpiDetailSummary([
+        ["Correcciones", row.corrections],
+        ["Puntos", row.points],
+        ["Tareas planeadas", row.plannedTasks],
+        ["Calidad", formatKpiPercent(row.quality)]
+      ])}
+      ${kpiTaskGroup("Correcciones que descuentan calidad", corrections, "No hay correcciones registradas.", { showWeight: true })}
+      ${kpiTaskGroup("Tareas planeadas del periodo", tasks, "No hay tareas planeadas para esta persona.")}
+    `;
+  }
+  if (factor === "efficacy") {
+    const corrections = tasks.filter(isKpiCorrectionTask);
+    return `
+      ${kpiDetailSummary([
+        ["Correcciones", row.corrections],
+        ["Tareas planeadas", row.plannedTasks],
+        ["Eficacia", formatKpiPercent(row.efficacy)]
+      ])}
+      ${kpiTaskGroup("Correcciones usadas en el calculo", corrections, "No hay correcciones registradas.")}
+      ${kpiTaskGroup("Tareas planeadas del periodo", tasks, "No hay tareas planeadas para esta persona.")}
+    `;
+  }
+  const reviewOnTimeTasks = tasks.filter(taskEnteredReviewOnOrBeforeDueDate);
+  const pendingOrLateTasks = tasks.filter((task) => !taskEnteredReviewOnOrBeforeDueDate(task));
+  return `
+    ${kpiDetailSummary([
+      ["Tareas planeadas", row.plannedTasks],
+      ["En revision a tiempo", row.reviewOnTime],
+      ["Eficiencia", formatKpiPercent(row.efficiency)]
+    ])}
+    ${kpiTaskGroup("Tareas planeadas del periodo", tasks, "No hay tareas planeadas para esta persona.")}
+    ${kpiTaskGroup("En revision a tiempo", reviewOnTimeTasks, "Ninguna tarea entro a revision a tiempo.")}
+    ${kpiTaskGroup("Fuera de tiempo o sin entrada a revision", pendingOrLateTasks, "No hay tareas fuera de tiempo.")}
+  `;
+}
+
+function kpiDetailSummary(items) {
+  return `
+    <div class="kpi-detail-summary">
+      ${items.map(([label, value]) => `
+        <div class="kpi-detail-stat">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function kpiTaskGroup(title, tasks, emptyText, options = {}) {
+  return `
+    <section class="kpi-detail-group">
+      <h3>${escapeHtml(title)} <span>${escapeHtml(tasks.length)}</span></h3>
+      ${tasks.length ? `
+        <div class="table-wrap kpi-detail-table-wrap">
+          <table class="kpi-detail-table">
+            <thead>
+              <tr>
+                <th>Tarea</th>
+                <th>Estado</th>
+                <th>Vence</th>
+                <th>Entrada revision</th>
+                <th>Tipo</th>
+                <th>Prioridad</th>
+                ${options.showWeight ? "<th>Peso</th>" : ""}
+              </tr>
+            </thead>
+            <tbody>
+              ${tasks.map((task) => kpiTaskDetailRow(task, options)).join("")}
+            </tbody>
+          </table>
+        </div>
+      ` : `<div class="empty-state">${escapeHtml(emptyText)}</div>`}
+    </section>
+  `;
+}
+
+function kpiTaskDetailRow(task, options = {}) {
+  const reviewEnteredAt = taskReviewEntryAt(task);
+  return `
+    <tr>
+      <td>${escapeHtml(task.title || "Sin titulo")}</td>
+      <td>${escapeHtml(catalogLabel("tasks", "status", task.status) || task.status || "Sin estado")}</td>
+      <td>${escapeHtml(formatKpiDate(task.dueDate) || "Sin fecha")}</td>
+      <td>${escapeHtml(formatKpiDate(reviewEnteredAt) || "Sin registro")}</td>
+      <td>${escapeHtml(catalogLabel("tasks", "kind", task.kind) || task.kind || "Tarea")}</td>
+      <td>${escapeHtml(catalogLabel("tasks", "priority", task.priority) || task.priority || "Media")}</td>
+      ${options.showWeight ? `<td>${escapeHtml(correctionPriorityWeight(task.priority))}</td>` : ""}
+    </tr>
+  `;
+}
+
+function kpiFactorTitle(factor) {
+  return {
+    efficiency: "Detalle de eficiencia",
+    quality: "Detalle de calidad",
+    efficacy: "Detalle de eficacia"
+  }[factor] || "Detalle KPI";
 }
 
 function kpiMemberRows(periodTasks) {
@@ -497,22 +669,23 @@ function kpiMemberRow(member, tasks) {
   const plannedTasks = tasks.length;
   const corrections = tasks.filter(isKpiCorrectionTask);
   const points = corrections.reduce((total, task) => total + correctionPriorityWeight(task.priority), 0);
-  const doneOnTime = tasks.filter(taskDoneOnOrBeforeDueDate).length;
+  const reviewOnTime = tasks.filter(taskEnteredReviewOnOrBeforeDueDate).length;
   return {
+    memberId: member.id || "",
     name: member.name || "Sin nombre",
     plannedTasks,
-    doneOnTime,
+    reviewOnTime,
     corrections: corrections.length,
     points,
-    efficiency: (doneOnTime / plannedTasks) * 100,
+    efficiency: (reviewOnTime / plannedTasks) * 100,
     quality: corrections.length ? (1 - (points / (3 * plannedTasks))) * 100 : 100,
     efficacy: (1 - (corrections.length / plannedTasks)) * 100
   };
 }
 
-function kpiPeriodTotals(period) {
+function kpiPeriodTotals(period, periodTasks = []) {
   return {
-    tasksCreated: countCreatedInPeriod(state.data.tasks, period),
+    tasksInPeriod: periodTasks.length,
     microservicesCreated: countCreatedInPeriod(state.data.spMigrations, period),
     testCasesCreated: countCreatedInPeriod(state.data.testCases, period)
   };
@@ -530,10 +703,10 @@ function correctionPriorityWeight(priority) {
   return { Alta: 3, Media: 2, Baja: 1 }[priority] ?? 0;
 }
 
-function taskDoneOnOrBeforeDueDate(task) {
-  const updatedDate = dateKey(task.updatedAt);
+function taskEnteredReviewOnOrBeforeDueDate(task) {
+  const reviewDate = dateKey(taskReviewEntryAt(task));
   const dueDate = dateKey(task.dueDate);
-  return task.status === "done" && Boolean(updatedDate && dueDate && updatedDate <= dueDate);
+  return Boolean(reviewDate && dueDate && reviewDate <= dueDate);
 }
 
 function taskDueDateIsInPeriod(task, period) {
@@ -573,6 +746,13 @@ function formatKpiPercent(value) {
   return `${Number(value || 0).toFixed(1)}%`;
 }
 
+function formatKpiDate(value) {
+  const key = dateKey(value);
+  if (!key) return "";
+  const [year, month, day] = key.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 function hasExecutionResult(testCase) {
   const value = effectiveCatalogValue("testCases", testCase, "executionStatus");
   return Boolean(value && catalogValues("testCases", "executionStatus").includes(value));
@@ -606,7 +786,7 @@ function isTaskDone(task) {
 }
 
 function isTaskInReview(task) {
-  return isCatalogMatch("tasks", "status", effectiveCatalogValue("tasks", task, "status"), ["review", "En revision"]);
+  return isTaskReviewStatus(effectiveCatalogValue("tasks", task, "status"));
 }
 
 function isBugClosed(bug) {

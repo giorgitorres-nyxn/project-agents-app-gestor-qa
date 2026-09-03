@@ -369,6 +369,7 @@ function filterValueFor(store, record, fieldKey) {
   if (fieldKey === "microservicio") return effectiveMicroservicio(store, record) || "Sin microservicio";
   if (fieldKey === "member") return findName("members", record.memberId) || "Sin responsable";
   if (fieldKey === "qa") return findName("members", record.qaId) || "Sin QA";
+  if (fieldKey === "reviewEnteredAt") return taskReviewEntryAt(record);
   if (fieldKey === "testCase") {
     if (store === "spMigrations") return relatedTestCasesForMicroservicio(record);
     return findTestCase(record.testCaseId);
@@ -438,6 +439,7 @@ function tableRow(store, record) {
       findName("members", record.memberId) || "Sin responsable",
       { html: statusBadge(statusText) },
       record.iterations || 0,
+      formatCardDate(taskReviewEntryAt(record)),
       { html: pill(catalogLabel("tasks", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
       { html: overdue ? `<span class="overdue-flag">Vencida</span> ${escapeHtml(record.dueDate || "")}` : escapeHtml(record.dueDate || "Sin fecha") },
       edit
