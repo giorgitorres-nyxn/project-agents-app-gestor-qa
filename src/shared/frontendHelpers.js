@@ -14,6 +14,46 @@ function taskIsOverdue(task) {
   return isTaskOverdue(task, todayIso());
 }
 
+function taskDaysRemaining(task, today = todayIso()) {
+  const dueParts = dateOnlyParts(task?.dueDate);
+  const todayParts = dateOnlyParts(today);
+  if (!dueParts || !todayParts) return null;
+  const dueTime = Date.UTC(dueParts.year, dueParts.month - 1, dueParts.day);
+  const todayTime = Date.UTC(todayParts.year, todayParts.month - 1, todayParts.day);
+  return Math.round((dueTime - todayTime) / 86400000);
+}
+
+function taskDaysRemainingLabel(task, today = todayIso()) {
+  const days = taskDaysRemaining(task, today);
+  if (days === null) return "Sin fecha limite";
+  if (days < 0) return `Vencida hace ${Math.abs(days)} ${Math.abs(days) === 1 ? "dia" : "dias"}`;
+  if (days === 0) return "Vence hoy";
+  return `${days} ${days === 1 ? "dia restante" : "dias restantes"}`;
+}
+
+function taskIsDueSoon(task, today = todayIso()) {
+  const days = taskDaysRemaining(task, today);
+  return taskIsDeadlineActive(task) && days !== null && days >= 0 && days <= 2;
+}
+
+function taskDaysRemainingTone(task, today = todayIso()) {
+  if (isTaskOverdue(task, today)) return "overdue";
+  return taskIsDueSoon(task, today) ? "due-soon" : "";
+}
+
+function taskIsDeadlineActive(task) {
+  return ["backlog", "active"].includes(task?.status);
+}
+
+function dateOnlyParts(value) {
+  const text = String(value || "").slice(0, 10);
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const [, year, month, day] = match.map(Number);
+  if (!year || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return { year, month, day };
+}
+
 function taskReviewEntryAt(task) {
   const explicitDate = String(task?.reviewEnteredAt ?? "").trim();
   if (explicitDate) return explicitDate;
@@ -23,6 +63,25 @@ function taskReviewEntryAt(task) {
   const completedDate = String(task?.completedAt ?? "").trim();
   if (completedDate) return completedDate;
   return isTaskReviewStatus(task?.status) ? (task?.updatedAt || "") : "";
+}
+
+function taskDevolucionesCount(task) {
+  const count = Number(task?.devolucionesBb ?? task?.iterations ?? 0);
+  return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+}
+
+function hasTaskDevolucionesCount(task) {
+  if (Object.prototype.hasOwnProperty.call(task || {}, "devolucionesBb")) {
+    return task.devolucionesBb !== null && task.devolucionesBb !== "";
+  }
+  return Object.prototype.hasOwnProperty.call(task || {}, "iterations") &&
+    task.iterations !== null &&
+    task.iterations !== "";
+}
+
+function taskDevolucionesDescriptions(task) {
+  const descriptions = Array.isArray(task?.devolucionesBbDescriptions) ? task.devolucionesBbDescriptions : [];
+  return descriptions.map((description) => String(description || ""));
 }
 
 function defaultValue(field) {

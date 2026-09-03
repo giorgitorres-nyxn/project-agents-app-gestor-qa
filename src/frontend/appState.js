@@ -3,7 +3,7 @@
 const {
   stores,
   catalogDefinitions,
-  isTaskIterationTransition,
+  isTaskDevolucionBbTransition,
   isTaskReviewStatus,
   isTaskOverdue
 } = window.GestorQAProject;
@@ -47,10 +47,13 @@ const viewConfig = {
       { label: "Titulo", key: "title" },
       { label: "Microservicio", key: "microservicio" },
       { label: "Responsable", key: "member" },
+      { label: "Persona asignada BB", key: "personaAsignadaBb" },
       { label: "Estado", key: "status" },
-      { label: "Iteraciones", key: "iterations" },
+      { label: "Devoluciones BB", key: "devolucionesBb" },
       { label: "Entrada revision", key: "reviewEnteredAt" },
+      { label: "Dias restantes", key: "daysRemaining" },
       { label: "Prioridad", key: "priority" },
+      { label: "Jira", key: "jiraLink" },
       { label: "Vence", key: "dueDate" },
       { label: "", key: null }
     ]
@@ -67,6 +70,7 @@ const viewConfig = {
       { label: "Dev", key: "devName" },
       { label: "QA", key: "qa" },
       { label: "Estado", key: "status" },
+      { label: "Jira", key: "jiraLink" },
       { label: "Matriz", key: "matrix" },
       { label: "QMetry", key: "qmetry" },
       { label: "", key: null }
@@ -130,9 +134,12 @@ let fieldConfig = {
     { name: "title", label: "Titulo", type: "text", required: true, full: true },
     { name: "microservicio", label: "Microservicio", type: "microservicio" },
     { name: "memberId", label: "Responsable", type: "member" },
+    { name: "personaAsignadaBb", label: "Persona asignada BB", type: "text" },
     { name: "status", label: "Estado", type: "select", catalogStore: "tasks", catalogField: "status", options: catalogOptions("tasks", "status") },
+    { name: "devolucionesBb", label: "Devoluciones BB", type: "number", min: 0, step: 1 },
     { name: "priority", label: "Prioridad", type: "select", catalogStore: "tasks", catalogField: "priority", options: catalogOptions("tasks", "priority") },
     { name: "dueDate", label: "Fecha limite", type: "date" },
+    { name: "jiraLink", label: "Link Jira", type: "url", full: true },
     { name: "kind", label: "Tipo", type: "select", catalogStore: "tasks", catalogField: "kind", options: catalogOptions("tasks", "kind") },
     { name: "description", label: "Descripcion", type: "textarea", full: true }
   ],
@@ -144,6 +151,7 @@ let fieldConfig = {
     { name: "devName", label: "Dev asignado", type: "text", required: true },
     { name: "qaId", label: "QA asignado", type: "member" },
     { name: "status", label: "Estado", type: "select", catalogStore: "spMigrations", catalogField: "status", options: catalogOptions("spMigrations", "status") },
+    { name: "jiraLink", label: "Link Jira", type: "url", full: true },
     { name: "equivalenceMatrixReady", label: "Matriz de equivalencia lista", type: "checkbox" },
     { name: "qmetryEvidenceReady", label: "Evidencia cargada a QMetry", type: "checkbox" },
     { name: "notes", label: "Notas QA", type: "textarea", full: true }
@@ -185,9 +193,13 @@ const listFilterFields = {
     { key: "title", label: "Titulo" },
     { key: "microservicio", label: "Microservicio" },
     { key: "member", label: "Responsable" },
+    { key: "personaAsignadaBb", label: "Persona asignada BB" },
     { key: "status", label: "Estado" },
+    { key: "devolucionesBb", label: "Devoluciones BB" },
     { key: "priority", label: "Prioridad" },
     { key: "reviewEnteredAt", label: "Entrada revision" },
+    { key: "daysRemaining", label: "Dias restantes" },
+    { key: "jiraLink", label: "Jira" },
     { key: "dueDate", label: "Vence" },
     { key: "kind", label: "Tipo" },
     { key: "description", label: "Descripcion" }
@@ -200,6 +212,7 @@ const listFilterFields = {
     { key: "devName", label: "Dev" },
     { key: "qa", label: "QA" },
     { key: "status", label: "Estado" },
+    { key: "jiraLink", label: "Jira" },
     { key: "testCase", label: "Caso de prueba" },
     { key: "matrix", label: "Matriz" },
     { key: "qmetry", label: "QMetry" },

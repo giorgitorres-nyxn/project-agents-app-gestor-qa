@@ -43,7 +43,7 @@ async function handleFormSubmit(event) {
     if (field.type === "checkbox") {
       record[field.name] = rawValue === "true";
     } else if (field.type === "number") {
-      record[field.name] = Number(rawValue || 0);
+      record[field.name] = field.name === "devolucionesBb" ? normalizeTaskDevolucionesCount(rawValue) : Number(rawValue || 0);
     } else {
       record[field.name] = rawValue;
     }
@@ -61,14 +61,20 @@ async function handleFormSubmit(event) {
       record.reviewEnteredAt = changedAt;
       record.completedAt = changedAt;
     }
-    if (isTaskIterationTransition(existing.status, record.status)) {
-      record.iterations = (existing.iterations || 0) + 1;
+    if (isTaskDevolucionBbTransition(existing.status, record.status)) {
+      record.devolucionesBb = Math.max(taskDevolucionesCount(record), taskDevolucionesCount(existing) + 1);
     }
   }
   if (store === "tasks" && !editingId && isTaskReviewStatus(record.status)) {
     const changedAt = new Date().toISOString();
     record.reviewEnteredAt = record.reviewEnteredAt || changedAt;
     record.completedAt = record.completedAt || record.reviewEnteredAt;
+  }
+  if (store === "tasks") {
+    record.devolucionesBb = taskDevolucionesCount(record);
+    record.devolucionesBbDescriptions = collectTaskDevolucionesDescriptions(formData, record.devolucionesBb, existing);
+    delete record.iterations;
+    delete record.iterationDescriptions;
   }
 
   try {
@@ -82,6 +88,22 @@ async function handleFormSubmit(event) {
     submitButton.disabled = false;
     submitButton.textContent = "Guardar";
   }
+}
+
+function normalizeTaskDevolucionesCount(value) {
+  const count = Number(value || 0);
+  return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+}
+
+function collectTaskDevolucionesDescriptions(formData, count, existing = {}) {
+  const existingDescriptions = taskDevolucionesDescriptions(existing);
+  return Array.from({ length: count }, (_, index) => {
+    const value = String(formData.get(`devolucionBbDescription${index}`) || "").trim();
+    if (value) return value;
+    const existingValue = String(existingDescriptions[index] || "").trim();
+    if (existingValue) return existingValue;
+    return index === count - 1 ? String(formData.get("statusChangeComment") || "").trim() : "";
+  });
 }
 
 async function handleDelete() {

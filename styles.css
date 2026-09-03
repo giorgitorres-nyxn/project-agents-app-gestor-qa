@@ -717,6 +717,10 @@ h2 {
   background: var(--red-soft);
 }
 
+.row-due-soon {
+  background: #fffbeb;
+}
+
 .card.overdue {
   background: var(--red-soft);
   border-color: #fecaca;
@@ -780,6 +784,7 @@ h2 {
 .count-pill,
 .status-pill,
 .priority-pill,
+.days-remaining-pill,
 .artifact-pill {
   display: inline-flex;
   align-items: center;
@@ -815,6 +820,15 @@ h2 {
 
 .card.overdue:hover {
   border-color: #fecaca;
+}
+
+.card.due-soon {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.card.due-soon:hover {
+  border-color: #facc15;
 }
 
 .card-title {
@@ -855,6 +869,49 @@ h2 {
 .card-breadcrumb strong {
   color: var(--ink-soft);
   font-weight: 750;
+}
+
+.task-due-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  margin: 8px 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.task-due-banner strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.task-due-banner.due-soon,
+.days-remaining-pill.due-soon,
+.static-value.task-days-remaining-value.due-soon {
+  color: #92400e;
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+
+.task-due-banner.overdue,
+.days-remaining-pill.overdue,
+.static-value.task-days-remaining-value.overdue {
+  color: #991b1b;
+  background: var(--red-soft);
+  border-color: #fecaca;
+}
+
+.task-due-banner.due-soon strong,
+.task-due-banner.overdue strong {
+  color: inherit;
 }
 
 .card-footer {
@@ -1849,6 +1906,17 @@ h2 {
   border-radius: 0 0 var(--radius) var(--radius);
 }
 
+.table-link {
+  color: var(--blue);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.table-link:hover,
+.table-link:focus-visible {
+  text-decoration: underline;
+}
+
 table {
   width: 100%;
   border-collapse: separate;
@@ -2141,6 +2209,26 @@ dialog::backdrop {
   margin: 4px 0 0;
   font-size: 0.86rem;
   color: var(--ink-soft);
+}
+
+.devoluciones-bb-list {
+  display: grid;
+  gap: 10px;
+}
+
+.devolucion-bb-item {
+  display: grid;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  background: var(--surface-soft);
+}
+
+.devolucion-bb-item span {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 850;
 }
 
 .import-form-grid {

@@ -370,6 +370,8 @@ function filterValueFor(store, record, fieldKey) {
   if (fieldKey === "member") return findName("members", record.memberId) || "Sin responsable";
   if (fieldKey === "qa") return findName("members", record.qaId) || "Sin QA";
   if (fieldKey === "reviewEnteredAt") return taskReviewEntryAt(record);
+  if (fieldKey === "daysRemaining") return taskDaysRemaining(record) ?? "";
+  if (fieldKey === "devolucionesBb") return taskDevolucionesCount(record);
   if (fieldKey === "testCase") {
     if (store === "spMigrations") return relatedTestCasesForMicroservicio(record);
     return findTestCase(record.testCaseId);
@@ -433,17 +435,21 @@ function tableRow(store, record) {
   if (store === "tasks") {
     const statusText = statusLabels[record.status] || record.status;
     const overdue = taskIsOverdue(record);
+    const dueTone = taskDaysRemainingTone(record);
     return row([
       record.title,
       effectiveMicroservicio(store, record) || "Sin microservicio",
       findName("members", record.memberId) || "Sin responsable",
+      record.personaAsignadaBb || "Sin persona BB",
       { html: statusBadge(statusText) },
-      record.iterations || 0,
+      taskDevolucionesCount(record),
       formatCardDate(taskReviewEntryAt(record)),
+      { html: daysRemainingPill(record) },
       { html: pill(catalogLabel("tasks", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
+      { html: jiraLinkCell(record.jiraLink) },
       { html: overdue ? `<span class="overdue-flag">Vencida</span> ${escapeHtml(record.dueDate || "")}` : escapeHtml(record.dueDate || "Sin fecha") },
       edit
-    ], overdue ? "row-overdue" : "");
+    ], overdue ? "row-overdue" : dueTone ? "row-due-soon" : "");
   }
   if (store === "spMigrations") {
     return row([
@@ -454,6 +460,7 @@ function tableRow(store, record) {
       record.devName || "Sin dev",
       findName("members", record.qaId) || "Sin QA",
       { html: statusBadge(catalogLabel("spMigrations", "status", record.status)) },
+      { html: jiraLinkCell(record.jiraLink) },
       { html: artifactBadge(record.equivalenceMatrixReady, "Matriz") },
       { html: artifactBadge(record.qmetryEvidenceReady, "QMetry") },
       edit
@@ -499,6 +506,28 @@ function row(cells, rowClass = "") {
 
 function pill(text, className) {
   return `<span class="priority-pill ${escapeHtml(className)}">${escapeHtml(text || "Media")}</span>`;
+}
+
+function daysRemainingPill(task) {
+  const tone = taskDaysRemainingTone(task);
+  return `<span class="days-remaining-pill ${escapeHtml(tone)}">${escapeHtml(taskDaysRemainingLabel(task))}</span>`;
+}
+
+function jiraLinkCell(value) {
+  const href = safeExternalUrl(value);
+  if (!href) return `<span class="card-dates">Sin link</span>`;
+  return `<a class="table-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">Jira</a>`;
+}
+
+function safeExternalUrl(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  try {
+    const url = new URL(text);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
 }
 
 function inlineSelect(store, record, fieldName) {

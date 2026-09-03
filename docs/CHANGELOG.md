@@ -4,6 +4,10 @@
 
 ### Cambio: Submenu KPIs en Indicadores
 
+- Se agrega `Persona asignada BB` en tareas, visible en formulario, tabla, filtros y tarjetas del flujo de trabajo.
+- Se muestra `Dias restantes` en tareas y tarjetas del flujo de trabajo; las tareas con 2 dias o menos para vencer se resaltan en amarillo claro.
+- `Devoluciones BB` reemplaza internamente a `iterations`, queda editable y exige una descripcion por cada devolucion registrada.
+- Se agrega el campo `Link Jira` a tareas y lotes/microservicios, visible como enlace en sus tablas.
 - Se agrega la pestana `KPIs` dentro de `Indicadores`, con selector mes/ano y reporte automatico por periodo.
 - Eficiencia usa tareas que entraron a `En revision` a tiempo contra las tareas planeadas del periodo, registrando `reviewEnteredAt` al mover una tarea a revision.
 - La seccion `Totales` muestra `Tareas del periodo` con el mismo filtro mensual por `dueDate` que usan los KPIs.
@@ -201,11 +205,11 @@
 
 ## 2026-07-30
 
-### Cambio: Comentario obligatorio, iteraciones y mejoras a Flujo de trabajo
+### Cambio: Comentario obligatorio, Devoluciones BB y mejoras a Flujo de trabajo
 
 - Pestana `Tareas`: al cambiar el estado de una tarea (desde el formulario de edicion o arrastrando una tarjeta en el tablero Kanban), ahora es obligatorio registrar un comentario explicando el motivo del cambio. El comentario se acumula como historial por tarea (`statusHistory`, visible en el formulario de edicion).
-- Nuevo campo `iterations` en tareas: se incrementa automaticamente en 1 cada vez que una tarea retrocede de "En revision" o "Finalizado" hacia "En progreso" o "Pendiente". Se muestra en la pestana Tareas (columna Iteraciones) y en el formulario de edicion.
-- Regla compartida `isTaskIterationTransition` agregada a `src/domain/projectConfig.js`.
+- Nuevo campo `Devoluciones BB` en tareas: se incrementa automaticamente en 1 cada vez que una tarea retrocede de "En revision" o "Finalizado" hacia "En progreso" o "Pendiente". Se muestra en la pestana Tareas y en el formulario de edicion.
+- Regla compartida de transicion de `Devoluciones BB` agregada a `src/domain/projectConfig.js`.
 - Tablero "Flujo de trabajo" (Kanban del Dashboard): ahora tiene su propia barra de filtros (independiente de los filtros de la pestana Tareas) y un boton "Expandir" que abre el tablero en un overlay de pantalla completa dentro de la misma app, con los mismos filtros y tarjetas.
 - Arrastrar una tarjeta a otra columna del Kanban ahora abre el formulario de edicion con el estado destino preseleccionado, para exigir el comentario obligatorio antes de confirmar el movimiento.
 
