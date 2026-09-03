@@ -51,6 +51,7 @@ const viewConfig = {
       { label: "Iteraciones", key: "iterations" },
       { label: "Entrada revision", key: "reviewEnteredAt" },
       { label: "Prioridad", key: "priority" },
+      { label: "Jira", key: "jiraLink" },
       { label: "Vence", key: "dueDate" },
       { label: "", key: null }
     ]
@@ -67,6 +68,7 @@ const viewConfig = {
       { label: "Dev", key: "devName" },
       { label: "QA", key: "qa" },
       { label: "Estado", key: "status" },
+      { label: "Jira", key: "jiraLink" },
       { label: "Matriz", key: "matrix" },
       { label: "QMetry", key: "qmetry" },
       { label: "", key: null }
@@ -133,6 +135,7 @@ let fieldConfig = {
     { name: "status", label: "Estado", type: "select", catalogStore: "tasks", catalogField: "status", options: catalogOptions("tasks", "status") },
     { name: "priority", label: "Prioridad", type: "select", catalogStore: "tasks", catalogField: "priority", options: catalogOptions("tasks", "priority") },
     { name: "dueDate", label: "Fecha limite", type: "date" },
+    { name: "jiraLink", label: "Link Jira", type: "url", full: true },
     { name: "kind", label: "Tipo", type: "select", catalogStore: "tasks", catalogField: "kind", options: catalogOptions("tasks", "kind") },
     { name: "description", label: "Descripcion", type: "textarea", full: true }
   ],
@@ -144,6 +147,7 @@ let fieldConfig = {
     { name: "devName", label: "Dev asignado", type: "text", required: true },
     { name: "qaId", label: "QA asignado", type: "member" },
     { name: "status", label: "Estado", type: "select", catalogStore: "spMigrations", catalogField: "status", options: catalogOptions("spMigrations", "status") },
+    { name: "jiraLink", label: "Link Jira", type: "url", full: true },
     { name: "equivalenceMatrixReady", label: "Matriz de equivalencia lista", type: "checkbox" },
     { name: "qmetryEvidenceReady", label: "Evidencia cargada a QMetry", type: "checkbox" },
     { name: "notes", label: "Notas QA", type: "textarea", full: true }
@@ -188,6 +192,7 @@ const listFilterFields = {
     { key: "status", label: "Estado" },
     { key: "priority", label: "Prioridad" },
     { key: "reviewEnteredAt", label: "Entrada revision" },
+    { key: "jiraLink", label: "Jira" },
     { key: "dueDate", label: "Vence" },
     { key: "kind", label: "Tipo" },
     { key: "description", label: "Descripcion" }
@@ -200,6 +205,7 @@ const listFilterFields = {
     { key: "devName", label: "Dev" },
     { key: "qa", label: "QA" },
     { key: "status", label: "Estado" },
+    { key: "jiraLink", label: "Jira" },
     { key: "testCase", label: "Caso de prueba" },
     { key: "matrix", label: "Matriz" },
     { key: "qmetry", label: "QMetry" },

@@ -4,6 +4,7 @@
 
 ### Cambio: Submenu KPIs en Indicadores
 
+- Se agrega el campo `Link Jira` a tareas y lotes/microservicios, visible como enlace en sus tablas.
 - Se agrega la pestana `KPIs` dentro de `Indicadores`, con selector mes/ano y reporte automatico por periodo.
 - Eficiencia usa tareas que entraron a `En revision` a tiempo contra las tareas planeadas del periodo, registrando `reviewEnteredAt` al mover una tarea a revision.
 - La seccion `Totales` muestra `Tareas del periodo` con el mismo filtro mensual por `dueDate` que usan los KPIs.
