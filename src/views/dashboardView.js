@@ -205,6 +205,7 @@ function taskCard(task) {
   const who = member
     ? `<span class="card-avatar">${escapeHtml(initialsFor(member))}</span> ${escapeHtml(member)}`
     : "Sin responsable";
+  const personaBb = String(task.personaAsignadaBb || "").trim();
   return `
     <article class="card ${overdue ? "overdue" : dueTone}" draggable="true" data-id="${escapeHtml(task.id)}">
       <div class="card-title">
@@ -220,6 +221,7 @@ function taskCard(task) {
         <span class="card-who">${who}</span>
         <span class="tag-pill">${escapeHtml(catalogLabel("tasks", "kind", task.kind) || "Tarea")}</span>
       </div>
+      <div class="card-meta">BB: ${escapeHtml(personaBb || "Sin persona asignada")}</div>
       <div class="card-footer">
         <span class="card-dates">Creada ${escapeHtml(formatCardDate(task.createdAt))}</span>
         <span class="card-dates">${overdue ? `<span class="overdue-flag">Vencida</span> ` : ""}${escapeHtml(formatCardDate(task.dueDate))}</span>

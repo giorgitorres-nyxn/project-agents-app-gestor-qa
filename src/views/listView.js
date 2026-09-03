@@ -440,6 +440,7 @@ function tableRow(store, record) {
       record.title,
       effectiveMicroservicio(store, record) || "Sin microservicio",
       findName("members", record.memberId) || "Sin responsable",
+      record.personaAsignadaBb || "Sin persona BB",
       { html: statusBadge(statusText) },
       taskDevolucionesCount(record),
       formatCardDate(taskReviewEntryAt(record)),
