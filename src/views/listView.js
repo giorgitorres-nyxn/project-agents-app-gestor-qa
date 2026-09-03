@@ -485,6 +485,7 @@ function tableRow(store, record) {
       effectiveMicroservicio(store, record) || "Sin microservicio",
       findTestCase(record.testCaseId),
       { html: pill(catalogLabel("bugs", "severity", record.severity), `severity-${cssToken(record.severity)}`) },
+      catalogLabel("bugs", "attributableTo", record.attributableTo) || "Sin definir",
       { html: statusBadge(catalogLabel("bugs", "status", record.status)) },
       findName("members", record.memberId) || "Sin responsable",
       edit

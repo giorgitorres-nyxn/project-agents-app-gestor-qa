@@ -4,6 +4,8 @@
 
 ### Cambio: Submenu KPIs en Indicadores
 
+- Eficacia ahora se calcula como `(1 - (tareas tipo Correccion / tareas planeadas)) x 100`.
+- Se agrega `Atribuible a` en errores y los errores aparecen en el tablero canvas con icono propio, diferenciados de las tarjetas de tarea.
 - Se agrega `Persona asignada BB` en tareas, visible en formulario, tabla, filtros y tarjetas del flujo de trabajo.
 - Se muestra `Dias restantes` en tareas y tarjetas del flujo de trabajo; las tareas con 2 dias o menos para vencer se resaltan en amarillo claro.
 - `Devoluciones BB` reemplaza internamente a `iterations`, queda editable y exige una descripcion por cada devolucion registrada.

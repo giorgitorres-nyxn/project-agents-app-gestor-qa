@@ -274,6 +274,7 @@ function bulkImportExampleFor(store) {
           testCaseId: testCase,
           memberId: member,
           severity: "Alta",
+          attributableTo: "Migracion Dev NYXN",
           status: "Abierto",
           description: "El saldo retornado no coincide con la salida del SP para el mismo cliente.",
           steps: "1. Ejecutar el caso CP-010. 2. Comparar respuesta REST contra SP. 3. Registrar diferencia."

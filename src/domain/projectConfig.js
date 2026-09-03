@@ -52,6 +52,7 @@
       title: "Errores",
       fields: {
         severity: { label: "Severidad", defaults: ["Critica", "Alta", "Media", "Baja"] },
+        attributableTo: { label: "Atribuible a", defaults: ["Banco Bolivariano", "Migracion Dev NYXN", "Tester"] },
         status: { label: "Estado", defaults: ["Abierto", "Asignado", "Resuelto", "Cerrado"] }
       }
     },
