@@ -20,17 +20,20 @@ function renderForm(store, record) {
   if (store === "bugs") bindBugSpTestCaseSelector();
   if (store === "tasks") {
     $("#form-fields").insertAdjacentHTML("beforeend", taskStatusChangeFieldsHtml(record));
+    bindTaskDaysRemaining(record);
     bindTaskDevolucionesDescriptions(record);
     if (record.id) bindTaskStatusCommentRequirement();
   }
 }
 
 function taskStatusChangeFieldsHtml(record) {
+  const daysRemainingHtml = taskDaysRemainingFieldHtml(record);
   const devolucionesHtml = taskDevolucionesFieldsHtml(record);
-  if (!record.id) return devolucionesHtml;
+  if (!record.id) return daysRemainingHtml + devolucionesHtml;
   const historyHtml = taskStatusHistoryHtml(record.statusHistory);
   const reviewEnteredAt = taskReviewEntryAt(record);
   return `
+    ${daysRemainingHtml}
     <div class="field full">
       <label>Entrada a revision</label>
       <div class="static-value">${escapeHtml(formatHistoryDate(reviewEnteredAt) || "Sin entrada registrada")}</div>
@@ -42,6 +45,16 @@ function taskStatusChangeFieldsHtml(record) {
     </div>
     ${devolucionesHtml}
     ${historyHtml}
+  `;
+}
+
+function taskDaysRemainingFieldHtml(record) {
+  const tone = taskDaysRemainingTone(record);
+  return `
+    <div class="field full">
+      <label>Dias restantes</label>
+      <div class="static-value task-days-remaining-value ${escapeHtml(tone)}" id="task-days-remaining-value">${escapeHtml(taskDaysRemainingLabel(record))}</div>
+    </div>
   `;
 }
 
@@ -90,6 +103,23 @@ function bindTaskStatusCommentRequirement() {
   };
   statusSelect.addEventListener("change", syncRequirement);
   syncRequirement();
+}
+
+function bindTaskDaysRemaining(record) {
+  const dueDateInput = $("#dueDate");
+  const statusSelect = $("#status");
+  const value = $("#task-days-remaining-value");
+  if (!dueDateInput || !value) return;
+  const syncValue = () => {
+    const task = { ...record, dueDate: dueDateInput.value, status: statusSelect?.value ?? record.status };
+    const tone = taskDaysRemainingTone(task);
+    value.textContent = taskDaysRemainingLabel(task);
+    value.classList.toggle("due-soon", tone === "due-soon");
+    value.classList.toggle("overdue", tone === "overdue");
+  };
+  dueDateInput.addEventListener("change", syncValue);
+  statusSelect?.addEventListener("change", syncValue);
+  syncValue();
 }
 
 function bindTaskDevolucionesDescriptions(record) {

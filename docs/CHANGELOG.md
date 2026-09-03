@@ -4,6 +4,7 @@
 
 ### Cambio: Submenu KPIs en Indicadores
 
+- Se muestra `Dias restantes` en tareas y tarjetas del flujo de trabajo; las tareas con 2 dias o menos para vencer se resaltan en amarillo claro.
 - `Devoluciones BB` reemplaza internamente a `iterations`, queda editable y exige una descripcion por cada devolucion registrada.
 - Se agrega el campo `Link Jira` a tareas y lotes/microservicios, visible como enlace en sus tablas.
 - Se agrega la pestana `KPIs` dentro de `Indicadores`, con selector mes/ano y reporte automatico por periodo.

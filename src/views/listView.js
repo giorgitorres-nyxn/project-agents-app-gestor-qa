@@ -370,6 +370,7 @@ function filterValueFor(store, record, fieldKey) {
   if (fieldKey === "member") return findName("members", record.memberId) || "Sin responsable";
   if (fieldKey === "qa") return findName("members", record.qaId) || "Sin QA";
   if (fieldKey === "reviewEnteredAt") return taskReviewEntryAt(record);
+  if (fieldKey === "daysRemaining") return taskDaysRemaining(record) ?? "";
   if (fieldKey === "devolucionesBb") return taskDevolucionesCount(record);
   if (fieldKey === "testCase") {
     if (store === "spMigrations") return relatedTestCasesForMicroservicio(record);
@@ -434,6 +435,7 @@ function tableRow(store, record) {
   if (store === "tasks") {
     const statusText = statusLabels[record.status] || record.status;
     const overdue = taskIsOverdue(record);
+    const dueTone = taskDaysRemainingTone(record);
     return row([
       record.title,
       effectiveMicroservicio(store, record) || "Sin microservicio",
@@ -441,11 +443,12 @@ function tableRow(store, record) {
       { html: statusBadge(statusText) },
       taskDevolucionesCount(record),
       formatCardDate(taskReviewEntryAt(record)),
+      { html: daysRemainingPill(record) },
       { html: pill(catalogLabel("tasks", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
       { html: jiraLinkCell(record.jiraLink) },
       { html: overdue ? `<span class="overdue-flag">Vencida</span> ${escapeHtml(record.dueDate || "")}` : escapeHtml(record.dueDate || "Sin fecha") },
       edit
-    ], overdue ? "row-overdue" : "");
+    ], overdue ? "row-overdue" : dueTone ? "row-due-soon" : "");
   }
   if (store === "spMigrations") {
     return row([
@@ -502,6 +505,11 @@ function row(cells, rowClass = "") {
 
 function pill(text, className) {
   return `<span class="priority-pill ${escapeHtml(className)}">${escapeHtml(text || "Media")}</span>`;
+}
+
+function daysRemainingPill(task) {
+  const tone = taskDaysRemainingTone(task);
+  return `<span class="days-remaining-pill ${escapeHtml(tone)}">${escapeHtml(taskDaysRemainingLabel(task))}</span>`;
 }
 
 function jiraLinkCell(value) {

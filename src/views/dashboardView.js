@@ -198,6 +198,7 @@ function taskCard(task) {
   const microservicio = effectiveMicroservicio("tasks", task);
   const sp = microservicio ? (state.data.spMigrations ?? []).find((item) => item.nombreMicroservicio === microservicio) : null;
   const overdue = taskIsOverdue(task);
+  const dueTone = taskDaysRemainingTone(task);
   const breadcrumb = sp
     ? `<strong>${escapeHtml(sp.numeroLote || "Sin lote")}</strong> › ${escapeHtml(sp.funcionalidad || "Sin funcionalidad")} › ${escapeHtml(microservicio)}`
     : "Sin microservicio asignado";
@@ -205,12 +206,16 @@ function taskCard(task) {
     ? `<span class="card-avatar">${escapeHtml(initialsFor(member))}</span> ${escapeHtml(member)}`
     : "Sin responsable";
   return `
-    <article class="card ${overdue ? "overdue" : ""}" draggable="true" data-id="${escapeHtml(task.id)}">
+    <article class="card ${overdue ? "overdue" : dueTone}" draggable="true" data-id="${escapeHtml(task.id)}">
       <div class="card-title">
         <strong>${escapeHtml(task.title)}</strong>
         <span class="priority-pill priority-${escapeHtml(task.priority)}">${escapeHtml(task.priority || "Media")}</span>
       </div>
       <div class="card-breadcrumb">${breadcrumb}</div>
+      <div class="task-due-banner ${escapeHtml(dueTone)}">
+        <span>Dias restantes</span>
+        <strong>${escapeHtml(taskDaysRemainingLabel(task))}</strong>
+      </div>
       <div class="card-footer">
         <span class="card-who">${who}</span>
         <span class="tag-pill">${escapeHtml(catalogLabel("tasks", "kind", task.kind) || "Tarea")}</span>
