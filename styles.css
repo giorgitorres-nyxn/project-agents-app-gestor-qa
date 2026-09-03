@@ -2154,6 +2154,26 @@ dialog::backdrop {
   color: var(--ink-soft);
 }
 
+.devoluciones-bb-list {
+  display: grid;
+  gap: 10px;
+}
+
+.devolucion-bb-item {
+  display: grid;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  background: var(--surface-soft);
+}
+
+.devolucion-bb-item span {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
 .import-form-grid {
   grid-template-columns: 1fr;
 }

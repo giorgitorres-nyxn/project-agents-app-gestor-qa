@@ -3,7 +3,7 @@
 const {
   stores,
   catalogDefinitions,
-  isTaskIterationTransition,
+  isTaskDevolucionBbTransition,
   isTaskReviewStatus,
   isTaskOverdue
 } = window.GestorQAProject;
@@ -48,7 +48,7 @@ const viewConfig = {
       { label: "Microservicio", key: "microservicio" },
       { label: "Responsable", key: "member" },
       { label: "Estado", key: "status" },
-      { label: "Iteraciones", key: "iterations" },
+      { label: "Devoluciones BB", key: "devolucionesBb" },
       { label: "Entrada revision", key: "reviewEnteredAt" },
       { label: "Prioridad", key: "priority" },
       { label: "Jira", key: "jiraLink" },
@@ -133,6 +133,7 @@ let fieldConfig = {
     { name: "microservicio", label: "Microservicio", type: "microservicio" },
     { name: "memberId", label: "Responsable", type: "member" },
     { name: "status", label: "Estado", type: "select", catalogStore: "tasks", catalogField: "status", options: catalogOptions("tasks", "status") },
+    { name: "devolucionesBb", label: "Devoluciones BB", type: "number", min: 0, step: 1 },
     { name: "priority", label: "Prioridad", type: "select", catalogStore: "tasks", catalogField: "priority", options: catalogOptions("tasks", "priority") },
     { name: "dueDate", label: "Fecha limite", type: "date" },
     { name: "jiraLink", label: "Link Jira", type: "url", full: true },
@@ -190,6 +191,7 @@ const listFilterFields = {
     { key: "microservicio", label: "Microservicio" },
     { key: "member", label: "Responsable" },
     { key: "status", label: "Estado" },
+    { key: "devolucionesBb", label: "Devoluciones BB" },
     { key: "priority", label: "Prioridad" },
     { key: "reviewEnteredAt", label: "Entrada revision" },
     { key: "jiraLink", label: "Jira" },

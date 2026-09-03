@@ -25,6 +25,25 @@ function taskReviewEntryAt(task) {
   return isTaskReviewStatus(task?.status) ? (task?.updatedAt || "") : "";
 }
 
+function taskDevolucionesCount(task) {
+  const count = Number(task?.devolucionesBb ?? task?.iterations ?? 0);
+  return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+}
+
+function hasTaskDevolucionesCount(task) {
+  if (Object.prototype.hasOwnProperty.call(task || {}, "devolucionesBb")) {
+    return task.devolucionesBb !== null && task.devolucionesBb !== "";
+  }
+  return Object.prototype.hasOwnProperty.call(task || {}, "iterations") &&
+    task.iterations !== null &&
+    task.iterations !== "";
+}
+
+function taskDevolucionesDescriptions(task) {
+  const descriptions = Array.isArray(task?.devolucionesBbDescriptions) ? task.devolucionesBbDescriptions : [];
+  return descriptions.map((description) => String(description || ""));
+}
+
 function defaultValue(field) {
   if (!field) return "";
   if (field.default !== undefined) return field.default;

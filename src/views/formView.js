@@ -2,8 +2,9 @@
 
 function renderForm(store, record) {
   $("#form-fields").innerHTML = fieldConfig[store].map((field) => {
-    const value = record[field.name] ?? defaultValue(field);
+    const value = field.name === "devolucionesBb" ? taskDevolucionesCount(record) : (record[field.name] ?? defaultValue(field));
     const classes = `field ${field.full ? "full" : ""}`;
+    const step = field.step !== undefined ? `step="${field.step}"` : "";
     if (["select", "member", "testCase", "spMigration", "microservicio"].includes(field.type)) {
       return `<div class="${classes}"><label for="${field.name}">${field.label}</label><select id="${field.name}" name="${field.name}">${optionsFor(field, value, record)}</select></div>`;
     }
@@ -13,25 +14,23 @@ function renderForm(store, record) {
     if (field.type === "textarea") {
       return `<div class="${classes}"><label for="${field.name}">${field.label}</label><textarea id="${field.name}" name="${field.name}">${escapeHtml(value)}</textarea></div>`;
     }
-    return `<div class="${classes}"><label for="${field.name}">${field.label}</label><input id="${field.name}" name="${field.name}" type="${field.type}" value="${escapeHtml(value)}" ${field.required ? "required" : ""} ${field.min !== undefined ? `min="${field.min}"` : ""} ${field.max !== undefined ? `max="${field.max}"` : ""}></div>`;
+    return `<div class="${classes}"><label for="${field.name}">${field.label}</label><input id="${field.name}" name="${field.name}" type="${field.type}" value="${escapeHtml(value)}" ${field.required ? "required" : ""} ${field.min !== undefined ? `min="${field.min}"` : ""} ${field.max !== undefined ? `max="${field.max}"` : ""} ${step}></div>`;
   }).join("");
 
   if (store === "bugs") bindBugSpTestCaseSelector();
   if (store === "tasks") {
     $("#form-fields").insertAdjacentHTML("beforeend", taskStatusChangeFieldsHtml(record));
+    bindTaskDevolucionesDescriptions(record);
     if (record.id) bindTaskStatusCommentRequirement();
   }
 }
 
 function taskStatusChangeFieldsHtml(record) {
-  if (!record.id) return "";
+  const devolucionesHtml = taskDevolucionesFieldsHtml(record);
+  if (!record.id) return devolucionesHtml;
   const historyHtml = taskStatusHistoryHtml(record.statusHistory);
   const reviewEnteredAt = taskReviewEntryAt(record);
   return `
-    <div class="field full">
-      <label>Iteraciones</label>
-      <div class="static-value" id="task-iterations-value">${record.iterations || 0}</div>
-    </div>
     <div class="field full">
       <label>Entrada a revision</label>
       <div class="static-value">${escapeHtml(formatHistoryDate(reviewEnteredAt) || "Sin entrada registrada")}</div>
@@ -41,7 +40,18 @@ function taskStatusChangeFieldsHtml(record) {
       <textarea id="statusChangeComment" name="statusChangeComment"></textarea>
       <p class="field-hint">Obligatorio si cambias el estado.</p>
     </div>
+    ${devolucionesHtml}
     ${historyHtml}
+  `;
+}
+
+function taskDevolucionesFieldsHtml(record) {
+  return `
+    <div class="field full">
+      <label>Descripciones de Devoluciones BB</label>
+      <div class="devoluciones-bb-list" id="devoluciones-bb-descriptions"></div>
+      <p class="field-hint">Debe existir una descripcion por cada devolucion BB registrada.</p>
+    </div>
   `;
 }
 
@@ -80,6 +90,51 @@ function bindTaskStatusCommentRequirement() {
   };
   statusSelect.addEventListener("change", syncRequirement);
   syncRequirement();
+}
+
+function bindTaskDevolucionesDescriptions(record) {
+  const countInput = $("#devolucionesBb");
+  const container = $("#devoluciones-bb-descriptions");
+  if (!countInput || !container) return;
+  const originalCount = taskDevolucionesCount(record);
+  const originalDescriptions = taskDevolucionesDescriptions(record);
+  const syncAutoCount = () => {
+    const statusSelect = $("#status");
+    if (!record.id || !statusSelect || !isTaskDevolucionBbTransition(state.editing?.originalStatus, statusSelect.value)) return;
+    countInput.value = Math.max(taskDevolucionesInputValue(countInput), originalCount + 1);
+  };
+  const renderDescriptions = () => {
+    const currentDescriptions = readTaskDevolucionesDescriptionInputs(container);
+    const descriptions = currentDescriptions.length ? currentDescriptions : originalDescriptions;
+    container.innerHTML = taskDevolucionesDescriptionInputsHtml(taskDevolucionesInputValue(countInput), descriptions);
+  };
+  countInput.addEventListener("input", renderDescriptions);
+  $("#status")?.addEventListener("change", () => {
+    syncAutoCount();
+    renderDescriptions();
+  });
+  syncAutoCount();
+  renderDescriptions();
+}
+
+function taskDevolucionesInputValue(input) {
+  const value = Number(input.value || 0);
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+}
+
+function readTaskDevolucionesDescriptionInputs(container) {
+  return [...container.querySelectorAll("[data-devolucion-bb-description]")]
+    .map((input) => input.value);
+}
+
+function taskDevolucionesDescriptionInputsHtml(count, descriptions = []) {
+  if (!count) return `<div class="empty-state">Sin devoluciones BB registradas.</div>`;
+  return Array.from({ length: count }, (_, index) => `
+    <label class="devolucion-bb-item">
+      <span>Descripcion Devolucion BB ${index + 1}</span>
+      <textarea name="devolucionBbDescription${index}" data-devolucion-bb-description required>${escapeHtml(descriptions[index] || "")}</textarea>
+    </label>
+  `).join("");
 }
 
 function optionsFor(field, value, record = {}) {

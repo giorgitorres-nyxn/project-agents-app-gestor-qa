@@ -65,8 +65,8 @@
   };
 
   const taskReviewStatusTerms = new Set(["review", "en revision", "revision bb", "en revision bb"]);
-  const taskIterationSourceStatuses = new Set(["done"]);
-  const taskIterationTargetStatuses = new Set(["active", "backlog"]);
+  const taskDevolucionBbSourceStatuses = new Set(["done"]);
+  const taskDevolucionBbTargetStatuses = new Set(["active", "backlog"]);
 
   function normalizeTaskStatus(status) {
     return String(status ?? "")
@@ -81,10 +81,10 @@
     return taskReviewStatusTerms.has(normalizeTaskStatus(status));
   }
 
-  function isTaskIterationTransition(oldStatus, newStatus) {
+  function isTaskDevolucionBbTransition(oldStatus, newStatus) {
     const oldStatusKey = normalizeTaskStatus(oldStatus);
     const newStatusKey = normalizeTaskStatus(newStatus);
-    return (isTaskReviewStatus(oldStatus) || taskIterationSourceStatuses.has(oldStatusKey)) && taskIterationTargetStatuses.has(newStatusKey);
+    return (isTaskReviewStatus(oldStatus) || taskDevolucionBbSourceStatuses.has(oldStatusKey)) && taskDevolucionBbTargetStatuses.has(newStatusKey);
   }
 
   const overdueTaskStatuses = new Set(["backlog", "active"]);
@@ -98,7 +98,7 @@
   return {
     stores,
     catalogDefinitions,
-    isTaskIterationTransition,
+    isTaskDevolucionBbTransition,
     isTaskReviewStatus,
     isTaskOverdue
   };

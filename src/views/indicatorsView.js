@@ -428,10 +428,10 @@ function renderKpiIndicators(container) {
       number: 3,
       title: "Eficacia",
       factor: "efficacy",
-      formula: "Eficacia (%) = (1 - (cantidad de tareas kind=\"Correccion\" / tareas del periodo)) x 100.",
-      headers: ["Persona", "Correcciones", "Tareas planeadas", "Eficacia"],
+      formula: "Eficacia (%) = (tareas con Devoluciones BB = 0 / tareas planeadas del periodo) x 100.",
+      headers: ["Persona", "Sin Devoluciones BB", "Tareas planeadas", "Eficacia"],
       rows,
-      cells: (row) => [row.name, row.corrections, row.plannedTasks, formatKpiPercent(row.efficacy)]
+      cells: (row) => [row.name, row.noDevoluciones, row.plannedTasks, formatKpiValue(row.efficacy)]
     })}
 
     <section class="panel kpi-section">
@@ -564,14 +564,20 @@ function kpiDetailContent(factor, row, tasks) {
     `;
   }
   if (factor === "efficacy") {
-    const corrections = tasks.filter(isKpiCorrectionTask);
+    const tasksWithoutDevoluciones = tasks.filter((task) => hasTaskDevolucionesCount(task) && taskDevolucionesCount(task) === 0);
+    const tasksWithDevoluciones = tasks.filter((task) => taskDevolucionesCount(task) > 0);
+    const tasksWithoutData = tasks.filter((task) => !hasTaskDevolucionesCount(task));
     return `
       ${kpiDetailSummary([
-        ["Correcciones", row.corrections],
+        ["Sin Devoluciones BB", row.noDevoluciones],
+        ["Con Devoluciones BB", row.withDevoluciones],
+        ["Sin dato", row.withoutDevolucionesData],
         ["Tareas planeadas", row.plannedTasks],
-        ["Eficacia", formatKpiPercent(row.efficacy)]
+        ["Eficacia", formatKpiValue(row.efficacy)]
       ])}
-      ${kpiTaskGroup("Correcciones usadas en el calculo", corrections, "No hay correcciones registradas.")}
+      ${kpiTaskGroup("Tareas sin Devoluciones BB", tasksWithoutDevoluciones, "No hay tareas sin devoluciones BB registradas.")}
+      ${kpiTaskGroup("Tareas con Devoluciones BB", tasksWithDevoluciones, "No hay tareas con devoluciones BB registradas.", { showDevoluciones: true })}
+      ${kpiTaskGroup("Tareas sin dato de Devoluciones BB", tasksWithoutData, "Todas las tareas tienen dato de Devoluciones BB.")}
       ${kpiTaskGroup("Tareas planeadas del periodo", tasks, "No hay tareas planeadas para esta persona.")}
     `;
   }
@@ -615,6 +621,7 @@ function kpiTaskGroup(title, tasks, emptyText, options = {}) {
                 <th>Estado</th>
                 <th>Vence</th>
                 <th>Entrada revision</th>
+                ${options.showDevoluciones ? "<th>Devoluciones BB</th>" : ""}
                 <th>Tipo</th>
                 <th>Prioridad</th>
                 ${options.showWeight ? "<th>Peso</th>" : ""}
@@ -638,6 +645,7 @@ function kpiTaskDetailRow(task, options = {}) {
       <td>${escapeHtml(catalogLabel("tasks", "status", task.status) || task.status || "Sin estado")}</td>
       <td>${escapeHtml(formatKpiDate(task.dueDate) || "Sin fecha")}</td>
       <td>${escapeHtml(formatKpiDate(reviewEnteredAt) || "Sin registro")}</td>
+      ${options.showDevoluciones ? `<td>${escapeHtml(taskDevolucionesCount(task))}</td>` : ""}
       <td>${escapeHtml(catalogLabel("tasks", "kind", task.kind) || task.kind || "Tarea")}</td>
       <td>${escapeHtml(catalogLabel("tasks", "priority", task.priority) || task.priority || "Media")}</td>
       ${options.showWeight ? `<td>${escapeHtml(correctionPriorityWeight(task.priority))}</td>` : ""}
@@ -670,6 +678,10 @@ function kpiMemberRow(member, tasks) {
   const corrections = tasks.filter(isKpiCorrectionTask);
   const points = corrections.reduce((total, task) => total + correctionPriorityWeight(task.priority), 0);
   const reviewOnTime = tasks.filter(taskEnteredReviewOnOrBeforeDueDate).length;
+  const hasDevolucionesData = tasks.some(hasTaskDevolucionesCount);
+  const noDevoluciones = tasks.filter((task) => hasTaskDevolucionesCount(task) && taskDevolucionesCount(task) === 0).length;
+  const withDevoluciones = tasks.filter((task) => taskDevolucionesCount(task) > 0).length;
+  const withoutDevolucionesData = tasks.filter((task) => !hasTaskDevolucionesCount(task)).length;
   return {
     memberId: member.id || "",
     name: member.name || "Sin nombre",
@@ -677,9 +689,12 @@ function kpiMemberRow(member, tasks) {
     reviewOnTime,
     corrections: corrections.length,
     points,
+    noDevoluciones,
+    withDevoluciones,
+    withoutDevolucionesData,
     efficiency: (reviewOnTime / plannedTasks) * 100,
     quality: corrections.length ? (1 - (points / (3 * plannedTasks))) * 100 : 100,
-    efficacy: (1 - (corrections.length / plannedTasks)) * 100
+    efficacy: hasDevolucionesData ? (noDevoluciones / plannedTasks) * 100 : "No calculable"
   };
 }
 
@@ -744,6 +759,10 @@ function kpiPeriodLabel(period) {
 
 function formatKpiPercent(value) {
   return `${Number(value || 0).toFixed(1)}%`;
+}
+
+function formatKpiValue(value) {
+  return typeof value === "number" ? formatKpiPercent(value) : String(value || "No calculable");
 }
 
 function formatKpiDate(value) {

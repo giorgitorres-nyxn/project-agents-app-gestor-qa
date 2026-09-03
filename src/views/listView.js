@@ -370,6 +370,7 @@ function filterValueFor(store, record, fieldKey) {
   if (fieldKey === "member") return findName("members", record.memberId) || "Sin responsable";
   if (fieldKey === "qa") return findName("members", record.qaId) || "Sin QA";
   if (fieldKey === "reviewEnteredAt") return taskReviewEntryAt(record);
+  if (fieldKey === "devolucionesBb") return taskDevolucionesCount(record);
   if (fieldKey === "testCase") {
     if (store === "spMigrations") return relatedTestCasesForMicroservicio(record);
     return findTestCase(record.testCaseId);
@@ -438,7 +439,7 @@ function tableRow(store, record) {
       effectiveMicroservicio(store, record) || "Sin microservicio",
       findName("members", record.memberId) || "Sin responsable",
       { html: statusBadge(statusText) },
-      record.iterations || 0,
+      taskDevolucionesCount(record),
       formatCardDate(taskReviewEntryAt(record)),
       { html: pill(catalogLabel("tasks", "priority", record.priority), `priority-${cssToken(record.priority)}`) },
       { html: jiraLinkCell(record.jiraLink) },
