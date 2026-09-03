@@ -44,32 +44,47 @@ function renderKanbanRoot(root) {
 function renderKanbanBoard(root) {
   const board = root.querySelector("[data-kanban-board]");
   if (!board) return;
-  const tasks = applyKanbanFilters(filterRecords(state.data.tasks ?? []));
+  const items = applyKanbanFilters(kanbanItems());
   board.innerHTML = Object.keys(statusLabels).map((status) => {
-    const filtered = tasks.filter((task) => task.status === status);
+    const filtered = items.filter((item) => item.workflowStatus === status);
     return `
       <div class="kanban-column" data-status="${status}">
         <div class="column-heading">
           <span>${statusLabels[status]}</span>
           <span class="count-pill">${filtered.length}</span>
         </div>
-        ${filtered.length ? filtered.map(taskCard).join("") : `<div class="empty-state">Sin tareas</div>`}
+        ${filtered.length ? filtered.map(kanbanCard).join("") : `<div class="empty-state">Sin tarjetas</div>`}
       </div>
     `;
   }).join("");
 
   board.querySelectorAll(".card").forEach((card) => {
-    card.addEventListener("click", () => openEditor("tasks", card.dataset.id));
-    card.addEventListener("dragstart", (event) => event.dataTransfer.setData("text/plain", card.dataset.id));
+    card.addEventListener("click", () => openEditor(card.dataset.store, card.dataset.id));
+    card.addEventListener("dragstart", (event) => {
+      const payload = JSON.stringify({ store: card.dataset.store, id: card.dataset.id });
+      event.dataTransfer.setData("application/json", payload);
+      event.dataTransfer.setData("text/plain", card.dataset.id);
+    });
   });
 
   board.querySelectorAll(".kanban-column").forEach((column) => {
     column.addEventListener("dragover", (event) => event.preventDefault());
     column.addEventListener("drop", (event) => {
       event.preventDefault();
-      const task = state.data.tasks.find((item) => item.id === event.dataTransfer.getData("text/plain"));
-      if (!task || task.status === column.dataset.status) return;
-      openEditor("tasks", task.id, { status: column.dataset.status });
+      const dragged = readKanbanDragPayload(event);
+      if (!dragged?.store || !dragged.id) return;
+      if (dragged.store === "tasks") {
+        const task = state.data.tasks.find((item) => item.id === dragged.id);
+        if (!task || task.status === column.dataset.status) return;
+        openEditor("tasks", task.id, { status: column.dataset.status });
+        return;
+      }
+      if (dragged.store === "bugs") {
+        const bug = state.data.bugs.find((item) => item.id === dragged.id);
+        const nextStatus = bugStatusForWorkflow(column.dataset.status);
+        if (!bug || !nextStatus || bug.status === nextStatus) return;
+        openEditor("bugs", bug.id, { status: nextStatus });
+      }
     });
   });
 }
@@ -175,22 +190,47 @@ function microservicioOptions(lote, funcionalidad) {
   return [...values].sort();
 }
 
-function applyKanbanFilters(records) {
+function kanbanItems() {
+  const tasks = filterRecords(state.data.tasks ?? []).map((record) => ({
+    store: "tasks",
+    record,
+    workflowStatus: record.status
+  }));
+  const bugs = filterRecords(state.data.bugs ?? []).map((record) => ({
+    store: "bugs",
+    record,
+    workflowStatus: bugWorkflowStatus(record)
+  }));
+  return [...tasks, ...bugs];
+}
+
+function applyKanbanFilters(items) {
   const { memberId, dateFrom, dateTo, lote, funcionalidad, microservicio } = state.kanbanFilters ?? {};
   const spMigrations = state.data.spMigrations ?? [];
-  return records.filter((record) => {
+  return items.filter((item) => {
+    const record = item.record;
     if (memberId && record.memberId !== memberId) return false;
     if (lote || funcionalidad || microservicio) {
-      const recordMicro = effectiveMicroservicio("tasks", record);
+      const recordMicro = effectiveMicroservicio(item.store, record);
       if (microservicio && recordMicro !== microservicio) return false;
       const sp = recordMicro ? spMigrations.find((item) => item.nombreMicroservicio === recordMicro) : null;
       if (lote && sp?.numeroLote !== lote) return false;
       if (funcionalidad && sp?.funcionalidad !== funcionalidad) return false;
     }
-    if (dateFrom && (!record.dueDate || record.dueDate < dateFrom)) return false;
-    if (dateTo && (!record.dueDate || record.dueDate > dateTo)) return false;
+    const filterDate = kanbanFilterDate(item);
+    if (dateFrom && (!filterDate || filterDate < dateFrom)) return false;
+    if (dateTo && (!filterDate || filterDate > dateTo)) return false;
     return true;
   });
+}
+
+function kanbanFilterDate(item) {
+  if (item.store === "tasks") return String(item.record.dueDate || "").slice(0, 10);
+  return String(item.record.createdAt || item.record.updatedAt || "").slice(0, 10);
+}
+
+function kanbanCard(item) {
+  return item.store === "bugs" ? bugCard(item.record) : taskCard(item.record);
 }
 
 function taskCard(task) {
@@ -207,8 +247,9 @@ function taskCard(task) {
     : "Sin responsable";
   const personaBb = String(task.personaAsignadaBb || "").trim();
   return `
-    <article class="card ${overdue ? "overdue" : dueTone}" draggable="true" data-id="${escapeHtml(task.id)}">
+    <article class="card task-card ${overdue ? "overdue" : dueTone}" draggable="true" data-store="tasks" data-id="${escapeHtml(task.id)}">
       <div class="card-title">
+        <span class="card-type-icon task" aria-hidden="true">T</span>
         <strong>${escapeHtml(task.title)}</strong>
         <span class="priority-pill priority-${escapeHtml(task.priority)}">${escapeHtml(task.priority || "Media")}</span>
       </div>
@@ -228,6 +269,77 @@ function taskCard(task) {
       </div>
     </article>
   `;
+}
+
+function bugCard(bug) {
+  const member = findName("members", bug.memberId);
+  const microservicio = effectiveMicroservicio("bugs", bug);
+  const testCase = findTestCase(bug.testCaseId);
+  const workflowStatus = bugWorkflowStatus(bug);
+  const severity = catalogLabel("bugs", "severity", bug.severity) || bug.severity || "Media";
+  const status = catalogLabel("bugs", "status", bug.status) || bug.status || "Sin estado";
+  const attributableTo = catalogLabel("bugs", "attributableTo", bug.attributableTo) || "Sin definir";
+  const who = member
+    ? `<span class="card-avatar">${escapeHtml(initialsFor(member))}</span> ${escapeHtml(member)}`
+    : "Sin responsable";
+  return `
+    <article class="card bug-card workflow-${escapeHtml(workflowStatus)}" draggable="true" data-store="bugs" data-id="${escapeHtml(bug.id)}">
+      <div class="card-title">
+        <span class="card-type-icon bug" aria-hidden="true">!</span>
+        <strong>${escapeHtml(bug.title)}</strong>
+        <span class="priority-pill severity-${escapeHtml(bug.severity || severity)}">${escapeHtml(severity)}</span>
+      </div>
+      <div class="card-breadcrumb">${escapeHtml(microservicio || "Sin microservicio")} - ${escapeHtml(testCase)}</div>
+      <div class="card-meta"><strong>Atribuible:</strong> ${escapeHtml(attributableTo)}</div>
+      <div class="card-footer">
+        <span class="card-who">${who}</span>
+        <span class="status-pill">${escapeHtml(status)}</span>
+      </div>
+      <div class="card-footer">
+        <span class="card-dates">Creado ${escapeHtml(formatCardDate(bug.createdAt))}</span>
+        <span class="tag-pill tag-error">Error</span>
+      </div>
+    </article>
+  `;
+}
+
+function readKanbanDragPayload(event) {
+  try {
+    const payload = event.dataTransfer.getData("application/json");
+    if (payload) return JSON.parse(payload);
+  } catch {
+    return null;
+  }
+  const id = event.dataTransfer.getData("text/plain");
+  return id ? { store: "tasks", id } : null;
+}
+
+function bugWorkflowStatus(bug) {
+  const status = normalizeDashboardText(catalogLabel("bugs", "status", bug.status) || bug.status);
+  if (["resuelto", "cerrado", "closed", "done", "finalizado"].some((term) => status.includes(term))) return "done";
+  if (status.includes("revision")) return "review";
+  if (["asignado", "analisis", "progreso", "activo"].some((term) => status.includes(term))) return "active";
+  return "backlog";
+}
+
+function bugStatusForWorkflow(workflowStatus) {
+  const preferences = {
+    backlog: ["abierto", "pendiente"],
+    active: ["asignado", "analisis", "progreso", "activo"],
+    review: ["revision", "asignado"],
+    done: ["resuelto", "cerrado", "done", "finalizado"]
+  }[workflowStatus] || [];
+  const statuses = catalogOptions("bugs", "status");
+  const match = statuses.find((item) => preferences.some((term) => normalizeDashboardText(`${item.value} ${item.label}`).includes(term)));
+  return match?.value || statuses[0]?.value || "";
+}
+
+function normalizeDashboardText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 function initialsFor(name) {

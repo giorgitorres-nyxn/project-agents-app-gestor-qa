@@ -101,6 +101,7 @@ const viewConfig = {
       { label: "Microservicio", key: "microservicio" },
       { label: "Caso de prueba", key: "testCase" },
       { label: "Severidad", key: "severity" },
+      { label: "Atribuible a", key: "attributableTo" },
       { label: "Estado", key: "status" },
       { label: "Responsable", key: "member" },
       { label: "", key: null }
@@ -174,6 +175,7 @@ let fieldConfig = {
     { name: "testCaseId", label: "Caso de prueba", type: "testCase", filterByMicroservicio: true },
     { name: "memberId", label: "Responsable", type: "member" },
     { name: "severity", label: "Severidad", type: "select", catalogStore: "bugs", catalogField: "severity", options: catalogOptions("bugs", "severity") },
+    { name: "attributableTo", label: "Atribuible a", type: "select", catalogStore: "bugs", catalogField: "attributableTo", options: catalogOptions("bugs", "attributableTo"), default: "", emptyLabel: "Sin definir" },
     { name: "status", label: "Estado", type: "select", catalogStore: "bugs", catalogField: "status", options: catalogOptions("bugs", "status") },
     { name: "description", label: "Descripcion", type: "textarea", full: true },
     { name: "steps", label: "Como reproducir", type: "textarea", full: true }
@@ -235,6 +237,7 @@ const listFilterFields = {
     { key: "microservicio", label: "Microservicio" },
     { key: "testCase", label: "Caso de prueba" },
     { key: "severity", label: "Severidad" },
+    { key: "attributableTo", label: "Atribuible a" },
     { key: "status", label: "Estado" },
     { key: "member", label: "Responsable" },
     { key: "description", label: "Descripcion" },
