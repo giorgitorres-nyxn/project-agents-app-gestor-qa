@@ -129,6 +129,10 @@ const pageSizeOptions = [10, 25, 50, 100];
 const inlineEditableFields = {
   testCases: new Set(["status", "executionStatus", "bankApproval"])
 };
+const uiPreferenceKeys = {
+  sidebarCollapsed: "gestorQaSidebarCollapsed",
+  darkMode: "gestorQaDarkMode"
+};
 
 let fieldConfig = {
   tasks: [
@@ -286,12 +290,32 @@ let state = {
     error: "",
     running: false
   },
+  ui: {
+    sidebarCollapsed: readBooleanPreference(uiPreferenceKeys.sidebarCollapsed),
+    darkMode: readBooleanPreference(uiPreferenceKeys.darkMode)
+  },
   currentUser: null,
   pagination: Object.fromEntries(stores.map((store) => [store, { page: 1, pageSize: defaultPageSize }])),
   data: Object.fromEntries(stores.map((store) => [store, []]))
 };
 
 const $ = (selector) => document.querySelector(selector);
+
+function readBooleanPreference(key) {
+  try {
+    return window.localStorage.getItem(key) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function writeBooleanPreference(key, value) {
+  try {
+    window.localStorage.setItem(key, value ? "true" : "false");
+  } catch {
+    return;
+  }
+}
 
 function defaultCatalogs() {
   return Object.fromEntries(Object.entries(catalogDefinitions).map(([store, section]) => [
