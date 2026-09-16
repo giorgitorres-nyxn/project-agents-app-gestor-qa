@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Gestor QA</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="styles.css?v=20260903-kpi-efficacy-corrections">
+    <link rel="stylesheet" href="styles.css?v=20260904-sidebar-theme">
   </head>
   <body>
     <div class="app-loading" id="app-loading" aria-hidden="true" role="status" aria-live="polite">
@@ -49,44 +49,47 @@
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">QA</div>
-          <div>
+          <div class="brand-copy">
             <strong>Gestor QA</strong>
             <span>Procesos y seguimiento</span>
           </div>
+          <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Plegar menu" aria-expanded="true">
+            <span aria-hidden="true" id="sidebar-toggle-icon">&lt;&lt;</span>
+          </button>
         </div>
 
         <nav class="nav-list" aria-label="Secciones">
           <button class="nav-item active" data-view="dashboard" type="button">
             <span class="nav-icon">#</span>
-            Tablero
+            <span class="nav-label">Tablero</span>
           </button>
           <button class="nav-item" data-view="indicators" type="button">
             <span class="nav-icon">%</span>
-            Indicadores
+            <span class="nav-label">Indicadores</span>
           </button>
           <button class="nav-item" data-view="tasks" type="button">
             <span class="nav-icon">T</span>
-            Tareas
+            <span class="nav-label">Tareas</span>
           </button>
           <button class="nav-item" data-view="spMigrations" type="button">
             <span class="nav-icon">SP</span>
-            Lotes y funcionalidades
+            <span class="nav-label">Lotes y funcionalidades</span>
           </button>
           <button class="nav-item" data-view="testCases" type="button">
             <span class="nav-icon">C</span>
-            Casos de prueba
+            <span class="nav-label">Casos de prueba</span>
           </button>
           <button class="nav-item" data-view="bugs" type="button">
             <span class="nav-icon">!</span>
-            Errores
+            <span class="nav-label">Errores</span>
           </button>
           <button class="nav-item" data-view="members" type="button">
             <span class="nav-icon">M</span>
-            Miembros QA
+            <span class="nav-label">Miembros QA</span>
           </button>
           <button class="nav-item" data-view="configuration" type="button">
             <span class="nav-icon">CFG</span>
-            Configuracion
+            <span class="nav-label">Configuracion</span>
           </button>
         </nav>
 
@@ -103,6 +106,10 @@
             <h1 id="page-title">Tablero QA</h1>
           </div>
           <div class="topbar-actions">
+            <button class="ghost-button theme-toggle" id="theme-toggle" type="button" aria-pressed="false">
+              <span class="theme-toggle-icon" aria-hidden="true">OS</span>
+              <span id="theme-toggle-label">Modo oscuro</span>
+            </button>
             <label class="search">
               <span>Q</span>
               <input id="global-search" type="search" placeholder="Buscar">
@@ -229,21 +236,21 @@
     </dialog>
 
     <input id="import-file" type="file" accept="application/json" hidden>
-    <script src="src/domain/projectConfig.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/frontend/appState.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/services/apiClient.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/shared/frontendHelpers.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/views/appView.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/views/configurationView.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/views/dashboardView.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/views/indicatorsView.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/views/listView.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/views/formView.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/controllers/authController.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/controllers/appController.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/controllers/configurationController.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/controllers/editorController.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="src/controllers/importController.js?v=20260903-kpi-efficacy-corrections"></script>
-    <script src="app.js?v=20260903-kpi-efficacy-corrections"></script>
+    <script src="src/domain/projectConfig.js?v=20260904-sidebar-theme"></script>
+    <script src="src/frontend/appState.js?v=20260904-sidebar-theme"></script>
+    <script src="src/services/apiClient.js?v=20260904-sidebar-theme"></script>
+    <script src="src/shared/frontendHelpers.js?v=20260904-sidebar-theme"></script>
+    <script src="src/views/appView.js?v=20260904-sidebar-theme"></script>
+    <script src="src/views/configurationView.js?v=20260904-sidebar-theme"></script>
+    <script src="src/views/dashboardView.js?v=20260904-sidebar-theme"></script>
+    <script src="src/views/indicatorsView.js?v=20260904-sidebar-theme"></script>
+    <script src="src/views/listView.js?v=20260904-sidebar-theme"></script>
+    <script src="src/views/formView.js?v=20260904-sidebar-theme"></script>
+    <script src="src/controllers/authController.js?v=20260904-sidebar-theme"></script>
+    <script src="src/controllers/appController.js?v=20260904-sidebar-theme"></script>
+    <script src="src/controllers/configurationController.js?v=20260904-sidebar-theme"></script>
+    <script src="src/controllers/editorController.js?v=20260904-sidebar-theme"></script>
+    <script src="src/controllers/importController.js?v=20260904-sidebar-theme"></script>
+    <script src="app.js?v=20260904-sidebar-theme"></script>
   </body>
 </html>
