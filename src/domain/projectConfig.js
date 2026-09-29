@@ -66,6 +66,7 @@
   };
 
   const taskReviewStatusTerms = new Set(["review", "en revision", "revision bb", "en revision bb"]);
+  const taskDoneStatusTerms = new Set(["done", "finalizado", "completado", "cerrado"]);
   const taskDevolucionBbSourceStatuses = new Set(["done"]);
   const taskDevolucionBbTargetStatuses = new Set(["active", "backlog"]);
 
@@ -80,6 +81,10 @@
 
   function isTaskReviewStatus(status) {
     return taskReviewStatusTerms.has(normalizeTaskStatus(status));
+  }
+
+  function isTaskDoneStatus(status) {
+    return taskDoneStatusTerms.has(normalizeTaskStatus(status));
   }
 
   function isTaskDevolucionBbTransition(oldStatus, newStatus) {
@@ -100,6 +105,7 @@
     stores,
     catalogDefinitions,
     isTaskDevolucionBbTransition,
+    isTaskDoneStatus,
     isTaskReviewStatus,
     isTaskOverdue
   };
