@@ -408,10 +408,10 @@ function renderKpiIndicators(container) {
       number: 1,
       title: "Eficiencia",
       factor: "efficiency",
-      formula: `Eficiencia (%) = (tareas que entraron a "En revision" a tiempo / tareas planeadas de ${periodLabel}) x 100.`,
-      headers: ["Persona", "Tareas planeadas", "En revision a tiempo", "Eficiencia"],
+      formula: `Eficiencia (%) = (tareas que entraron a "En revision" o "Done" a tiempo / tareas planeadas de ${periodLabel}) x 100.`,
+      headers: ["Persona", "Tareas planeadas", "En revision / Done a tiempo", "Eficiencia"],
       rows,
-      cells: (row) => [row.name, row.plannedTasks, row.reviewOnTime, formatKpiPercent(row.efficiency)]
+      cells: (row) => [row.name, row.plannedTasks, row.completedOnTime, formatKpiPercent(row.efficiency)]
     })}
 
     ${kpiSection({
@@ -578,17 +578,17 @@ function kpiDetailContent(factor, row, tasks) {
       ${kpiTaskGroup("Tareas planeadas del periodo", tasks, "No hay tareas planeadas para esta persona.")}
     `;
   }
-  const reviewOnTimeTasks = tasks.filter(taskEnteredReviewOnOrBeforeDueDate);
-  const pendingOrLateTasks = tasks.filter((task) => !taskEnteredReviewOnOrBeforeDueDate(task));
+  const completedOnTimeTasks = tasks.filter(taskEnteredReviewOrDoneOnOrBeforeDueDate);
+  const pendingOrLateTasks = tasks.filter((task) => !taskEnteredReviewOrDoneOnOrBeforeDueDate(task));
   return `
     ${kpiDetailSummary([
       ["Tareas planeadas", row.plannedTasks],
-      ["En revision a tiempo", row.reviewOnTime],
+      ["En revision / Done a tiempo", row.completedOnTime],
       ["Eficiencia", formatKpiPercent(row.efficiency)]
     ])}
     ${kpiTaskGroup("Tareas planeadas del periodo", tasks, "No hay tareas planeadas para esta persona.")}
-    ${kpiTaskGroup("En revision a tiempo", reviewOnTimeTasks, "Ninguna tarea entro a revision a tiempo.")}
-    ${kpiTaskGroup("Fuera de tiempo o sin entrada a revision", pendingOrLateTasks, "No hay tareas fuera de tiempo.")}
+    ${kpiTaskGroup("En revision o Done a tiempo", completedOnTimeTasks, "Ninguna tarea entro a revision o Done a tiempo.")}
+    ${kpiTaskGroup("Fuera de tiempo o sin entrada a revision/Done", pendingOrLateTasks, "No hay tareas fuera de tiempo.")}
   `;
 }
 
@@ -618,6 +618,7 @@ function kpiTaskGroup(title, tasks, emptyText, options = {}) {
                 <th>Estado</th>
                 <th>Vence</th>
                 <th>Entrada revision</th>
+                <th>Entrada Done</th>
                 ${options.showDevoluciones ? "<th>Devoluciones BB</th>" : ""}
                 <th>Tipo</th>
                 <th>Prioridad</th>
@@ -636,12 +637,14 @@ function kpiTaskGroup(title, tasks, emptyText, options = {}) {
 
 function kpiTaskDetailRow(task, options = {}) {
   const reviewEnteredAt = taskReviewEntryAt(task);
+  const doneEnteredAt = taskDoneEntryAt(task);
   return `
     <tr>
       <td>${escapeHtml(task.title || "Sin titulo")}</td>
       <td>${escapeHtml(catalogLabel("tasks", "status", task.status) || task.status || "Sin estado")}</td>
       <td>${escapeHtml(formatKpiDate(task.dueDate) || "Sin fecha")}</td>
       <td>${escapeHtml(formatKpiDate(reviewEnteredAt) || "Sin registro")}</td>
+      <td>${escapeHtml(formatKpiDate(doneEnteredAt) || "Sin registro")}</td>
       ${options.showDevoluciones ? `<td>${escapeHtml(taskDevolucionesCount(task))}</td>` : ""}
       <td>${escapeHtml(catalogLabel("tasks", "kind", task.kind) || task.kind || "Tarea")}</td>
       <td>${escapeHtml(catalogLabel("tasks", "priority", task.priority) || task.priority || "Media")}</td>
@@ -674,15 +677,15 @@ function kpiMemberRow(member, tasks) {
   const plannedTasks = tasks.length;
   const corrections = tasks.filter(isKpiCorrectionTask);
   const points = corrections.reduce((total, task) => total + correctionPriorityWeight(task.priority), 0);
-  const reviewOnTime = tasks.filter(taskEnteredReviewOnOrBeforeDueDate).length;
+  const completedOnTime = tasks.filter(taskEnteredReviewOrDoneOnOrBeforeDueDate).length;
   return {
     memberId: member.id || "",
     name: member.name || "Sin nombre",
     plannedTasks,
-    reviewOnTime,
+    completedOnTime,
     corrections: corrections.length,
     points,
-    efficiency: (reviewOnTime / plannedTasks) * 100,
+    efficiency: (completedOnTime / plannedTasks) * 100,
     quality: corrections.length ? (1 - (points / (3 * plannedTasks))) * 100 : 100,
     efficacy: (1 - (corrections.length / plannedTasks)) * 100
   };
@@ -708,10 +711,11 @@ function correctionPriorityWeight(priority) {
   return { Alta: 3, Media: 2, Baja: 1 }[priority] ?? 0;
 }
 
-function taskEnteredReviewOnOrBeforeDueDate(task) {
+function taskEnteredReviewOrDoneOnOrBeforeDueDate(task) {
   const reviewDate = dateKey(taskReviewEntryAt(task));
+  const doneDate = dateKey(taskDoneEntryAt(task));
   const dueDate = dateKey(task.dueDate);
-  return Boolean(reviewDate && dueDate && reviewDate <= dueDate);
+  return Boolean(dueDate && ((reviewDate && reviewDate <= dueDate) || (doneDate && doneDate <= dueDate)));
 }
 
 function taskDueDateIsInPeriod(task, period) {

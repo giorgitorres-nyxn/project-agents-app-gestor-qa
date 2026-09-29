@@ -61,6 +61,9 @@ async function handleFormSubmit(event) {
       record.reviewEnteredAt = changedAt;
       record.completedAt = changedAt;
     }
+    if (isTaskDoneStatus(record.status) && !isTaskDoneStatus(existing.status)) {
+      record.doneEnteredAt = changedAt;
+    }
     if (isTaskDevolucionBbTransition(existing.status, record.status)) {
       record.devolucionesBb = Math.max(taskDevolucionesCount(record), taskDevolucionesCount(existing) + 1);
     }
@@ -69,6 +72,9 @@ async function handleFormSubmit(event) {
     const changedAt = new Date().toISOString();
     record.reviewEnteredAt = record.reviewEnteredAt || changedAt;
     record.completedAt = record.completedAt || record.reviewEnteredAt;
+  }
+  if (store === "tasks" && !editingId && isTaskDoneStatus(record.status)) {
+    record.doneEnteredAt = record.doneEnteredAt || new Date().toISOString();
   }
   if (store === "tasks") {
     record.devolucionesBb = taskDevolucionesCount(record);

@@ -65,6 +65,15 @@ function taskReviewEntryAt(task) {
   return isTaskReviewStatus(task?.status) ? (task?.updatedAt || "") : "";
 }
 
+function taskDoneEntryAt(task) {
+  const explicitDate = String(task?.doneEnteredAt ?? "").trim();
+  if (explicitDate) return explicitDate;
+  const history = Array.isArray(task?.statusHistory) ? task.statusHistory : [];
+  const doneEntry = history.slice().reverse().find((entry) => isTaskDoneStatus(entry?.to));
+  if (doneEntry?.at) return doneEntry.at;
+  return isTaskDoneStatus(task?.status) ? (task?.updatedAt || "") : "";
+}
+
 function taskDevolucionesCount(task) {
   const count = Number(task?.devolucionesBb ?? task?.iterations ?? 0);
   return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;

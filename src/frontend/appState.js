@@ -4,6 +4,7 @@ const {
   stores,
   catalogDefinitions,
   isTaskDevolucionBbTransition,
+  isTaskDoneStatus,
   isTaskReviewStatus,
   isTaskOverdue
 } = window.GestorQAProject;

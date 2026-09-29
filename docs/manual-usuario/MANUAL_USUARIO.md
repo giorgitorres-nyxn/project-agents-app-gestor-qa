@@ -71,13 +71,13 @@ Los KPIs se calculan con tareas de la tabla `tasks` cuyo `dueDate` pertenece al 
 
 Formulas:
 
-- `Eficiencia = (tareas que entraron a En revision a tiempo / tareas planeadas del periodo) x 100`.
+- `Eficiencia = (tareas que entraron a En revision o Done a tiempo / tareas planeadas del periodo) x 100`.
 - `Calidad = (1 - (puntos de correcciones / (3 x tareas planeadas del periodo))) x 100`.
 - `Eficacia = (1 - (tareas tipo Correccion / tareas planeadas del periodo)) x 100`.
 
 Reglas importantes:
 
-- Una tarea cuenta como `En revision a tiempo` si tiene `reviewEnteredAt` menor o igual a `dueDate`.
+- Una tarea cuenta a tiempo si su entrada a `En revision` o `Done` es menor o igual a `dueDate`.
 - Las tareas tipo `Correccion` descuentan calidad y eficacia.
 - Para calidad, las correcciones pesan por prioridad: `Alta = 3`, `Media = 2`, `Baja = 1`.
 - Al hacer clic sobre una persona en una tabla KPI se abre el detalle auditable de las tareas usadas en el calculo.
