@@ -159,6 +159,7 @@ function renderMicroFilterBar(config) {
   }
   const filters = state.listMicroFilters[config.store] ?? emptyMicroFilter();
   const hasActiveFilters = filters.dateFrom || filters.dateTo || filters.lote || filters.funcionalidad || filters.microservicio;
+  const dateField = config.store === "bugs" ? (filters.dateField || "detectedAt") : "";
   container.innerHTML = `
     <div class="kanban-filter-controls">
       <label class="kanban-filter-field">
@@ -169,6 +170,15 @@ function renderMicroFilterBar(config) {
         <span>Hasta</span>
         <input type="date" data-mf-date-to value="${escapeHtml(filters.dateTo || "")}">
       </label>
+      ${config.store === "bugs" ? `
+      <label class="kanban-filter-field">
+        <span>Fecha</span>
+        <select data-mf-date-field>
+          <option value="detectedAt" ${dateField === "detectedAt" ? "selected" : ""}>Creacion</option>
+          <option value="resolvedAt" ${dateField === "resolvedAt" ? "selected" : ""}>Finalizacion</option>
+        </select>
+      </label>
+      ` : ""}
       <label class="kanban-filter-field">
         <span>Lote</span>
         <select data-mf-lote>
@@ -202,6 +212,7 @@ function renderMicroFilterBar(config) {
 
   container.querySelector("[data-mf-date-from]").addEventListener("change", (event) => updateFilter({ dateFrom: event.target.value }));
   container.querySelector("[data-mf-date-to]").addEventListener("change", (event) => updateFilter({ dateTo: event.target.value }));
+  container.querySelector("[data-mf-date-field]")?.addEventListener("change", (event) => updateFilter({ dateField: event.target.value }));
   container.querySelector("[data-mf-lote]").addEventListener("change", (event) => {
     const lote = event.target.value;
     updateFilter({ lote, funcionalidad: "", microservicio: "", ...(lote ? { dateFrom: "", dateTo: "" } : {}) });
@@ -238,11 +249,18 @@ function applyMicroFilter(records, store) {
       if (lote && sp?.numeroLote !== lote) return false;
       if (funcionalidad && sp?.funcionalidad !== funcionalidad) return false;
     }
-    const createdDate = String(record.createdAt || "").slice(0, 10);
-    if (dateFrom && (!createdDate || createdDate < dateFrom)) return false;
-    if (dateTo && (!createdDate || createdDate > dateTo)) return false;
+    const filterDate = dateValueForRangeFilter(store, record, filters);
+    if (dateFrom && (!filterDate || filterDate < dateFrom)) return false;
+    if (dateTo && (!filterDate || filterDate > dateTo)) return false;
     return true;
   });
+}
+
+function dateValueForRangeFilter(store, record, filters) {
+  if (store === "bugs") {
+    return filters.dateField === "resolvedAt" ? bugResolvedAt(record) : bugDetectedAt(record);
+  }
+  return String(record.createdAt || "").slice(0, 10);
 }
 
 function renderFilters(config) {
@@ -376,6 +394,8 @@ function filterValueFor(store, record, fieldKey) {
     if (store === "spMigrations") return relatedTestCasesForMicroservicio(record);
     return findTestCase(record.testCaseId);
   }
+  if (fieldKey === "detectedAt" && store === "bugs") return bugDetectedAt(record);
+  if (fieldKey === "resolvedAt" && store === "bugs") return bugResolvedAt(record);
   if (fieldKey === "status" && store === "tasks") return statusLabels[record.status] || record.status;
   if (fieldKey === "status" && hasCatalogField(store, "status")) return catalogLabel(store, "status", record.status);
   if (fieldKey === "priority" && hasCatalogField(store, "priority")) return catalogLabel(store, "priority", record.priority);
@@ -484,6 +504,8 @@ function tableRow(store, record) {
       record.title,
       effectiveMicroservicio(store, record) || "Sin microservicio",
       findTestCase(record.testCaseId),
+      bugDetectedAt(record) || "Sin fecha",
+      bugResolvedAt(record) || "Sin fecha",
       { html: pill(catalogLabel("bugs", "severity", record.severity), `severity-${cssToken(record.severity)}`) },
       catalogLabel("bugs", "attributableTo", record.attributableTo) || "Sin definir",
       { html: statusBadge(catalogLabel("bugs", "status", record.status)) },

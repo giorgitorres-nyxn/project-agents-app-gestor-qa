@@ -4,13 +4,23 @@ function openEditor(store, recordId = null, overrides = null) {
   const storeData = state.data[store] ?? [];
   const record = recordId ? storeData.find((item) => item.id === recordId) : null;
   const baseRecord = microservicioFilterableStores.has(store) ? withEffectiveMicroservicio(store, record || {}) : (record || {});
-  const formRecord = overrides ? { ...baseRecord, ...overrides } : baseRecord;
+  const formRecord = prepareFormRecord(store, overrides ? { ...baseRecord, ...overrides } : baseRecord, Boolean(record));
   state.editing = { store, id: recordId, originalStatus: record?.status ?? null };
   $("#dialog-kicker").textContent = viewConfig[store]?.kicker || "Registro";
   $("#dialog-title").textContent = record ? `Editar ${singular(store)}` : `Nuevo ${singular(store)}`;
   $("#delete-item").classList.toggle("hidden", !record);
   renderForm(store, formRecord);
   $("#item-dialog").showModal();
+}
+
+function prepareFormRecord(store, record, isExisting) {
+  if (store !== "bugs") return record;
+  if (!isExisting) return record;
+  return {
+    ...record,
+    detectedAt: record.detectedAt || bugDetectedAt(record),
+    resolvedAt: record.resolvedAt || ""
+  };
 }
 
 function bindBugSpTestCaseSelector() {

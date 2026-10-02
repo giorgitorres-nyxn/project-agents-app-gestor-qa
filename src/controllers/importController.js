@@ -234,6 +234,7 @@ function bulkImportExampleFor(store) {
   const microservicio = state.data.spMigrations?.[0]?.nombreMicroservicio || "";
   const testCase = state.data.testCases?.[0]?.id || "";
   const member = state.data.members?.[0]?.id || "";
+  const today = todayIso();
 
   const examples = {
     spMigrations: {
@@ -273,6 +274,8 @@ function bulkImportExampleFor(store) {
           microservicio,
           testCaseId: testCase,
           memberId: member,
+          detectedAt: today,
+          resolvedAt: today,
           severity: "Alta",
           attributableTo: "Migracion Dev NYXN",
           status: "Abierto",
