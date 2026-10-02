@@ -17,7 +17,10 @@ function renderForm(store, record) {
     return `<div class="${classes}"><label for="${field.name}">${field.label}</label><input id="${field.name}" name="${field.name}" type="${field.type}" value="${escapeHtml(value)}" ${field.required ? "required" : ""} ${field.min !== undefined ? `min="${field.min}"` : ""} ${field.max !== undefined ? `max="${field.max}"` : ""} ${step}></div>`;
   }).join("");
 
-  if (store === "bugs") bindBugSpTestCaseSelector();
+  if (store === "bugs") {
+    bindBugSpTestCaseSelector();
+    bindBugResolvedDateOnStatusChange();
+  }
   if (store === "tasks") {
     $("#form-fields").insertAdjacentHTML("beforeend", taskStatusChangeFieldsHtml(record));
     bindTaskDaysRemaining(record);
@@ -89,6 +92,32 @@ function formatHistoryDate(isoDate) {
   if (!isoDate) return "";
   const date = new Date(isoDate);
   return Number.isNaN(date.getTime()) ? isoDate : date.toLocaleString();
+}
+
+function bindBugResolvedDateOnStatusChange() {
+  const statusSelect = $("#status");
+  const resolvedAtInput = $("#resolvedAt");
+  if (!statusSelect || !resolvedAtInput) return;
+  statusSelect.addEventListener("change", () => {
+    if (bugStatusSetsResolvedDate(statusSelect.value)) {
+      resolvedAtInput.value = todayIso();
+    }
+  });
+}
+
+function bugStatusSetsResolvedDate(status) {
+  const catalogText = catalogLabel("bugs", "status", status);
+  const resolvedStatuses = new Set(["resuelto", "cerrado", "closed", "done", "finalizado"]);
+  return [status, catalogText].some((value) => resolvedStatuses.has(normalizeBugStatusText(value)));
+}
+
+function normalizeBugStatusText(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .toLowerCase()
+    .trim();
 }
 
 function bindTaskStatusCommentRequirement() {
