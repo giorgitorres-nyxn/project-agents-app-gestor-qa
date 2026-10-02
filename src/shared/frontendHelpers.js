@@ -95,6 +95,7 @@ function taskDevolucionesDescriptions(task) {
 
 function defaultValue(field) {
   if (!field) return "";
+  if (field.defaultToday) return todayIso();
   if (field.default !== undefined) return field.default;
   if (field.name === "status" && field.options?.[0]) {
     return typeof field.options[0] === "string" ? field.options[0] : field.options[0].value;
@@ -103,6 +104,14 @@ function defaultValue(field) {
   if (field.name === "severity") return "Media";
   if (field.name === "capacity") return 0;
   return "";
+}
+
+function bugDetectedAt(bug) {
+  return String(bug?.detectedAt || bug?.createdAt || "").slice(0, 10);
+}
+
+function bugResolvedAt(bug) {
+  return String(bug?.resolvedAt || "").slice(0, 10);
 }
 
 function exportData() {

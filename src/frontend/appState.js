@@ -18,7 +18,7 @@ const sqlConsoleExamples = [
   },
   {
     label: "Bugs",
-    query: "select id, payload->>'title' as title, payload->>'severity' as severity, payload->>'status' as status from public.bugs order by created_at desc limit 20"
+    query: "select id, payload->>'title' as title, payload->>'detectedAt' as fecha_creacion, payload->>'resolvedAt' as fecha_finalizacion, payload->>'severity' as severity, payload->>'status' as status from public.bugs order by created_at desc limit 20"
   },
   {
     label: "TC01",
@@ -101,6 +101,8 @@ const viewConfig = {
       { label: "Titulo", key: "title" },
       { label: "Microservicio", key: "microservicio" },
       { label: "Caso de prueba", key: "testCase" },
+      { label: "Fecha creacion", key: "detectedAt" },
+      { label: "Fecha finalizacion", key: "resolvedAt" },
       { label: "Severidad", key: "severity" },
       { label: "Atribuible a", key: "attributableTo" },
       { label: "Estado", key: "status" },
@@ -179,6 +181,8 @@ let fieldConfig = {
     { name: "microservicio", label: "Microservicio", type: "microservicio" },
     { name: "testCaseId", label: "Caso de prueba", type: "testCase", filterByMicroservicio: true },
     { name: "memberId", label: "Responsable", type: "member" },
+    { name: "detectedAt", label: "Fecha de creacion", type: "date", defaultToday: true },
+    { name: "resolvedAt", label: "Fecha de finalizacion o resuelto", type: "date", defaultToday: true },
     { name: "severity", label: "Severidad", type: "select", catalogStore: "bugs", catalogField: "severity", options: catalogOptions("bugs", "severity") },
     { name: "attributableTo", label: "Atribuible a", type: "select", catalogStore: "bugs", catalogField: "attributableTo", options: catalogOptions("bugs", "attributableTo"), default: "", emptyLabel: "Sin definir" },
     { name: "status", label: "Estado", type: "select", catalogStore: "bugs", catalogField: "status", options: catalogOptions("bugs", "status") },
@@ -241,6 +245,8 @@ const listFilterFields = {
     { key: "title", label: "Titulo" },
     { key: "microservicio", label: "Microservicio" },
     { key: "testCase", label: "Caso de prueba" },
+    { key: "detectedAt", label: "Fecha creacion" },
+    { key: "resolvedAt", label: "Fecha finalizacion" },
     { key: "severity", label: "Severidad" },
     { key: "attributableTo", label: "Atribuible a" },
     { key: "status", label: "Estado" },

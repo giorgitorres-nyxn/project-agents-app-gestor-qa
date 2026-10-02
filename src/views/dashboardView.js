@@ -296,7 +296,8 @@ function bugCard(bug) {
         <span class="status-pill">${escapeHtml(status)}</span>
       </div>
       <div class="card-footer">
-        <span class="card-dates">Creado ${escapeHtml(formatCardDate(bug.createdAt))}</span>
+        <span class="card-dates">Creado ${escapeHtml(formatCardDate(bugDetectedAt(bug)))}</span>
+        <span class="card-dates">Finalizado ${escapeHtml(formatCardDate(bugResolvedAt(bug)))}</span>
         <span class="tag-pill tag-error">Error</span>
       </div>
     </article>
